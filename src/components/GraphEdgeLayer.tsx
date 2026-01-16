@@ -1,51 +1,58 @@
 import React from "react";
 import { Vec2 } from "../models/Entity";
-import  * as GraphLogic from "../utils/GraphLogic";
-// 1. Define the shape of a Container so TypeScript knows it has position/size/id
-interface Container {
+import * as GraphLogic from "../utils/GraphLogic";
+
+interface EntityShape {
   id: string;
   position: Vec2;
-  size: { width: number; height: number };
-  nodeIds: string[];
+  size?: { width: number; height: number };
+  nodeIds?: string[];
   childContainerIds?: string[];
 }
 
 interface GraphEdgeLayerProps {
-  graph: any; 
+  graph: any;
   mode: string;
   creatingEdge: { sourceNodeId: string; position: Vec2 } | null;
+  selectedEdgeId: string | null; // NEW
+  onEdgeClick: (e: React.MouseEvent, edgeId: string) => void; // NEW
 }
 
 export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   graph,
   mode,
   creatingEdge,
+  selectedEdgeId,
+  onEdgeClick
 }) => {
-  
-  const getVisualPosition = (entityId: string): Vec2 | null => {
-    // 1. If visible, return position
+
+  const getEntity = (id: string): EntityShape | undefined => {
+    return graph.nodesById[id] || graph.containersById[id];
+  };
+
+  const getEntityCenter = (entity: EntityShape) => {
+    const w = entity.size?.width ?? 100;
+    const h = entity.size?.height ?? 50;
+    return {
+      x: entity.position.x + w / 2,
+      y: entity.position.y + h / 2
+    };
+  };
+
+  const getVisualAnchor = (entityId: string): Vec2 | null => {
+    // 1. Visible Entity
     if (GraphLogic.isEntityVisible(graph, entityId)) {
-      const node = graph.nodesById[entityId];
-      const container = graph.containersById[entityId];
-      return node?.position || container?.position || null;
+      const entity = getEntity(entityId);
+      return entity ? getEntityCenter(entity) : null;
     }
-
-    // 2. Find parent
-    // FIX: Explicitly cast the finding to the Container type
-    const containers: Container[] = Object.values(graph.containersById);
-    
+    // 2. Collapsed Parent
+    const containers: EntityShape[] = Object.values(graph.containersById);
     const parent = containers.find((c) =>
-        c.nodeIds.includes(entityId) || c.childContainerIds?.includes(entityId)
+      c.nodeIds?.includes(entityId) || c.childContainerIds?.includes(entityId)
     );
-
-    // FIX: Now TypeScript knows 'parent' has .id, .position, and .size
     if (parent && GraphLogic.isEntityVisible(graph, parent.id)) {
-      return {
-        x: parent.position.x + parent.size.width / 2,
-        y: parent.position.y + parent.size.height / 2,
-      };
+      return getEntityCenter(parent);
     }
-
     return null;
   };
 
@@ -57,43 +64,83 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
         left: 0,
         width: "100%",
         height: "100%",
-        pointerEvents: "none",
+        pointerEvents: "none", // Let clicks pass through empty space
         overflow: "visible",
-        zIndex: 0, 
+        zIndex: 0,
       }}
     >
       {/* 1. Render Existing Edges */}
       {Object.values(graph.edgesById).map((edge: any) => {
-        const start = getVisualPosition(edge.sourceNodeId);
-        const end = getVisualPosition(edge.targetNodeId);
+        const start = getVisualAnchor(edge.sourceNodeId);
+        const end = getVisualAnchor(edge.targetNodeId);
 
-        if (!start || !end) return null; 
+        if (!start || !end) return null;
+
+        const isSelected = selectedEdgeId === edge.id;
+        const midX = (start.x + end.x) / 2;
+        const midY = (start.y + end.y) / 2;
 
         return (
-          <line
-            key={edge.id}
-            x1={start.x + (graph.nodesById[edge.sourceNodeId] ? 50 : 0)}
-            y1={start.y + (graph.nodesById[edge.sourceNodeId] ? 25 : 0)}
-            x2={end.x + (graph.nodesById[edge.targetNodeId] ? 50 : 0)}
-            y2={end.y + (graph.nodesById[edge.targetNodeId] ? 25 : 0)}
-            stroke="black"
-            strokeWidth="2"
-          />
+          <g key={edge.id} style={{ pointerEvents: "all" }}> 
+            {/* A. Thick Invisible Hit Area (makes clicking easier) */}
+            <line
+              x1={start.x} y1={start.y} x2={end.x} y2={end.y}
+              stroke="transparent"
+              strokeWidth="15"
+              cursor="pointer"
+              onClick={(e) => {
+                 e.stopPropagation();
+                 onEdgeClick(e, edge.id);
+              }}
+            />
+
+            {/* B. Visible Line */}
+            <line
+              x1={start.x} y1={start.y} x2={end.x} y2={end.y}
+              stroke={isSelected ? "#3366ff" : "black"}
+              strokeWidth={isSelected ? "3" : "2"}
+              pointerEvents="none" // Click goes through to the Hit Area
+            />
+
+            {/* C. Label (Background + Text) */}
+            {edge.label && (
+              <g transform={`translate(${midX}, ${midY})`}>
+                 <rect 
+                    x={-(edge.label.length * 4) - 4} 
+                    y={-10} 
+                    width={(edge.label.length * 8) + 8} 
+                    height={20} 
+                    fill="white" 
+                    rx="4"
+                    stroke={isSelected ? "#3366ff" : "#ccc"}
+                 />
+                 <text
+                    x={0} y={4}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill={isSelected ? "#3366ff" : "black"}
+                    style={{ userSelect: "none" }}
+                 >
+                   {edge.label}
+                 </text>
+              </g>
+            )}
+          </g>
         );
       })}
 
-      {/* 2. Render Temporary "Creating" Edge */}
+      {/* 2. Creating Edge (No changes) */}
       {mode === "edge-create" && creatingEdge && (
         <line
-          x1={creatingEdge.position.x} 
+          x1={creatingEdge.position.x}
           y1={creatingEdge.position.y}
           x2={(() => {
-            const n = graph.nodesById[creatingEdge.sourceNodeId];
-            return n ? n.position.x + 50 : 0;
+            const source = getEntity(creatingEdge.sourceNodeId);
+            return source ? getEntityCenter(source).x : creatingEdge.position.x;
           })()}
           y2={(() => {
-            const n = graph.nodesById[creatingEdge.sourceNodeId];
-            return n ? n.position.y + 25 : 0;
+             const source = getEntity(creatingEdge.sourceNodeId);
+             return source ? getEntityCenter(source).y : creatingEdge.position.y;
           })()}
           stroke="black"
           strokeWidth="2"

@@ -1,7 +1,7 @@
 import React from "react";
 import { GraphModel } from "../models/GraphModel";
-import * as GraphLogic from "../utils/GraphLogic"; // Adjust path
-import { getPortPosition } from "../utils/Geometry"; // Adjust path
+import * as GraphLogic from "../utils/GraphLogic"; 
+import { getPortPosition } from "../utils/Geometry"; 
 import { ID, Vec2 } from "../models/Entity";
 
 interface GraphPortLayerProps {
@@ -21,45 +21,47 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
   if (!enablePorts) return null;
 
   const renderEntityPorts = (entity: any) => {
-    // Determine which ports to render
-    const portsToRender = "nodeIds" in entity
-      ? GraphLogic.getRenderablePorts(graph, entity)
-      : (entity.ports || []);
+    // 1. UPDATED: Always use the entity's own ports (node OR container)
+    // If you previously relied on getRenderablePorts for special logic, you can merge arrays here,
+    // but for "Ports on Containers", we usually want the explicit ports from the model.
+    const portsToRender = entity.ports || [];
 
     return portsToRender.map((port: any) => {
-      // Geometry Calculation
+      // 2. UPDATED: Calculate Absolute Position for everything
       const absPos = getPortPosition(
         entity,
         port.id,
         graph,
-        "nodeIds" in entity ? entity.size : { width: 100, height: 50 }
+        entity.size // Always use the entity's real size
       );
 
-      // Convert absolute to relative if needed (visual offset)
-      let pos = { x: absPos.x, y: absPos.y };
-      if ("nodeIds" in entity) {
-        pos.x = absPos.x - entity.position.x;
-        pos.y = absPos.y - entity.position.y;
-      }
-
+      // 3. REMOVED: The logic that subtracted entity.position.
+      // Since GraphPortLayer is an overlay on the canvas, we want Absolute positions for everyone.
+      
       return (
         <div
           key={port.id}
           title={port.label}
           style={{
             position: "absolute",
-            left: pos.x - 6,
-            top: pos.y - 6,
+            left: absPos.x - 6, // Center the 12px dot
+            top: absPos.y - 6,
             width: 12,
             height: 12,
             borderRadius: "50%",
             backgroundColor: "#fff",
             border: "2px solid #333",
-            zIndex: 10, // Ensure ports are above nodes
+            zIndex: 10,
+            cursor: "crosshair",
+            // distinct color for container ports if you want visual debugging:
+            // borderColor: "nodeIds" in entity ? "blue" : "#333" 
           }}
           onMouseEnter={() => onHoverPort({ nodeId: entity.id, portId: port.id })}
           onMouseLeave={() => onHoverPort(null)}
-          onMouseDown={(e) => onPortMouseDown(e, entity.id, port.id, port.label, pos)}
+          onMouseDown={(e) => {
+            e.stopPropagation(); // Good practice to stop canvas drag
+            onPortMouseDown(e, entity.id, port.id, port.label, absPos);
+          }}
         />
       );
     });
@@ -72,7 +74,7 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
          if (!GraphLogic.isEntityVisible(graph, c.id)) return null;
          return <React.Fragment key={`ports-${c.id}`}>{renderEntityPorts(c)}</React.Fragment>;
       })}
-      
+
       {/* Node Ports */}
       {Object.values(graph.nodesById).map((n) => {
          if (!GraphLogic.isEntityVisible(graph, n.id)) return null;

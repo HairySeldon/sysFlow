@@ -6,13 +6,13 @@ export class Edge {
   sourceNodeId: ID;
   sourcePortId?: ID;
   targetPortId?: ID;
-  name?: string;
+  label?: string;
 
-  constructor(id: ID, sourceNodeId: ID, targetNodeId: ID, name?: string) {
+  constructor(id: ID, sourceNodeId: ID, targetNodeId: ID, label?: string) {
     this.id = id;
     this.sourceNodeId = sourceNodeId;
     this.targetNodeId = targetNodeId;
-    this.name = name;
+    this.label = label;
   }
 }
 

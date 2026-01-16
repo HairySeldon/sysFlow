@@ -35,6 +35,8 @@ interface GraphCanvasProps {
 export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer, enablePorts }: GraphCanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+
   // 1. Hooks
   const view = useGraphView(containerRef);
   const selection = useGraphSelection(graph);
@@ -43,9 +45,11 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
     onGraphChange,
     selectedNodes: selection.selectedNodes,
     selectedContainerIds: selection.selectedContainerIds,
+    selectedEdgeId: selectedEdgeId,
     clearSelection: selection.clearSelection,
     setSelectedNodes: selection.setSelectedNodes,
-    setSelectedContainerIds: selection.setSelectedContainerIds
+    setSelectedContainerIds: selection.setSelectedContainerIds,
+    setSelectedEdgeId: setSelectedEdgeId // Move to selection
   });
 
   // 3. Local Interaction State (Things that are too transient for their own hooks yet)
@@ -69,6 +73,7 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
     position: { x: number, y: number },      // For the HTML Menu (Screen UI)
     graphPosition: { x: number, y: number }  // For the Node Logic (World Coords)
   } | null>(null);
+
 
   // --- Handlers ---
 
@@ -373,7 +378,6 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
                setResizingState({ id: c.id, startMouse: view.getMousePos(e), startSize: {...c.size} });
              }}
             onDoubleClick={(e) => {
-              console.log("DOUBLE CLICK");
               e.stopPropagation();
                 // 1. Clone the graph
                 const newGraph = graph.clone();
@@ -399,7 +403,22 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
         ))}
 
         {/* Edges */}
-        <GraphEdgeLayer graph={graph} mode={mode} creatingEdge={creatingEdge} />
+        <GraphEdgeLayer 
+          graph={graph} 
+          mode={mode} 
+          creatingEdge={creatingEdge} 
+          selectedEdgeId={selectedEdgeId}
+          onEdgeClick={(e, edgeId) => {
+            setSelectedEdgeId(edgeId);
+            selection.clearSelection();
+            
+            // Optional: Detect Double Click for Editing
+            if (e.detail === 2) {
+               setEditingEntityId(edgeId);
+               setEditorPosition(view.getMousePos(e));
+            }
+          }}
+        />
 
         {/* Ports */}
         <GraphPortLayer 

@@ -65,23 +65,13 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({
         label: `Port ${(entity.ports?.length || 0) + 1}` 
     };
     
-    // Use the model helper if available, or manual update
-    //if (graph.addPortToEntity) {
-        // We can't use graph.addPortToEntity directly on 'graph' prop because we need to trigger change
-        // So we do it via handleUpdate or a cloned graph method
-        const newGraph = graph.clone ? graph.clone() : Object.assign(Object.create(Object.getPrototypeOf(graph)), graph);
-        newGraph.addPortToEntity(entityId, newPort);
-        onGraphChange(newGraph);
-//    } else {
-//        // Fallback manual update
-//        handleUpdate(e => {
-//            if (!e.ports) e.ports = [];
-//            e.ports.push(newPort);
-//        });
-//    }
+    const newGraph = graph.clone ? graph.clone() : Object.assign(Object.create(Object.getPrototypeOf(graph)), graph);
+    newGraph.addPortToEntity(entityId, newPort);
+    onGraphChange(newGraph);
   };
 
   const deletePort = (portId: string) => {
+    console.log("DELETE PORT");
     // Crucial: Use the helper that deletes connected edges too
     const newGraph = graph.clone ? graph.clone() : Object.assign(Object.create(Object.getPrototypeOf(graph)), graph);
     if (newGraph.removePortAndEdges) {
@@ -116,6 +106,10 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({
         border: "1px solid #e0e0e0",
         animation: "fadeIn 0.15s ease-out"
       }}
+      onMouseDown={(e) => e.stopPropagation()} 
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div style={{ padding: "16px 16px 8px 16px", background: "#f8f9fa", borderBottom: "1px solid #eee" }}>

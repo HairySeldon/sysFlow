@@ -47,7 +47,6 @@ export const GraphContainer = ({
       <span 
         onMouseDown={(e) => { e.stopPropagation()}}
         onMouseUp={(e) => { e.stopPropagation(); }}
-        onClick={(e) => { e.stopPropagation() }}
         onDoubleClick={(e) => {
           e.stopPropagation(); // Stop propagation to canvas
           onDoubleClick?.(e);
