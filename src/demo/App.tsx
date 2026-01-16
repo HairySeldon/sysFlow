@@ -57,6 +57,28 @@ return (
           renderNode={renderNode}
           renderContainer={renderContainer}
           enablePorts={true}
+          renderEditor={(node, updateNode) => {
+            return (
+              <div>
+                <label style={{ display: "block", fontSize: "0.8em", marginBottom: "4px" }}>
+                  Custom Description:
+                </label>
+                <textarea
+                  style={{ width: "100%", height: "60px" }}
+                  
+                  // Read from the generic 'data' bucket
+                  value={node.data?.description || ""} 
+                  
+                  // Write to the generic 'data' bucket
+                  onChange={(e) => {
+                    updateNode({
+                      data: { ...node.data, description: e.target.value }
+                    });
+                  }}
+                />
+              </div>
+            );
+        }}
         />
       </div>
     </div>

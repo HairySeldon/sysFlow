@@ -30,9 +30,10 @@ interface GraphCanvasProps {
   renderNode?: (node: Node, selected: boolean) => React.ReactNode;
   renderContainer?: (container: Container, collapsed: boolean) => React.ReactNode;
   enablePorts: boolean;
+  renderEditor: (entity: Entity, update: (u: Partial<Entity>) => void) => React.ReactNode;
 }
 
-export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer, enablePorts }: GraphCanvasProps) => {
+export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer, enablePorts, renderEditor }: GraphCanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -449,6 +450,7 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
           onClose={() => setEditingEntityId(null)} 
           onGraphChange={onGraphChange} 
           enablePorts={enablePorts} 
+          renderCustomContent={renderEditor}
         />
       )}
       
