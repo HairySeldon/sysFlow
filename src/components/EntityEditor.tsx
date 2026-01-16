@@ -136,25 +136,6 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({
 
       <div style={{ padding: "0", maxHeight: "400px", overflowY: "auto" }}>
         
-        {/* Container Specific: Collapse Toggle */}
-        {'collapsed' in entity && (
-           <div style={{padding: "12px 16px", borderBottom: "1px solid #f1f3f4"}}>
-              <label style={{display:"flex", alignItems:"center", gap: 12, fontSize: "14px", cursor: "pointer", color: "#3c4043"}}>
-                <input 
-                  type="checkbox" 
-                  checked={(entity as any).collapsed} 
-                  onChange={() => {
-                     const newGraph = graph.clone ? graph.clone() : Object.assign(Object.create(Object.getPrototypeOf(graph)), graph);
-                     newGraph.toggleContainerCollapsed(entity.id);
-                     onGraphChange(newGraph);
-                  }}
-                  style={{width: 16, height: 16}}
-                />
-                Collapse Container Content
-              </label>
-           </div>
-        )}
-
         {/* Port Manager Header */}
         {enablePorts && (
         <>

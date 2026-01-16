@@ -18,4 +18,3 @@ export const Lasso = ({ start, end }: LassoProps) => (
     pointerEvents: "none"
   }} />
 );
-

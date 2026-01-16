@@ -10,6 +10,8 @@ export const CONTAINER_PADDING = 24;
 export const MIN_CONTAINER_WIDTH = 160;
 export const MIN_CONTAINER_HEIGHT = 120;
 
+
+
 // --- Visibility & Traversal ---
 
 export const isEntityVisible = (graph: GraphModel, id: ID): boolean => {
@@ -53,8 +55,11 @@ export const hitTestEntity = (graph: GraphModel, pos: Vec2): ID | null => {
 
 // --- Container Logic ---
 
-export const isContainerEntity = (e: Entity): e is Container => {
-  return (e as Container).size !== undefined;
+const isContainerEntity = (entity: any): boolean => {
+  return (
+    entity &&
+    (Array.isArray(entity.nodeIds) || Array.isArray(entity.childContainerIds))
+  );
 };
 
 export const recomputeContainerSize = (graph: GraphModel, id: ID) => {

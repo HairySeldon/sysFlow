@@ -42,11 +42,10 @@ export const App = () => {
   );
 
 return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ width: "100vw",  height: "100vh", display: "flex", flexDirection: "column" }}>
   
       {/* The Toolbar */}
       <GraphToolbar graph={graph} onGraphChange={setGraph} />
-      
 
       {/* Main Canvas */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#fafafa" }}>
@@ -57,6 +56,7 @@ return (
           }}
           renderNode={renderNode}
           renderContainer={renderContainer}
+          enablePorts={true}
         />
       </div>
     </div>

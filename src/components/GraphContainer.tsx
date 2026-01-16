@@ -6,10 +6,9 @@ interface GraphContainerProps {
   selected: boolean;
   renderContainerContent?: (c: Container, collapsed: boolean) => React.ReactNode;
   onMouseDown: (e: React.MouseEvent) => void;
-  onDoubleClick: (e: React.MouseEvent) => void;
-  onContextMenu: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
   onResizeMouseDown: (e: React.MouseEvent) => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
 }
 
 export const GraphContainer = ({
@@ -17,10 +16,9 @@ export const GraphContainer = ({
   selected,
   renderContainerContent,
   onMouseDown,
-  onDoubleClick,
-  onContextMenu,
   children,
   onResizeMouseDown,
+  onDoubleClick
 }: GraphContainerProps) => (
   <div
     style={{
@@ -35,21 +33,39 @@ export const GraphContainer = ({
       overflow: "hidden",
     }}
     onMouseDown={onMouseDown}
-    onDoubleClick={onDoubleClick}
-    onContextMenu={onContextMenu}
   >
     <div style={{
-          height: 32,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 8px",
-          fontWeight: 600,
-          background: "rgba(120,120,200,0.15)",
-          cursor: "pointer",
-          userSelect: "none" }}>
-      {container.collapsed ? "▶" : "▼"} {container.label}
+           height: 32,
+           display: "flex",
+           alignItems: "center",
+           padding: "0 8px",
+           fontWeight: 600,
+           background: "rgba(120,120,200,0.15)",
+           cursor: "default", // Changed from 'pointer' to avoid confusion
+           userSelect: "none" }}>
+      
+      <span 
+        onMouseDown={(e) => { e.stopPropagation()}}
+        onMouseUp={(e) => { e.stopPropagation(); }}
+        onClick={(e) => { e.stopPropagation() }}
+        onDoubleClick={(e) => {
+          e.stopPropagation(); // Stop propagation to canvas
+          onDoubleClick?.(e);
+        }}
+        style={{ 
+          cursor: "pointer", 
+          padding: "4px 8px 4px 0", // Bigger hit area
+          fontSize: "1.1em",
+          color: "#333"
+        }}
+        title="Double-click to Toggle"
+      >
+        {container.collapsed ? "▶" : "▼"}
+      </span>
+
+      {container.label}
     </div>
-    
+
     {!container.collapsed && renderContainerContent?.(container, container.collapsed)}
     {children}
 
@@ -63,12 +79,10 @@ export const GraphContainer = ({
           width: 16,
           height: 16,
           cursor: "nwse-resize",
-          // Visual: A small triangle in the corner
           background: "linear-gradient(135deg, transparent 50%, #666 50%)",
           zIndex: 10
         }}
         onMouseDown={(e) => {
-          // CRITICAL: Stop the event so the container itself doesn't try to drag
           e.stopPropagation();
           onResizeMouseDown(e);
         }}
