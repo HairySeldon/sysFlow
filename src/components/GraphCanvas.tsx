@@ -365,6 +365,24 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
           transform: `translate(${view.view.x}px, ${view.view.y}px) scale(${view.view.zoom})`,
           transformOrigin: "0 0", width: "100%", height: "100%", position: "absolute", top: 0, left: 0
       }}>
+
+        {/* Edges */}
+        <GraphEdgeLayer 
+          graph={graph} 
+          mode={mode} 
+          creatingEdge={creatingEdge} 
+          selectedEdgeId={selectedEdgeId}
+          onEdgeClick={(e, edgeId) => {
+            setSelectedEdgeId(edgeId);
+            selection.clearSelection();
+            
+            // Optional: Detect Double Click for Editing
+            if (e.detail === 2) {
+               setEditingEntityId(edgeId);
+               setEditorPosition(view.getMousePos(e));
+            }
+          }}
+        />
         
         {/* Render Containers */}
         {Object.values(graph.containersById).map(c => GraphLogic.isEntityVisible(graph, c.id) && (
@@ -403,23 +421,6 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
            />
         ))}
 
-        {/* Edges */}
-        <GraphEdgeLayer 
-          graph={graph} 
-          mode={mode} 
-          creatingEdge={creatingEdge} 
-          selectedEdgeId={selectedEdgeId}
-          onEdgeClick={(e, edgeId) => {
-            setSelectedEdgeId(edgeId);
-            selection.clearSelection();
-            
-            // Optional: Detect Double Click for Editing
-            if (e.detail === 2) {
-               setEditingEntityId(edgeId);
-               setEditorPosition(view.getMousePos(e));
-            }
-          }}
-        />
 
         {/* Ports */}
         <GraphPortLayer 

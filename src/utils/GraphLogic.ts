@@ -10,8 +10,6 @@ export const CONTAINER_PADDING = 24;
 export const MIN_CONTAINER_WIDTH = 160;
 export const MIN_CONTAINER_HEIGHT = 120;
 
-
-
 // --- Visibility & Traversal ---
 
 export const isEntityVisible = (graph: GraphModel, id: ID): boolean => {

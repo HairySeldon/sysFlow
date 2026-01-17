@@ -31,8 +31,7 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
       const absPos = getPortPosition(
         entity,
         port.id,
-        graph,
-        entity.size // Always use the entity's real size
+        graph
       );
 
       // 3. REMOVED: The logic that subtracted entity.position.

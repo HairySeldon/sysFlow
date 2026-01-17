@@ -38,6 +38,11 @@ export const useGraphClipboard = ({
     setSelectedEdgeId(null);
   };
 
+  const selectAll = () => {
+    setSelectedNodes(new Set(Object.keys(graph.nodesById)));
+    setSelectedContainerIds(new Set(Object.keys(graph.containersById)));
+  }
+
   const deleteSelected = () => {
     if (selectedNodes.size === 0 && selectedContainerIds.size === 0 && !selectedEdgeId) return;
 
@@ -147,7 +152,7 @@ export const useGraphClipboard = ({
 
       // Modifiers
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === "a") { e.preventDefault(); /*selectAll();*/ }
+        if (e.key === "a") { e.preventDefault(); selectAll(); }
         if (e.key === "c") copy(e);
         if (e.key === "x") { copy(e); deleteSelected(); }
         if (e.key === "v") paste(e);

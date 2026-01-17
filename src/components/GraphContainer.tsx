@@ -28,7 +28,7 @@ export const GraphContainer = ({
       width: container.size.width,
       height: container.collapsed ? 32 : container.size.height,
       border: selected ? "2px solid #3366ff" : "2px solid #666",
-      background: "rgba(200,200,255,0.2)",
+      background: "rgba(227, 227, 227, 1)",
       cursor: "move",
       overflow: "hidden",
     }}
