@@ -142,6 +142,11 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({
       <div style={{ padding: "16px 16px 8px 16px", background: "#f8f9fa", borderBottom: "1px solid #eee" }}>
         <input
           value={label}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              onClose();
+            }
+          }}
           onChange={(e) => {
             setLabel(e.target.value);
             handleUpdate((ent) => (ent.label = e.target.value));
