@@ -103,51 +103,71 @@ export const assignEntityToContainer = (graph: GraphModel, entityId: ID, skipCon
   if (!entity) return;
 
   const isContainer = isContainerEntity(entity);
-  const containers = Object.values(graph.containersById);
+  
+  // 1. Find ALL valid candidate containers
+  const candidates = Object.values(graph.containersById).filter(c => {
+      // Basic validation checks
+      if (c.id === entityId || (skipContainerId && c.id === skipContainerId)) return false;
+      if (!isEntityVisible(graph, c.id)) return false; 
 
-  for (const c of containers) {
-    if (c.id === entityId || (skipContainerId && c.id === skipContainerId)) continue;
-    if (!isEntityVisible(graph, c.id)) continue; // Can't drop into a hidden container
+      // Geometric Check: Is entity inside 'c'?
+      const inside =
+        entity.position.x >= c.position.x &&
+        entity.position.y >= c.position.y &&
+        entity.position.x + (isContainer ? entity.size.width : 100) <= c.position.x + c.size.width &&
+        entity.position.y + (isContainer ? entity.size.height : 50) <= c.position.y + c.size.height;
+      
+      return inside;
+  });
 
-    const inside =
-      entity.position.x >= c.position.x &&
-      entity.position.y >= c.position.y &&
-      entity.position.x + (isContainer ? entity.size.width : 100) <= c.position.x + c.size.width &&
-      entity.position.y + (isContainer ? entity.size.height : 50) <= c.position.y + c.size.height;
+  // 2. SORT candidates by Area (Smallest -> Largest)
+  // The smallest container that fits is always the most immediate parent.
+  candidates.sort((a, b) => 
+    (a.size.width * a.size.height) - (b.size.width * b.size.height)
+  );
 
-    if (inside) {
-      if (entity.parentId !== c.id) {
-        // Remove from old parent
-        if (entity.parentId) {
-             const oldParent = graph.containersById[entity.parentId];
-             if (oldParent) {
-                 if(isContainer) oldParent.childContainerIds = oldParent.childContainerIds?.filter(id => id !== entityId);
-                 else oldParent.nodeIds = oldParent.nodeIds.filter(id => id !== entityId);
-             }
-        }
-        
-        // Add to new parent
-        entity.parentId = c.id;
+  // 3. Pick the winner (if any)
+  const bestParent = candidates[0];
+
+  // ---------------------------------------------------------
+  // 4. Perform the Re-Assignment (Same logic as before)
+  // ---------------------------------------------------------
+  
+  // Check if we are moving TO a new parent, or moving FROM a parent to 'undefined' (root)
+  if (bestParent) {
+    if (entity.parentId !== bestParent.id) {
+        // Remove from OLD parent
+        removeFromParent(graph, entity, isContainer);
+
+        // Add to NEW parent (bestParent)
+        entity.parentId = bestParent.id;
         if (isContainer) {
-          if (!c.childContainerIds) c.childContainerIds = [];
-          if (!c.childContainerIds.includes(entityId)) c.childContainerIds.push(entityId);
+           if (!bestParent.childContainerIds) bestParent.childContainerIds = [];
+           if (!bestParent.childContainerIds.includes(entityId)) bestParent.childContainerIds.push(entityId);
         } else {
-          if (!c.nodeIds.includes(entityId)) c.nodeIds.push(entityId);
+           if (!bestParent.nodeIds.includes(entityId)) bestParent.nodeIds.push(entityId);
         }
-      }
-      return;
     }
+  } else {
+     // No valid parent found -> Move to Root
+     if (entity.parentId) {
+         removeFromParent(graph, entity, isContainer);
+         entity.parentId = undefined;
+     }
   }
+}
 
-  // If we get here, it's not inside any container. Clear parent.
-  if (entity.parentId) {
-      const prev = graph.containersById[entity.parentId];
-      if (prev) {
-        if (isContainer) prev.childContainerIds = prev.childContainerIds?.filter(id => id !== entityId);
-        else prev.nodeIds = prev.nodeIds.filter(id => id !== entityId);
-      }
-      entity.parentId = undefined;
-  }
+// Helper to keep code clean (extracting your lines 121-127 & 144-148)
+const removeFromParent = (graph: GraphModel, entity: any, isContainer: boolean) => {
+    if (!entity.parentId) return;
+    const oldParent = graph.containersById[entity.parentId];
+    if (oldParent) {
+        if (isContainer) {
+            oldParent.childContainerIds = oldParent.childContainerIds?.filter((id: string) => id !== entity.id);
+        } else {
+            oldParent.nodeIds = oldParent.nodeIds.filter((id: string) => id !== entity.id);
+        }
+    }
 };
 
 // --- Port Proxy Logic ---
