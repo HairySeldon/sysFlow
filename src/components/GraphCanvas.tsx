@@ -380,7 +380,7 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
         position: "relative", width: "100%", height: "100%", overflow: "hidden",
         userSelect: "none", cursor: view.isPanning ? "grabbing" : "default"
       }}
-      onWheel={view.handleWheel}
+      //onWheel={view.handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

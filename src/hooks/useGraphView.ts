@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Vec2 } from "../models/Entity";
 
 export const useGraphView = (containerRef: React.RefObject<HTMLDivElement | null>) => {
@@ -6,16 +6,77 @@ export const useGraphView = (containerRef: React.RefObject<HTMLDivElement | null
   const [isPanning, setIsPanning] = useState(false);
   const [panStartMouse, setPanStartMouse] = useState<Vec2 | null>(null);
 
-  // Helper: Convert Screen (Mouse) coords to World (Graph) coords
+  // 1. Keep a Ref of the view so our non-React event listener can read it
+  //    without needing to re-bind the listener on every render.
+  const viewRef = useRef(view);
+  
+  // Sync the Ref whenever state changes
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
+  // 2. The Native Wheel Listener (Non-Passive)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      // Access the *current* view from the ref, not the stale closure
+      const currentView = viewRef.current;
+
+      // Ctrl+Scroll -> Zoom
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault(); // STOP the browser from zooming the whole page
+
+        const rect = el.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+
+        // World position before zoom
+        const worldX = (screenX - currentView.x) / currentView.zoom;
+        const worldY = (screenY - currentView.y) / currentView.zoom;
+
+        // Calc new zoom
+        const delta = -e.deltaY * 0.001;
+        const newZoom = Math.min(Math.max(0.1, currentView.zoom * (1 + delta)), 5);
+
+        // Adjust Pan to keep mouse over same world point
+        const newX = screenX - (worldX * newZoom);
+        const newY = screenY - (worldY * newZoom);
+
+        setView({ x: newX, y: newY, zoom: newZoom });
+      } else {
+        // Standard Pan (Shift+Scroll or Trackpad)
+        // Only prevent default if we are actually panning to avoid blocking normal page scroll
+        // (Optional: remove e.preventDefault() here if you want normal scroll behavior when not zooming)
+        e.preventDefault(); 
+        
+        setView(prev => ({
+          ...prev,
+          x: prev.x - e.deltaX,
+          y: prev.y - e.deltaY
+        }));
+      }
+    };
+
+    // 3. Attach with { passive: false }
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [containerRef]); // Only run once on mount (or if ref changes)
+
+
+  // --- Helper: Convert Screen (Mouse) coords to World (Graph) coords ---
   const getGlobPos = useCallback((e: React.MouseEvent | MouseEvent): Vec2 => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-
-    // 2. Calculate coordinates relative to that container (0,0 is top-left of the canvas view)
-    const globX = e.clientX - rect.left;
-    const globY = e.clientY - rect.top;
-    return { x: globX, y: globY};
-  }, [view, containerRef]);
+    return { 
+      x: e.clientX - rect.left, 
+      y: e.clientY - rect.top
+    };
+  }, [containerRef]); // removed 'view' dependency to prevent unnecessary recalcs
 
   const getMousePos = useCallback((e: React.MouseEvent | MouseEvent): Vec2 => {
     const glob = getGlobPos(e);
@@ -23,43 +84,10 @@ export const useGraphView = (containerRef: React.RefObject<HTMLDivElement | null
       x: (glob.x - view.x) / view.zoom,
       y: (glob.y - view.y) / view.zoom
     };
-  }, [view, containerRef]);
+  }, [view, getGlobPos]);
 
-  // Handle Zoom and Pan via Wheel
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    // Ctrl+Scroll -> Zoom
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      if (!containerRef.current) return;
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const screenX = e.clientX - rect.left;
-      const screenY = e.clientY - rect.top;
-
-      // World position before zoom
-      const worldX = (screenX - view.x) / view.zoom;
-      const worldY = (screenY - view.y) / view.zoom;
-
-      // Calc new zoom
-      const delta = -e.deltaY * 0.001;
-      const newZoom = Math.min(Math.max(0.1, view.zoom * (1 + delta)), 5);
-
-      // Adjust Pan to keep mouse over same world point
-      const newX = screenX - (worldX * newZoom);
-      const newY = screenY - (worldY * newZoom);
-
-      setView({ x: newX, y: newY, zoom: newZoom });
-    } else {
-      // Standard Pan (Shift+Scroll or Trackpad)
-      setView(prev => ({
-        ...prev,
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY
-      }));
-    }
-  }, [view]);
-
-  // Manual Panning Handlers (Middle Mouse / Spacebar)
+  // --- Manual Panning Handlers (Middle Mouse / Spacebar) ---
   const startPan = (e: React.MouseEvent) => {
     setIsPanning(true);
     setPanStartMouse({ x: e.clientX, y: e.clientY });
@@ -84,7 +112,7 @@ export const useGraphView = (containerRef: React.RefObject<HTMLDivElement | null
     isPanning,
     getMousePos,
     getGlobPos,
-    handleWheel,
+    // handleWheel, <-- REMOVED (Handled internally now)
     startPan,
     updatePan,
     endPan

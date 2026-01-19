@@ -42,7 +42,7 @@ export const App = () => {
   );
 
 return (
-    <div style={{ width: "100vw",  height: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ width: "100vw",  height: "100vh", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, right: 0, bottom: 0, overflow: "hidden", margin: 0, padding: 0, backgroundColor: "#f0f0f0" }}>
   
       {/* The Toolbar */}
       <GraphToolbar graph={graph} onGraphChange={setGraph} />
