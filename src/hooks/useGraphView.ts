@@ -7,12 +7,21 @@ export const useGraphView = (containerRef: React.RefObject<HTMLDivElement | null
   const [panStartMouse, setPanStartMouse] = useState<Vec2 | null>(null);
 
   // Helper: Convert Screen (Mouse) coords to World (Graph) coords
-  const getMousePos = useCallback((e: React.MouseEvent | MouseEvent): Vec2 => {
+  const getGlobPos = useCallback((e: React.MouseEvent | MouseEvent): Vec2 => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
+
+    // 2. Calculate coordinates relative to that container (0,0 is top-left of the canvas view)
+    const globX = e.clientX - rect.left;
+    const globY = e.clientY - rect.top;
+    return { x: globX, y: globY};
+  }, [view, containerRef]);
+
+  const getMousePos = useCallback((e: React.MouseEvent | MouseEvent): Vec2 => {
+    const glob = getGlobPos(e);
     return {
-      x: (e.clientX - rect.left - view.x) / view.zoom,
-      y: (e.clientY - rect.top - view.y) / view.zoom
+      x: (glob.x - view.x) / view.zoom,
+      y: (glob.y - view.y) / view.zoom
     };
   }, [view, containerRef]);
 
@@ -74,6 +83,7 @@ export const useGraphView = (containerRef: React.RefObject<HTMLDivElement | null
     setView,
     isPanning,
     getMousePos,
+    getGlobPos,
     handleWheel,
     startPan,
     updatePan,

@@ -99,7 +99,7 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
       return;
     }
 
-    const pos = view.getMousePos(e);
+    const pos = view.getGlobPos(e);
 
     // 2. Canvas Click (Left) -> Start Lasso
     if (e.button === 0) {
@@ -141,7 +141,8 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
 
     // 2. Lasso
     if (mode === "lasso") {
-      selection.setLassoEnd(mousePos);
+      const lassoPos = view.getGlobPos(e);
+      selection.setLassoEnd(lassoPos);
     }
 
     // 3. Edge Create
@@ -331,19 +332,43 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
 
     // 2. Left Click -> Select & Prepare Drag
     selection.handleEntityClick(e, id, type);
-    
     if (e.button === 0) {
       setMode("drag");
       setDragStartMouse(view.getMousePos(e));
-      
-      // Calculate Drag Origins
-      const activeNodes = new Set(selection.selectedNodes);
-      const activeContainers = new Set(selection.selectedContainerIds);
-      if (type === "node") activeNodes.add(id); else activeContainers.add(id);
-      
+
+      // --- FIX START ---
+      // Check if the item we clicked was ALREADY part of the selection
+      const isAlreadySelected = type === "node" 
+        ? selection.selectedNodes.has(id) 
+        : selection.selectedContainerIds.has(id);
+
+      // Check for modifier keys (Shift/Ctrl/Meta)
+      const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
+
+      // Start with the EXISTING selection (stale state)
+      let nodesToDrag = new Set(selection.selectedNodes);
+      let containersToDrag = new Set(selection.selectedContainerIds);
+
+      // CRITICAL LOGIC: 
+      // If we clicked a NEW item (not already selected) AND we aren't holding Shift...
+      // We must ignore the old selection and drag ONLY the new item.
+      if (!isAlreadySelected && !isMultiSelect) {
+         nodesToDrag.clear();
+         containersToDrag.clear();
+      }
+
+      // Always ensure the clicked item is included in the drag
+      if (type === "node") nodesToDrag.add(id);
+      else containersToDrag.add(id);
+      // --- FIX END ---
+
       setDragStartPositions(
-        GraphLogic.collectDragStartPositions([...activeNodes, ...activeContainers], new Map(), graph)
-      );
+        GraphLogic.collectDragStartPositions(
+           [...nodesToDrag, ...containersToDrag], 
+           new Map(), 
+           graph
+        )
+      ); 
     }
   };
 
@@ -366,23 +391,6 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
           transformOrigin: "0 0", width: "100%", height: "100%", position: "absolute", top: 0, left: 0
       }}>
 
-        {/* Edges */}
-        <GraphEdgeLayer 
-          graph={graph} 
-          mode={mode} 
-          creatingEdge={creatingEdge} 
-          selectedEdgeId={selectedEdgeId}
-          onEdgeClick={(e, edgeId) => {
-            setSelectedEdgeId(edgeId);
-            selection.clearSelection();
-            
-            // Optional: Detect Double Click for Editing
-            if (e.detail === 2) {
-               setEditingEntityId(edgeId);
-               setEditorPosition(view.getMousePos(e));
-            }
-          }}
-        />
         
         {/* Render Containers */}
         {/*Object.values(graph.containersById).map(c => GraphLogic.isEntityVisible(graph, c.id) && (*/}
@@ -425,7 +433,23 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
            />
         ))}
 
-
+        {/* Edges */}
+        <GraphEdgeLayer 
+          graph={graph} 
+          mode={mode} 
+          creatingEdge={creatingEdge} 
+          selectedEdgeId={selectedEdgeId}
+          onEdgeClick={(e, edgeId) => {
+            setSelectedEdgeId(edgeId);
+            selection.clearSelection();
+            
+            // Optional: Detect Double Click for Editing
+            if (e.detail === 2) {
+               setEditingEntityId(edgeId);
+               setEditorPosition(view.getMousePos(e));
+            }
+          }}
+        />
         {/* Ports */}
         <GraphPortLayer 
            graph={graph} 
