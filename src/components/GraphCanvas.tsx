@@ -188,7 +188,7 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
 
     // 2. Lasso Finish
     if (mode === "lasso") {
-      selection.completeLasso();
+      selection.completeLasso(view.view);
     }
 
     // 3. Drag Finish

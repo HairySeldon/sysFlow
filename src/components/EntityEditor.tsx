@@ -121,10 +121,10 @@ export const EntityEditor: React.FC<EntityEditorProps> = ({
       ref={ref}
       style={{
         position: "fixed",
-        //left: Math.min(position.x, window.innerWidth - 320),
-        //top: Math.min(position.y, window.innerHeight - 400),
-        left: (window.innerWidth-editorWidth)/2,
-        top: (window.innerHeight-800)/2,
+        left: Math.min(position.x, window.innerWidth - 320),
+        top: Math.min(position.y, window.innerHeight - 400),
+        //left: (window.innerWidth-editorWidth)/2,
+        //top: (window.innerHeight-800)/2,
         width: editorWidth,
         backgroundColor: "white",
         boxShadow: "0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.1)",
