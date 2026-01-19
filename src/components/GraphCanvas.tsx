@@ -385,7 +385,11 @@ export const GraphCanvas = ({ graph, onGraphChange, renderNode, renderContainer,
         />
         
         {/* Render Containers */}
-        {Object.values(graph.containersById).map(c => GraphLogic.isEntityVisible(graph, c.id) && (
+        {/*Object.values(graph.containersById).map(c => GraphLogic.isEntityVisible(graph, c.id) && (*/}
+        {Object.values(graph.containersById)
+        // 1. SORT: Render largest containers first (bottom layer), smallest last (top layer)
+          .sort((a, b) => (b.size.width * b.size.height) - (a.size.width * a.size.height))
+          .map(c => GraphLogic.isEntityVisible(graph, c.id) && (
            <GraphContainer
              key={c.id}
              container={c}
