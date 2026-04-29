@@ -4,6 +4,7 @@ export class Container extends Entity {
   nodeIds: ID[];
   childContainerIds?: ID[];
   collapsed: boolean;
+  collapsedSize: SIZE;
 
   constructor(id: ID, label: string, position: Vec2, size: SIZE, parentId?: ID, ports?: Port[]) {
     super(id, label, position, size, parentId, ports);
@@ -12,6 +13,7 @@ export class Container extends Entity {
     this.nodeIds = [];
     this.childContainerIds = [];
     this.collapsed = false;
+    this.collapsedSize = { width : 30, height: 100};
   }
 }
 

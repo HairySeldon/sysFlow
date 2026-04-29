@@ -1,14 +1,7 @@
 import React from "react";
-import { Vec2 } from "../models/Entity";
+import { Entity, Vec2 } from "../models/Entity";
+import { Container } from "../models/Container";
 import * as GraphLogic from "../utils/GraphLogic";
-
-interface EntityShape {
-  id: string;
-  position: Vec2;
-  size?: { width: number; height: number };
-  nodeIds?: string[];
-  childContainerIds?: string[];
-}
 
 interface GraphEdgeLayerProps {
   graph: any;
@@ -26,13 +19,16 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   onEdgeClick
 }) => {
 
-  const getEntity = (id: string): EntityShape | undefined => {
+  const getEntity = (id: string): Entity | undefined => {
     return graph.nodesById[id] || graph.containersById[id];
   };
 
-  const getEntityCenter = (entity: EntityShape) => {
-    const w = entity.size?.width ?? 100;
-    const h = entity.size?.height ?? 50;
+  const getEntityCenter = (entity: Entity) => {
+    const currentSize = GraphLogic.getEffectiveSize(entity);
+
+    const w = currentSize.width ?? 100;
+    const h = currentSize.height ?? 50;
+
     return {
       x: entity.position.x + w / 2,
       y: entity.position.y + h / 2
@@ -46,7 +42,7 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
       return entity ? getEntityCenter(entity) : null;
     }
     // 2. Collapsed Parent
-    const containers: EntityShape[] = Object.values(graph.containersById);
+    const containers: Container[] = Object.values(graph.containersById);
     const parent = containers.find((c) =>
       c.nodeIds?.includes(entityId) || c.childContainerIds?.includes(entityId)
     );

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { GraphCanvas } from "../components/GraphCanvas";
-import { createInitialGraph } from "./initialGraph";
+//import { createInitialGraph } from "./initialGraph";
 import { GraphModel } from "../models/GraphModel";
 import { Node } from "../models/Node";
 import { Container } from "../models/Container";

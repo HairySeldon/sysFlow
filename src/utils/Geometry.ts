@@ -1,17 +1,6 @@
-import { Entity, Vec2, ID } from "../models/Entity";
+import { Entity, SIZE, Vec2, ID } from "../models/Entity";
 import { GraphModel } from "../models/GraphModel";
-
-/**
- * Helper to safely resolve entity size.
- * Defaults to a standard node size (150x60) if width/height are missing.
- */
-const getEntitySize = (entity: Entity): { width: number; height: number } => {
-  // Use explicit properties if they exist, otherwise fallback defaults
-  return {
-    width: entity.size.width ?? 150,
-    height: entity.size.height ?? 60
-  };
-};
+import { getEffectiveSize } from "../utils/GraphLogic";
 
 /**
  * Calculates the exact (x,y) screen coordinate for a specific port on an entity.
@@ -23,7 +12,7 @@ export const getPortPosition = (
   graph: GraphModel
 ): Vec2 => {
   // 1. Resolve geometry for the source entity
-  const entitySize = getEntitySize(entity);
+  const entitySize = getEffectiveSize(entity);
   const center = getCenter(entity.position, entitySize);
 
   // 2. Find if this port is connected to an edge
@@ -44,7 +33,7 @@ export const getPortPosition = (
     if (!targetEntity) return center; // Fallback
 
     // Resolve geometry for the target entity
-    const targetSize = getEntitySize(targetEntity);
+    const targetSize = getEffectiveSize(targetEntity);
     const targetCenter = getCenter(targetEntity.position, targetSize);
 
     // Use intersection logic to find the point on the source entity's bounding box
@@ -80,7 +69,7 @@ export const getPortPosition = (
  */
 export const getRectIntersection = (
   center: Vec2,
-  size: { width: number; height: number },
+  size: SIZE,
   target: Vec2
 ): Vec2 => {
   const dx = target.x - center.x;

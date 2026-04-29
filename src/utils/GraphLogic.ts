@@ -1,16 +1,29 @@
 import { GraphModel } from "../models/GraphModel";
 import { Container } from "../models/Container";
 import { Node } from "../models/Node";
-import { Entity, ID, Vec2, Port } from "../models/Entity";
+import { Entity, ID, Vec2, Port, SIZE } from "../models/Entity";
 import { getPortPosition } from "./Geometry"; // Assuming you have this from before
 
 // Constants
 export const CONTAINER_HEADER_HEIGHT = 32;
+export const CONTAINER_HEADER_WIDTH = 300;
 export const CONTAINER_PADDING = 24;
 export const MIN_CONTAINER_WIDTH = 160;
 export const MIN_CONTAINER_HEIGHT = 120;
 
 // --- Visibility & Traversal ---
+
+export const getEffectiveSize = (entity: Entity): SIZE => {
+  // Check if 'collapsed' property exists and is true
+  // We use 'in' check to be safe for both Node and Container types
+  if ('collapsed' in entity && (entity as any).collapsed) {
+    console.log(entity, (entity as any).collapsedSize);
+    return { width: CONTAINER_HEADER_WIDTH, height: CONTAINER_HEADER_HEIGHT}; //(entity as any).collapsedSize;
+  }
+  
+  // Default to the stored size
+  return entity.size;
+};
 
 export const isEntityVisible = (graph: GraphModel, id: ID): boolean => {
   // 1. Resolve Entity
