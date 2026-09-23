@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production & Build Outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Vite & Bundler Cache
+.vite/
+.turbo/
+.cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment & Local Configuration
+.env
+.env.local
+.env.*.local
+*.env
+
+# Editor & OS Artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Temporary / Testing artifacts
+coverage/
+.nyc_output/
+*.lcov

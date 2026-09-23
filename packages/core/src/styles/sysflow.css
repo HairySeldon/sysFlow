@@ -1,0 +1,174 @@
+.sysflow-canvas {
+  --sysflow-bg: #0b1120;
+  --sysflow-grid: #1e293b;
+  --sysflow-node-bg: #1e293b;
+  --sysflow-node-border: #334155;
+  --sysflow-node-selected: #38bdf8;
+  --sysflow-node-text: #f8fafc;
+  --sysflow-container-bg: rgba(30, 41, 59, 0.45);
+  --sysflow-container-border: #475569;
+  --sysflow-container-hover: #38bdf8;
+  --sysflow-edge-stroke: #64748b;
+  --sysflow-edge-selected: #38bdf8;
+  --sysflow-port-bg: #94a3b8;
+  --sysflow-port-hover: #38bdf8;
+
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background-color: var(--sysflow-bg);
+  background-image: radial-gradient(var(--sysflow-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.sysflow-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+}
+
+.sysflow-measure-layer {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  top: -99999px;
+  left: -99999px;
+}
+
+.sysflow-edge-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 25000px;
+  height: 25000px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sysflow-dom-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.sysflow-node {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  background-color: var(--sysflow-node-bg);
+  border: 1px solid var(--sysflow-node-border);
+  border-radius: 8px;
+  color: var(--sysflow-node-text);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  z-index: 15;
+}
+
+.sysflow-node:hover {
+  border-color: #64748b;
+}
+
+.sysflow-node.sysflow-selected {
+  border-color: var(--sysflow-node-selected);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5);
+}
+
+.sysflow-container {
+  position: absolute;
+  pointer-events: auto;
+  background-color: var(--sysflow-container-bg);
+  border: 2px dashed var(--sysflow-container-border);
+  border-radius: 12px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  z-index: 5;
+}
+
+.sysflow-container.sysflow-hovered {
+  border-color: var(--sysflow-container-hover);
+  background-color: rgba(56, 189, 248, 0.12);
+}
+
+.sysflow-container.sysflow-selected {
+  border-color: var(--sysflow-node-selected);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+/* Container Header with Text Truncation & Non-Squishable Button */
+.sysflow-container-header {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 8px;
+  background-color: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid var(--sysflow-node-border);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  box-sizing: border-box;
+}
+
+.sysflow-container-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--sysflow-node-text);
+}
+
+.sysflow-collapse-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #f8fafc;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  transition: background 0.15s ease;
+}
+
+.sysflow-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.sysflow-port-anchor {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--sysflow-port-bg);
+  border: 2px solid var(--sysflow-bg);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: crosshair;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+  z-index: 25;
+}
+
+.sysflow-port-anchor:hover {
+  background-color: var(--sysflow-port-hover);
+  transform: translate(-50%, -50%) scale(1.35);
+}
+
+.sysflow-ghost-node {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.75;
+  border: 2px dashed var(--sysflow-node-selected);
+  background-color: rgba(30, 41, 59, 0.85);
+}
