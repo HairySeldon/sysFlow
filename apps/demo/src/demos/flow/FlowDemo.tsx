@@ -164,7 +164,16 @@ export const FlowDemo: React.FC = () => {
     });
   };
 
-  const handleUpdateEntity = (id: string, updates: Partial<NodeEntity | ContainerEntity>) => {
+  const handleUpdateEntity = (
+    id: string,
+    updates: Partial<NodeEntity | ContainerEntity>,
+    cleanGraph?: LogicalGraph
+  ) => {
+    if (cleanGraph) {
+      setGraphDirect(cleanGraph);
+      return;
+    }
+
     if (graph.nodes[id]) {
       setGraphDirect({
         ...graph,
@@ -198,7 +207,7 @@ export const FlowDemo: React.FC = () => {
         <strong style={{ color: '#38bdf8' }}>Flow Priority Flow Reference:</strong>
         <ul style={{ margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }}>
           <li><strong>Pipeline Reordering:</strong> Drag any task node and drop it onto an edge or another node to splice and reorder the pipeline.</li>
-          <li><strong>CRUD & Keybinds:</strong> <code>N</code> (New Task), <code>L</code> (Layout), <code>Ctrl+Z/Y</code>, <code>Del</code>.</li>
+          <li><strong>CRUD & Keybinds:</strong> <code>N</code> (New Task), <code>Ctrl+Z/Y</code>, <code>Del</code>.</li>
         </ul>
       </div>
 

@@ -150,7 +150,11 @@ export const FlowDemo = () => {
             containers: { ...graph.containers, [id]: newContainer }
         });
     };
-    const handleUpdateEntity = (id, updates) => {
+    const handleUpdateEntity = (id, updates, cleanGraph) => {
+        if (cleanGraph) {
+            setGraphDirect(cleanGraph);
+            return;
+        }
         if (graph.nodes[id]) {
             setGraphDirect({
                 ...graph,
@@ -176,7 +180,7 @@ export const FlowDemo = () => {
                     color: '#f8fafc',
                     fontSize: '12px',
                     maxWidth: 450
-                }, children: [_jsx("strong", { style: { color: '#38bdf8' }, children: "Flow Priority Flow Reference:" }), _jsxs("ul", { style: { margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }, children: [_jsxs("li", { children: [_jsx("strong", { children: "Pipeline Reordering:" }), " Drag any task node and drop it onto an edge or another node to splice and reorder the pipeline."] }), _jsxs("li", { children: [_jsx("strong", { children: "CRUD & Keybinds:" }), " ", _jsx("code", { children: "N" }), " (New Task), ", _jsx("code", { children: "L" }), " (Layout), ", _jsx("code", { children: "Ctrl+Z/Y" }), ", ", _jsx("code", { children: "Del" }), "."] })] })] }), _jsx(Toolbar, { graph: graph, selectedIds: selectedIds, onAddNode: handleAddTask, onAddContainer: handleAddContainer, onDeleteSelected: () => {
+                }, children: [_jsx("strong", { style: { color: '#38bdf8' }, children: "Flow Priority Flow Reference:" }), _jsxs("ul", { style: { margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }, children: [_jsxs("li", { children: [_jsx("strong", { children: "Pipeline Reordering:" }), " Drag any task node and drop it onto an edge or another node to splice and reorder the pipeline."] }), _jsxs("li", { children: [_jsx("strong", { children: "CRUD & Keybinds:" }), " ", _jsx("code", { children: "N" }), " (New Task), ", _jsx("code", { children: "Ctrl+Z/Y" }), ", ", _jsx("code", { children: "Del" }), "."] })] })] }), _jsx(Toolbar, { graph: graph, selectedIds: selectedIds, onAddNode: handleAddTask, onAddContainer: handleAddContainer, onDeleteSelected: () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                 }, onUpdateGraph: setGraphDirect, onOpenInspector: () => setInspectorOpen(true) }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, selectedIds: selectedIds }), inspectorOpen && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));

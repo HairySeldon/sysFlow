@@ -142,9 +142,6 @@ export const SysDemo: React.FC = () => {
       } else if (e.key.toLowerCase() === 'n') {
         const name = prompt('New module label:', 'Module_Instance');
         if (name) handleAddNode(name, null);
-      } else if (e.key.toLowerCase() === 'l') {
-        // Trigger auto layout re-evaluation
-        setGraphDirect({ ...graph });
       }
     };
 
@@ -190,7 +187,16 @@ export const SysDemo: React.FC = () => {
     setGraphDirect({ ...graph, containers: { ...graph.containers, [id]: newContainer } });
   };
 
-  const handleUpdateEntity = (id: string, updates: Partial<NodeEntity | ContainerEntity>) => {
+  const handleUpdateEntity = (
+    id: string,
+    updates: Partial<NodeEntity | ContainerEntity>,
+    cleanGraph?: LogicalGraph
+  ) => {
+    if (cleanGraph) {
+      setGraphDirect(cleanGraph);
+      return;
+    }
+
     if (graph.nodes[id]) {
       setGraphDirect({
         ...graph,
@@ -224,7 +230,7 @@ export const SysDemo: React.FC = () => {
         <strong style={{ color: '#38bdf8' }}>Interactive Sys CAD:</strong>
         <ul style={{ margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }}>
           <li><strong>Drag node:</strong> Reparent in/out of containers.</li>
-          <li><strong>Keybinds:</strong> <code>N</code>: New Node | <code>L</code>: Layout | <code>Ctrl+Z/Y</code>: Undo/Redo | <code>Del</code>: Delete.</li>
+          <li><strong>Keybinds:</strong> <code>N</code>: New Node | <code>Ctrl+Z/Y</code>: Undo/Redo | <code>Del</code>: Delete.</li>
           <li>Click any module to edit parameters & HDL in the expanded Inspector.</li>
         </ul>
       </div>

@@ -20,3 +20,7 @@ export interface LayoutEngine {
   ): Promise<LayoutResult>;
   dispose?(): void;
 }
+
+export interface LayoutOptions {
+  direction?: 'LR' | 'TB';
+}

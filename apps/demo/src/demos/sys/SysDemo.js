@@ -132,10 +132,6 @@ export const SysDemo = () => {
                 if (name)
                     handleAddNode(name, null);
             }
-            else if (e.key.toLowerCase() === 'l') {
-                // Trigger auto layout re-evaluation
-                setGraphDirect({ ...graph });
-            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -176,7 +172,11 @@ export const SysDemo = () => {
         };
         setGraphDirect({ ...graph, containers: { ...graph.containers, [id]: newContainer } });
     };
-    const handleUpdateEntity = (id, updates) => {
+    const handleUpdateEntity = (id, updates, cleanGraph) => {
+        if (cleanGraph) {
+            setGraphDirect(cleanGraph);
+            return;
+        }
         if (graph.nodes[id]) {
             setGraphDirect({
                 ...graph,
@@ -202,7 +202,7 @@ export const SysDemo = () => {
                     color: '#f8fafc',
                     fontSize: '12px',
                     maxWidth: 440
-                }, children: [_jsx("strong", { style: { color: '#38bdf8' }, children: "Interactive Sys CAD:" }), _jsxs("ul", { style: { margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }, children: [_jsxs("li", { children: [_jsx("strong", { children: "Drag node:" }), " Reparent in/out of containers."] }), _jsxs("li", { children: [_jsx("strong", { children: "Keybinds:" }), " ", _jsx("code", { children: "N" }), ": New Node | ", _jsx("code", { children: "L" }), ": Layout | ", _jsx("code", { children: "Ctrl+Z/Y" }), ": Undo/Redo | ", _jsx("code", { children: "Del" }), ": Delete."] }), _jsx("li", { children: "Click any module to edit parameters & HDL in the expanded Inspector." })] })] }), _jsx(Toolbar, { graph: graph, selectedIds: selectedIds, onAddNode: handleAddNode, onAddContainer: handleAddContainer, onDeleteSelected: () => {
+                }, children: [_jsx("strong", { style: { color: '#38bdf8' }, children: "Interactive Sys CAD:" }), _jsxs("ul", { style: { margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }, children: [_jsxs("li", { children: [_jsx("strong", { children: "Drag node:" }), " Reparent in/out of containers."] }), _jsxs("li", { children: [_jsx("strong", { children: "Keybinds:" }), " ", _jsx("code", { children: "N" }), ": New Node | ", _jsx("code", { children: "Ctrl+Z/Y" }), ": Undo/Redo | ", _jsx("code", { children: "Del" }), ": Delete."] }), _jsx("li", { children: "Click any module to edit parameters & HDL in the expanded Inspector." })] })] }), _jsx(Toolbar, { graph: graph, selectedIds: selectedIds, onAddNode: handleAddNode, onAddContainer: handleAddContainer, onDeleteSelected: () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                 }, onUpdateGraph: setGraphDirect, onOpenInspector: () => setInspectorOpen(true) }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), inspectorOpen && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));
