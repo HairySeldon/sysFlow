@@ -13,14 +13,15 @@ export interface LayoutResult {
   containers: Record<ID, NodeLayoutResult>;
 }
 
+export interface LayoutOptions {
+  direction?: 'LR' | 'TB';
+}
+
 export interface LayoutEngine {
   execute(
     graph: LogicalGraph,
-    measurements: Map<ID, { width: number; height: number }>
+    measurements: Map<ID, { width: number; height: number }>,
+    options?: LayoutOptions
   ): Promise<LayoutResult>;
   dispose?(): void;
-}
-
-export interface LayoutOptions {
-  direction?: 'LR' | 'TB';
 }

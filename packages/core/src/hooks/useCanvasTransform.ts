@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { LayoutResult } from '../layout/LayoutEngine';
 
 export interface ViewportTransform {
   x: number;
@@ -24,6 +25,56 @@ export function useCanvasTransform(
       };
     },
     [transform, containerRef]
+  );
+
+  const zoomToFit = useCallback(
+    (layout: LayoutResult) => {
+      if (!containerRef.current) return;
+
+      const allItems = [
+        ...Object.values(layout.nodes),
+        ...Object.values(layout.containers)
+      ];
+
+      if (allItems.length === 0) {
+        setTransform({ x: 80, y: 80, zoom: 1 });
+        return;
+      }
+
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      for (const item of allItems) {
+        minX = Math.min(minX, item.x);
+        minY = Math.min(minY, item.y);
+        maxX = Math.max(maxX, item.x + item.width);
+        maxY = Math.max(maxY, item.y + item.height);
+      }
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const padding = 80;
+      const graphWidth = Math.max(maxX - minX, 100);
+      const graphHeight = Math.max(maxY - minY, 100);
+
+      const scaleX = (rect.width - padding * 2) / graphWidth;
+      const scaleY = (rect.height - padding * 2) / graphHeight;
+      const fitZoom = Math.min(
+        Math.max(Math.min(scaleX, scaleY), zoomBounds.min),
+        Math.min(zoomBounds.max, 1.25)
+      );
+
+      const targetX = (rect.width - graphWidth * fitZoom) / 2 - minX * fitZoom;
+      const targetY = (rect.height - graphHeight * fitZoom) / 2 - minY * fitZoom;
+
+      setTransform({
+        x: targetX,
+        y: targetY,
+        zoom: fitZoom
+      });
+    },
+    [containerRef, zoomBounds]
   );
 
   const onWheel = useCallback(
@@ -106,6 +157,7 @@ export function useCanvasTransform(
     resetTransform,
     zoomIn,
     zoomOut,
+    zoomToFit,
     isPanning: isPanningRef
   };
 }

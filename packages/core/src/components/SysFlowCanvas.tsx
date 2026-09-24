@@ -17,6 +17,7 @@ export interface SysFlowCanvasProps {
   onChange: (action: GraphAction) => void;
   layoutEngine?: LayoutEngine;
   interactionStrategy?: InteractionStrategy;
+  direction?: 'LR' | 'TB';
   nodeTypes?: Record<string, React.ComponentType<{ node: NodeEntity; selected: boolean }>>;
   containerTypes?: Record<string, React.ComponentType<{ container: ContainerEntity; selected: boolean }>>;
   zoomBounds?: { min: number; max: number };
@@ -31,6 +32,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   onChange,
   layoutEngine,
   interactionStrategy = DEFAULT_STRATEGY,
+  direction = 'TB',
   nodeTypes,
   containerTypes,
   zoomBounds,
@@ -55,6 +57,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     resetTransform,
     zoomIn,
     zoomOut,
+    zoomToFit,
     isPanning
   } = useCanvasTransform(containerRef, zoomBounds);
 
@@ -69,6 +72,16 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     currentWorldPos: { x: number; y: number };
   } | null>(null);
 
+  // Marquee box-selection state in world coordinates
+  const [marqueeBox, setMarqueeBox] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
+
+  const isSpacePressedRef = useRef(false);
+
   const {
     dragState,
     hoveredContainerId,
@@ -77,10 +90,120 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     handlePointerUp: onEntityPointerUp
   } = useDragGesture(graph, layout, interactionStrategy, screenToWorld, onChange);
 
+  // Keyboard Navigation: Tab, Arrow keys, 'F' (zoom-to-fit), Ctrl+A (select all)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.code === 'Space') {
+        isSpacePressedRef.current = true;
+      }
+
+      // 'F' Key: Zoom to fit
+      if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        zoomToFit(layout);
+        return;
+      }
+
+      // Ctrl+A / Cmd+A: Select all nodes
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        const allIds = [
+          ...Object.keys(graph.nodes),
+          ...Object.keys(graph.containers)
+        ];
+        onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: allIds } });
+        return;
+      }
+
+      const nodeIds = Object.keys(graph.nodes);
+      if (nodeIds.length === 0) return;
+
+      // Tab / Shift+Tab: Cycle through nodes
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const currentIdx = selectedIds.length > 0 ? nodeIds.indexOf(selectedIds[0]) : -1;
+        let nextIdx: number;
+        if (e.shiftKey) {
+          nextIdx = currentIdx <= 0 ? nodeIds.length - 1 : currentIdx - 1;
+        } else {
+          nextIdx = (currentIdx + 1) % nodeIds.length;
+        }
+        onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [nodeIds[nextIdx]] } });
+        return;
+      }
+
+      // Arrow Key Spatial Navigation
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const currentId = selectedIds[0] || nodeIds[0];
+        const currentPos = layout.nodes[currentId] || layout.containers[currentId];
+        if (!currentPos) return;
+
+        const currentCenter = {
+          x: currentPos.x + currentPos.width / 2,
+          y: currentPos.y + currentPos.height / 2
+        };
+
+        let bestCandidateId: ID | null = null;
+        let minDistance = Infinity;
+
+        for (const id of nodeIds) {
+          if (id === currentId) continue;
+          const targetPos = layout.nodes[id];
+          if (!targetPos) continue;
+
+          const targetCenter = {
+            x: targetPos.x + targetPos.width / 2,
+            y: targetPos.y + targetPos.height / 2
+          };
+
+          const dx = targetCenter.x - currentCenter.x;
+          const dy = targetCenter.y - currentCenter.y;
+
+          // Check if candidate lies in directional quadrant
+          let isInDirection = false;
+          if (e.key === 'ArrowRight' && dx > 20) isInDirection = true;
+          if (e.key === 'ArrowLeft' && dx < -20) isInDirection = true;
+          if (e.key === 'ArrowDown' && dy > 20) isInDirection = true;
+          if (e.key === 'ArrowUp' && dy < -20) isInDirection = true;
+
+          if (isInDirection) {
+            const distance = Math.hypot(dx, dy);
+            if (distance < minDistance) {
+              minDistance = distance;
+              bestCandidateId = id;
+            }
+          }
+        }
+
+        if (bestCandidateId) {
+          onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [bestCandidateId] } });
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        isSpacePressedRef.current = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [graph, layout, selectedIds, zoomToFit, onChange]);
+
   // Layout resolution
   useEffect(() => {
     let cancelled = false;
-    activeEngine.execute(graph, measurements).then((computed) => {
+    activeEngine.execute(graph, measurements, { direction }).then((computed) => {
       if (!cancelled) {
         setLayout(computed);
       }
@@ -88,7 +211,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [graph, measurements, activeEngine]);
+  }, [graph, measurements, activeEngine, direction]);
 
   // Port wiring handlers
   const handlePortPointerDown = (
@@ -136,8 +259,21 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   };
 
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
-    if (e.button === 1 || e.target === containerRef.current || (e.target as HTMLElement).tagName === 'svg') {
+    // Pan canvas if middle mouse or spacebar held
+    if (e.button === 1 || isSpacePressedRef.current) {
       startPan(e.clientX, e.clientY);
+      return;
+    }
+
+    // Left click on empty canvas starts marquee selection
+    if (e.button === 0 && (e.target === containerRef.current || (e.target as HTMLElement).tagName === 'svg')) {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      setMarqueeBox({
+        startX: worldPos.x,
+        startY: worldPos.y,
+        currentX: worldPos.x,
+        currentY: worldPos.y
+      });
       onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
     }
   };
@@ -145,6 +281,9 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   const handleCanvasPointerMove = (e: React.PointerEvent) => {
     if (isPanning.current) {
       updatePan(e.clientX, e.clientY);
+    } else if (marqueeBox) {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      setMarqueeBox((prev) => (prev ? { ...prev, currentX: worldPos.x, currentY: worldPos.y } : null));
     } else if (dragState) {
       onEntityPointerMove(e);
     } else if (activeWire) {
@@ -158,6 +297,48 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     if (isPanning.current) {
       endPan();
     }
+
+    // Commit Marquee Selection
+    if (marqueeBox) {
+      const boxLeft = Math.min(marqueeBox.startX, marqueeBox.currentX);
+      const boxTop = Math.min(marqueeBox.startY, marqueeBox.currentY);
+      const boxRight = Math.max(marqueeBox.startX, marqueeBox.currentX);
+      const boxBottom = Math.max(marqueeBox.startY, marqueeBox.currentY);
+
+      // Only perform box selection if drag moved more than 4px
+      if (boxRight - boxLeft > 4 || boxBottom - boxTop > 4) {
+        const selected: ID[] = [];
+
+        // Check node intersections
+        for (const [id, nLayout] of Object.entries(layout.nodes)) {
+          if (
+            nLayout.x < boxRight &&
+            nLayout.x + nLayout.width > boxLeft &&
+            nLayout.y < boxBottom &&
+            nLayout.y + nLayout.height > boxTop
+          ) {
+            selected.push(id);
+          }
+        }
+
+        // Check container intersections
+        for (const [id, cLayout] of Object.entries(layout.containers)) {
+          if (
+            cLayout.x < boxRight &&
+            cLayout.x + cLayout.width > boxLeft &&
+            cLayout.y < boxBottom &&
+            cLayout.y + cLayout.height > boxTop
+          ) {
+            selected.push(id);
+          }
+        }
+
+        onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: selected } });
+      }
+
+      setMarqueeBox(null);
+    }
+
     if (dragState) {
       onEntityPointerUp(e);
     }
@@ -219,11 +400,31 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`
         }}
       >
+
+        {/* Marquee Selection Rectangle */}
+        {marqueeBox && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${Math.min(marqueeBox.startX, marqueeBox.currentX)}px`,
+              top: `${Math.min(marqueeBox.startY, marqueeBox.currentY)}px`,
+              width: `${Math.abs(marqueeBox.currentX - marqueeBox.startX)}px`,
+              height: `${Math.abs(marqueeBox.currentY - marqueeBox.startY)}px`,
+              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+              border: '1px dashed #38bdf8',
+              borderRadius: '2px',
+              pointerEvents: 'none',
+              zIndex: 90
+            }}
+          />
+        )}
+
         {/* Layer 0: SVG Background Edge System */}
         <GraphEdgeLayer
           graph={graph}
           layout={layout}
           selectedIds={selectedIds}
+          direction={direction}
           onEdgeClick={(edgeId) =>
             onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } })
           }

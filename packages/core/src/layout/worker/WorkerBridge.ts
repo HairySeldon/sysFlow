@@ -1,5 +1,5 @@
 import { ID, LogicalGraph } from '../../models';
-import { LayoutEngine, LayoutResult } from '../LayoutEngine';
+import { LayoutEngine, LayoutResult, LayoutOptions } from '../LayoutEngine';
 import { SugiyamaEngine } from '../sugiyama/SugiyamaEngine';
 
 export class WorkerBridge implements LayoutEngine {
@@ -39,26 +39,29 @@ export class WorkerBridge implements LayoutEngine {
     }
   }
 
-  public async execute(
+  public execute(
     graph: LogicalGraph,
-    measurements: Map<ID, { width: number; height: number }>
+    measurements: Map<ID, { width: number; height: number }>,
+    options?: LayoutOptions
   ): Promise<LayoutResult> {
-    if (!this.worker) {
-      return this.fallbackEngine.execute(graph, measurements);
-    }
+    return new Promise((resolve, reject) => {
+      if (!this.worker) {
+        return reject(new Error('Worker is not initialized'));
+      }
 
-    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    const measurementsArray = Array.from(measurements.entries());
-
-    return new Promise<LayoutResult>((resolve, reject) => {
+      const id = `req_${Date.now()}_${Math.random()}`;
       this.pendingRequests.set(id, { resolve, reject });
-      this.worker!.postMessage({
+
+      const measurementEntries = Array.from(measurements.entries());
+      this.worker.postMessage({
         id,
         graph,
-        measurements: measurementsArray
+        measurements: measurementEntries,
+        options
       });
     });
   }
+
 
   public dispose(): void {
     if (this.worker) {

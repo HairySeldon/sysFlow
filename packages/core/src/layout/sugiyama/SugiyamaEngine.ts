@@ -1,5 +1,5 @@
 import { ID, LogicalGraph, NodeEntity, ContainerEntity } from '../../models';
-import { LayoutEngine, LayoutResult } from '../LayoutEngine';
+import { LayoutEngine, LayoutResult, LayoutOptions } from '../LayoutEngine';
 import { CycleDecoupler } from './CycleDecoupler';
 import { LayerAssignment } from './LayerAssignment';
 import { CrossingMinimizer } from './CrossingMinimizer';
@@ -8,7 +8,8 @@ import { CoordinateAssigner } from './CoordinateAssigner';
 export class SugiyamaEngine implements LayoutEngine {
   public async execute(
     graph: LogicalGraph,
-    measurements: Map<ID, { width: number; height: number }>
+    measurements: Map<ID, { width: number; height: number }>,
+    options?: LayoutOptions
   ): Promise<LayoutResult> {
     const containers = Object.values(graph.containers) as ContainerEntity[];
     const nodes = Object.values(graph.nodes) as NodeEntity[];
@@ -62,6 +63,6 @@ export class SugiyamaEngine implements LayoutEngine {
     const orderedLayers = CrossingMinimizer.minimizeCrossings(layeredNodes, decoupled.adjList, 4);
 
     // 4. Coordinate & Bubble-Up Assignment
-    return CoordinateAssigner.assignCoordinates(graph, orderedLayers, measurements);
+    return CoordinateAssigner.assignCoordinates(graph, orderedLayers, measurements, options);
   }
 }

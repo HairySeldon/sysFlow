@@ -1,11 +1,11 @@
-import { ID, LogicalGraph, NodeEntity, ContainerEntity } from '../../models';
-import { LayoutResult, NodeLayoutResult } from '../LayoutEngine';
+import { ID, LogicalGraph, NodeEntity, ContainerEntity, PortSide } from '../../models';
+import { LayoutResult, NodeLayoutResult, LayoutOptions } from '../LayoutEngine';
 
 const COLUMN_GAP = 100;
 const ROW_GAP = 40;
-const CONTAINER_PADDING_X = 24;
-const CONTAINER_PADDING_Y = 20;
-const HEADER_HEIGHT = 40;
+const CONTAINER_PADDING_X = 28;
+const CONTAINER_PADDING_Y = 24;
+const HEADER_HEIGHT = 42;
 const COLLAPSED_CONTAINER_WIDTH = 260;
 const COLLAPSED_CONTAINER_HEIGHT = 36;
 const DEFAULT_NODE_WIDTH = 200;
@@ -15,31 +15,14 @@ export class CoordinateAssigner {
   public static assignCoordinates(
     graph: LogicalGraph,
     orderedLayers: Map<number, ID[]>,
-    measurements: Map<ID, { width: number; height: number }>
+    measurements: Map<ID, { width: number; height: number }>,
+    options: LayoutOptions = { direction: 'LR' }
   ): LayoutResult {
+    const isTB = options.direction === 'TB';
     const nodesLayout: Record<ID, NodeLayoutResult> = {};
     const containersLayout: Record<ID, NodeLayoutResult> = {};
 
-    // 1. Group entities by container hierarchy
-    const childrenByParent = new Map<ID | null, ID[]>();
-    childrenByParent.set(null, []);
-    for (const cId of Object.keys(graph.containers)) {
-      childrenByParent.set(cId, []);
-    }
-
-    // Determine effective parent for each active node
-    for (const [, layerEntities] of orderedLayers.entries()) {
-      for (const id of layerEntities) {
-        const parentId = graph.nodes[id]?.parentId ?? graph.containers[id]?.parentId ?? null;
-        const validParent = parentId && graph.containers[parentId] && !graph.containers[parentId].collapsed ? parentId : null;
-        if (!childrenByParent.has(validParent)) {
-          childrenByParent.set(validParent, []);
-        }
-        childrenByParent.get(validParent)!.push(id);
-      }
-    }
-
-    // 2. Sort layer nodes so siblings sharing the same parent are adjacent
+    // 1. Group entities by container hierarchy & sort siblings together
     const clusteredLayers = new Map<number, ID[]>();
     for (const [layerIdx, layerEntities] of orderedLayers.entries()) {
       const sorted = [...layerEntities].sort((a, b) => {
@@ -50,43 +33,50 @@ export class CoordinateAssigner {
       clusteredLayers.set(layerIdx, sorted);
     }
 
-    // 3. Compute layer column widths
     const sortedLayerIndices = Array.from(clusteredLayers.keys()).sort((a, b) => a - b);
-    const layerWidths = new Map<number, number>();
 
+    // 2. Compute primary axis offsets per layer
+    // For LR: Primary = X (columns), Secondary = Y (rows)
+    // For TB: Primary = Y (rows), Secondary = X (columns)
+    const layerBreadths = new Map<number, number>();
     for (const layerIdx of sortedLayerIndices) {
       const entityIds = clusteredLayers.get(layerIdx) || [];
-      let maxWidth = 180;
+      let maxBreadth = isTB ? DEFAULT_NODE_HEIGHT : 180;
       for (const id of entityIds) {
         const isCollapsed = graph.containers[id]?.collapsed;
-        let w = measurements.get(id)?.width || DEFAULT_NODE_WIDTH;
-        if (isCollapsed) w = COLLAPSED_CONTAINER_WIDTH;
-        maxWidth = Math.max(maxWidth, w);
+        let b = isTB
+          ? (measurements.get(id)?.height || DEFAULT_NODE_HEIGHT)
+          : (measurements.get(id)?.width || DEFAULT_NODE_WIDTH);
+        if (isCollapsed) b = isTB ? COLLAPSED_CONTAINER_HEIGHT : COLLAPSED_CONTAINER_WIDTH;
+        maxBreadth = Math.max(maxBreadth, b);
       }
-      layerWidths.set(layerIdx, maxWidth);
+      layerBreadths.set(layerIdx, maxBreadth);
     }
 
-    // 4. Calculate X positions per layer
-    const layerXOffsets = new Map<number, number>();
-    let currentX = 80;
+    const layerPrimaryOffsets = new Map<number, number>();
+    let currentPrimary = 80;
     for (const layerIdx of sortedLayerIndices) {
-      layerXOffsets.set(layerIdx, currentX);
-      currentX += (layerWidths.get(layerIdx) || DEFAULT_NODE_WIDTH) + COLUMN_GAP;
+      layerPrimaryOffsets.set(layerIdx, currentPrimary);
+      currentPrimary += (layerBreadths.get(layerIdx) || (isTB ? DEFAULT_NODE_HEIGHT : DEFAULT_NODE_WIDTH)) + (isTB ? ROW_GAP * 2 : COLUMN_GAP);
     }
 
-    // 5. Initial Y placement with vertical spacing
-    const layerCurrentY = new Map<number, number>();
-    for (const layerIdx of sortedLayerIndices) {
-      layerCurrentY.set(layerIdx, 80);
-    }
-
+    // 3. Place entities with container-aware padding
     for (const layerIdx of sortedLayerIndices) {
       const entityIds = clusteredLayers.get(layerIdx) || [];
-      const x = layerXOffsets.get(layerIdx) || 80;
+      const primary = layerPrimaryOffsets.get(layerIdx) || 80;
+      let secondary = 80;
+      let lastParentId: ID | null | undefined = undefined;
 
       for (const id of entityIds) {
         const isContainer = Boolean(graph.containers[id]);
         const isCollapsed = Boolean(graph.containers[id]?.collapsed);
+        const parentId = graph.nodes[id]?.parentId ?? graph.containers[id]?.parentId ?? null;
+
+        // Extra cushion between different container groups
+        if (lastParentId !== undefined && lastParentId !== parentId) {
+          secondary += isTB ? COLUMN_GAP : ROW_GAP * 1.5;
+        }
+        lastParentId = parentId;
 
         let width = measurements.get(id)?.width || DEFAULT_NODE_WIDTH;
         let height = measurements.get(id)?.height || DEFAULT_NODE_HEIGHT;
@@ -96,7 +86,8 @@ export class CoordinateAssigner {
           height = COLLAPSED_CONTAINER_HEIGHT;
         }
 
-        const y = layerCurrentY.get(layerIdx) || 80;
+        const x = isTB ? secondary : primary;
+        const y = isTB ? primary : secondary;
         const layoutItem: NodeLayoutResult = { id, x, y, width, height };
 
         if (isContainer) {
@@ -105,15 +96,15 @@ export class CoordinateAssigner {
           nodesLayout[id] = layoutItem;
         }
 
-        layerCurrentY.set(layerIdx, y + height + ROW_GAP);
+        secondary += (isTB ? width + COLUMN_GAP : height + ROW_GAP);
       }
     }
 
-    // 6. Container Bubble-Up: Calculate container bounds strictly from children
+    // 4. Container Bubble-Up: Calculate initial bounding boxes strictly enclosing children
     const containerDepths = CoordinateAssigner.getContainerDepths(graph);
-    const containersByDepthDesc = Object.keys(graph.containers).sort((a, b) => {
-      return (containerDepths.get(b) || 0) - (containerDepths.get(a) || 0);
-    });
+    const containersByDepthDesc = Object.keys(graph.containers).sort(
+      (a, b) => (containerDepths.get(b) || 0) - (containerDepths.get(a) || 0)
+    );
 
     for (const containerId of containersByDepthDesc) {
       const container = graph.containers[containerId];
@@ -164,23 +155,139 @@ export class CoordinateAssigner {
           width: Math.max(boxWidth, measurements.get(containerId)?.width || 240),
           height: Math.max(boxHeight, HEADER_HEIGHT + CONTAINER_PADDING_Y * 2)
         };
-      } else {
-        if (!containersLayout[containerId]) {
-          const defaultX = layerXOffsets.get(0) || 80;
-          const defaultY = (layerCurrentY.get(0) || 80);
-          containersLayout[containerId] = {
-            id: containerId,
-            x: defaultX,
-            y: defaultY,
-            width: measurements.get(containerId)?.width || 240,
-            height: HEADER_HEIGHT + CONTAINER_PADDING_Y * 2
-          };
-          layerCurrentY.set(0, defaultY + HEADER_HEIGHT + CONTAINER_PADDING_Y * 2 + ROW_GAP);
-        }
+      } else if (!containersLayout[containerId]) {
+        containersLayout[containerId] = {
+          id: containerId,
+          x: 80,
+          y: 80,
+          width: measurements.get(containerId)?.width || 240,
+          height: HEADER_HEIGHT + CONTAINER_PADDING_Y * 2
+        };
       }
     }
 
+    // 5. Container Overlap Prevention Pass
+    CoordinateAssigner.resolveContainerCollisions(graph, nodesLayout, containersLayout, isTB);
+
+    // 6. Dynamic Port Side Assignment based on Connection Angle
+    CoordinateAssigner.assignDynamicPortSides(graph, nodesLayout, containersLayout, isTB);
+
     return { nodes: nodesLayout, containers: containersLayout };
+  }
+
+  /**
+   * Detects bounding box collisions between sibling containers and pushes overlapping containers
+   * along with all their descendant nodes/containers down (in LR) or right (in TB).
+   */
+  private static resolveContainerCollisions(
+    graph: LogicalGraph,
+    nodesLayout: Record<ID, NodeLayoutResult>,
+    containersLayout: Record<ID, NodeLayoutResult>,
+    isTB: boolean
+  ) {
+    const rootContainers = Object.values(containersLayout).filter(
+      (c) => !graph.containers[c.id]?.parentId
+    );
+
+    // Sort by secondary axis
+    rootContainers.sort((a, b) => (isTB ? a.x - b.x : a.y - b.y));
+
+    for (let i = 0; i < rootContainers.length; i++) {
+      for (let j = i + 1; j < rootContainers.length; j++) {
+        const c1 = rootContainers[i];
+        const c2 = rootContainers[j];
+
+        // Check AABB overlap with padding
+        const overlapX = Math.min(c1.x + c1.width + COLUMN_GAP, c2.x + c2.width + COLUMN_GAP) - Math.max(c1.x, c2.x);
+        const overlapY = Math.min(c1.y + c1.height + ROW_GAP, c2.y + c2.height + ROW_GAP) - Math.max(c1.y, c2.y);
+
+        if (overlapX > 0 && overlapY > 0) {
+          if (isTB) {
+            const shiftX = (c1.x + c1.width + COLUMN_GAP) - c2.x;
+            if (shiftX > 0) {
+              CoordinateAssigner.shiftContainerTree(c2.id, shiftX, 0, graph, nodesLayout, containersLayout);
+            }
+          } else {
+            const shiftY = (c1.y + c1.height + ROW_GAP) - c2.y;
+            if (shiftY > 0) {
+              CoordinateAssigner.shiftContainerTree(c2.id, 0, shiftY, graph, nodesLayout, containersLayout);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private static shiftContainerTree(
+    containerId: ID,
+    deltaX: number,
+    deltaY: number,
+    graph: LogicalGraph,
+    nodesLayout: Record<ID, NodeLayoutResult>,
+    containersLayout: Record<ID, NodeLayoutResult>
+  ) {
+    if (containersLayout[containerId]) {
+      containersLayout[containerId].x += deltaX;
+      containersLayout[containerId].y += deltaY;
+    }
+
+    for (const [nId, nLayout] of Object.entries(nodesLayout)) {
+      if (graph.nodes[nId]?.parentId === containerId) {
+        nLayout.x += deltaX;
+        nLayout.y += deltaY;
+      }
+    }
+
+    for (const [cId] of Object.entries(containersLayout)) {
+      if (graph.containers[cId]?.parentId === containerId && cId !== containerId) {
+        CoordinateAssigner.shiftContainerTree(cId, deltaX, deltaY, graph, nodesLayout, containersLayout);
+      }
+    }
+  }
+
+  /**
+   * Evaluates layout coordinates to dynamically assign optimal perimeter sides
+   * for any ports set to 'auto' based on the direction of their connected edges.
+   */
+  private static assignDynamicPortSides(
+    graph: LogicalGraph,
+    nodesLayout: Record<ID, NodeLayoutResult>,
+    containersLayout: Record<ID, NodeLayoutResult>,
+    isTB: boolean
+  ) {
+    const getPos = (id: ID) => nodesLayout[id] || containersLayout[id];
+
+    for (const edge of Object.values(graph.edges)) {
+      const srcPos = getPos(edge.sourceId);
+      const tgtPos = getPos(edge.targetId);
+      if (!srcPos || !tgtPos) continue;
+
+      const srcEntity = graph.nodes[edge.sourceId] || graph.containers[edge.sourceId];
+      const tgtEntity = graph.nodes[edge.targetId] || graph.containers[edge.targetId];
+
+      const dx = (tgtPos.x + tgtPos.width / 2) - (srcPos.x + srcPos.width / 2);
+      const dy = (tgtPos.y + tgtPos.height / 2) - (srcPos.y + srcPos.height / 2);
+
+      // Auto side for source port
+      const srcPort = srcEntity?.ports?.find((p) => p.id === edge.sourcePortId);
+      if (srcPort && (!srcPort.side || srcPort.side === 'auto')) {
+        if (isTB) {
+          srcPort.side = dy >= 0 ? 'bottom' : 'top';
+        } else {
+          srcPort.side = dx >= 0 ? 'right' : 'left';
+        }
+      }
+
+      // Auto side for target port
+      const tgtPort = tgtEntity?.ports?.find((p) => p.id === edge.targetPortId);
+      if (tgtPort && (!tgtPort.side || tgtPort.side === 'auto')) {
+        if (isTB) {
+          tgtPort.side = dy >= 0 ? 'top' : 'bottom';
+        } else {
+          tgtPort.side = dx >= 0 ? 'left' : 'right';
+        }
+      }
+    }
   }
 
   private static getContainerDepths(graph: LogicalGraph): Map<ID, number> {

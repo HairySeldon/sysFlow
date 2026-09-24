@@ -6,6 +6,7 @@ interface GraphEdgeLayerProps {
   graph: LogicalGraph;
   layout: LayoutResult;
   selectedIds: ID[];
+  direction?: 'LR' | 'TB';
   onEdgeClick?: (edgeId: ID) => void;
 }
 
@@ -13,6 +14,7 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   graph,
   layout,
   selectedIds,
+  direction = 'LR',
   onEdgeClick
 }) => {
   // Resolve an entity to its outermost collapsed ancestor if it or its parent is collapsed
@@ -101,21 +103,41 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
 
         const isSelected = selectedIds.includes(edge.id);
         const deltaX = p1.x - p0.x;
+        const deltaY = p1.y - p0.y;
 
         let pathStr: string;
-        if (p1.x >= p0.x) {
-          const c0x = p0.x + Math.max(40, 0.5 * deltaX);
-          const c0y = p0.y;
-          const c1x = p1.x - Math.max(40, 0.5 * deltaX);
-          const c1y = p1.y;
-          pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
+        if (direction === 'TB') {
+          // Vertical Tree Flow (Top to Bottom)
+          if (p1.y >= p0.y) {
+            const c0x = p0.x;
+            const c0y = p0.y + Math.max(30, 0.5 * deltaY);
+            const c1x = p1.x;
+            const c1y = p1.y - Math.max(30, 0.5 * deltaY);
+            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
+          } else {
+            // Feedback loop around the side
+            const c0x = p0.x + 80;
+            const c0y = p0.y + 40;
+            const c1x = p1.x + 80;
+            const c1y = p1.y - 40;
+            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
+          }
         } else {
-          // Feedback / loop back over top
-          const c0x = p0.x + 60;
-          const c0y = p0.y - 80;
-          const c1x = p1.x - 60;
-          const c1y = p1.y - 80;
-          pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
+          // Horizontal Pipeline Flow (Left to Right)
+          if (p1.x >= p0.x) {
+            const c0x = p0.x + Math.max(40, 0.5 * deltaX);
+            const c0y = p0.y;
+            const c1x = p1.x - Math.max(40, 0.5 * deltaX);
+            const c1y = p1.y;
+            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
+          } else {
+            // Feedback / loop back over top
+            const c0x = p0.x + 60;
+            const c0y = p0.y - 80;
+            const c1x = p1.x - 60;
+            const c1y = p1.y - 80;
+            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
+          }
         }
 
         return (
