@@ -154,9 +154,9 @@ export const SysDemo = () => {
             label,
             parentId: parentId || null,
             type: 'Module',
+            // Initialize with one port
             ports: [
-                { id: `in_${Date.now()}`, label: 'in', data: { busWidth: '32b' } },
-                { id: `out_${Date.now()}`, label: 'out', data: { busWidth: '32b' } }
+                { id: `p_${Date.now()}`, label: 'port_1', direction: 'inout', data: { busWidth: '32b' } }
             ],
             data: { logicGate: 'CUSTOM_LOGIC' }
         };

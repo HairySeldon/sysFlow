@@ -1,5 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
-import { LogicalGraph, ID, NodeEntity, ContainerEntity, EdgeEntity, GraphAction } from '@sysflow/core';
+import {
+  LogicalGraph,
+  ID,
+  NodeEntity,
+  ContainerEntity,
+  EdgeEntity,
+  GraphAction,
+  pruneDanglingEdges
+} from '@sysflow/core';
 
 export function useGraphHistory(initialGraph: LogicalGraph) {
   const [history, setHistory] = useState<LogicalGraph[]>([initialGraph]);
@@ -12,7 +20,8 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
   const currentGraph = history[index];
 
   const pushState = useCallback((next: LogicalGraph) => {
-    setHistory((prev) => [...prev.slice(0, index + 1), next]);
+    const cleanGraph = pruneDanglingEdges(next);
+    setHistory((prev) => [...prev.slice(0, index + 1), cleanGraph]);
     setIndex((prev) => prev + 1);
   }, [index]);
 
@@ -154,16 +163,7 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
       delete nextEdges[id];
     }
 
-    // Clean dangling edges
-    for (const [eId, edge] of Object.entries(nextEdges)) {
-      if (!nextNodes[edge.sourceId] && !nextContainers[edge.sourceId]) {
-        delete nextEdges[eId];
-      }
-      if (!nextNodes[edge.targetId] && !nextContainers[edge.targetId]) {
-        delete nextEdges[eId];
-      }
-    }
-
+    // pushState will automatically invoke pruneDanglingEdges to clean connected edges
     pushState({
       ...currentGraph,
       nodes: nextNodes,

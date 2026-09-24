@@ -126,9 +126,9 @@ export const FlowDemo = () => {
         const newTask = {
             id,
             label,
+            // Initialize with exactly one bidirectional port
             ports: [
-                { id: `p_in_${Date.now()}`, label: 'in' },
-                { id: `p_out_${Date.now()}`, label: 'out' }
+                { id: `p_${Date.now()}`, label: 'port_1', direction: 'inout' }
             ],
             data: { priority: 'P1', duration: '20ms' }
         };
@@ -142,7 +142,7 @@ export const FlowDemo = () => {
         const newContainer = {
             id,
             label,
-            ports: [{ id: `p_stage_${Date.now()}`, label: 'sync' }],
+            ports: [{ id: `p_stage_${Date.now()}`, label: 'sync', direction: 'inout' }],
             collapsed: false
         };
         setGraphDirect({

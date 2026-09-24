@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
+import { pruneDanglingEdges } from '@sysflow/core';
 export function useGraphHistory(initialGraph) {
     const [history, setHistory] = useState([initialGraph]);
     const [index, setIndex] = useState(0);
     const [clipboard, setClipboard] = useState(null);
     const currentGraph = history[index];
     const pushState = useCallback((next) => {
-        setHistory((prev) => [...prev.slice(0, index + 1), next]);
+        const cleanGraph = pruneDanglingEdges(next);
+        setHistory((prev) => [...prev.slice(0, index + 1), cleanGraph]);
         setIndex((prev) => prev + 1);
     }, [index]);
     const undo = useCallback(() => {
@@ -140,15 +142,7 @@ export function useGraphHistory(initialGraph) {
             delete nextContainers[id];
             delete nextEdges[id];
         }
-        // Clean dangling edges
-        for (const [eId, edge] of Object.entries(nextEdges)) {
-            if (!nextNodes[edge.sourceId] && !nextContainers[edge.sourceId]) {
-                delete nextEdges[eId];
-            }
-            if (!nextNodes[edge.targetId] && !nextContainers[edge.targetId]) {
-                delete nextEdges[eId];
-            }
-        }
+        // pushState will automatically invoke pruneDanglingEdges to clean connected edges
         pushState({
             ...currentGraph,
             nodes: nextNodes,
