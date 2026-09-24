@@ -5,7 +5,9 @@ import {
   SysFlowCanvas,
   ReparentStrategy,
   NodeEntity,
-  ContainerEntity
+  ContainerEntity,
+  PortSide,
+  PortDirection
 } from '@sysflow/core';
 import { SysModuleRenderer } from './SysModuleEditor';
 import { Toolbar } from '../../components/Toolbar';
@@ -19,13 +21,13 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
     ALU_BLOCK: {
       id: 'ALU_BLOCK',
       label: 'module ALU (Arithmetic Logic Unit)',
-      ports: [{ id: 'ALU_CLK', label: 'clk' }],
+      ports: [{ id: 'ALU_CLK', label: 'clk', direction: 'in' }],
       collapsed: false
     },
     REG_BANK: {
       id: 'REG_BANK',
       label: 'module RegisterBank',
-      ports: [{ id: 'RB_CLK', label: 'clk' }],
+      ports: [{ id: 'RB_CLK', label: 'clk', direction: 'in' }],
       collapsed: false
     }
   },
@@ -34,7 +36,7 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       id: 'CLK_GEN',
       label: 'Clock_Oscillator',
       type: 'Module',
-      ports: [{ id: 'out_clk', label: 'clk_out', data: { busWidth: '1b' } }],
+      ports: [{ id: 'out_clk', label: 'clk_out', direction: 'out', data: { busWidth: '1b' } }],
       data: { logicGate: 'OSC', isClock: true }
     },
     ADDER: {
@@ -43,9 +45,9 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       label: '32b_FullAdder',
       type: 'Module',
       ports: [
-        { id: 'in_a', label: 'A', data: { busWidth: '32b' } },
-        { id: 'in_b', label: 'B', data: { busWidth: '32b' } },
-        { id: 'out_sum', label: 'SUM', data: { busWidth: '32b' } }
+        { id: 'in_a', label: 'A', direction: 'in', data: { busWidth: '32b' } },
+        { id: 'in_b', label: 'B', direction: 'in', data: { busWidth: '32b' } },
+        { id: 'out_sum', label: 'SUM', direction: 'out', data: { busWidth: '32b' } }
       ],
       data: { logicGate: 'ADDER_32' }
     },
@@ -55,9 +57,9 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       label: 'WallaceTree_Mul',
       type: 'Module',
       ports: [
-        { id: 'mul_a', label: 'A', data: { busWidth: '32b' } },
-        { id: 'mul_b', label: 'B', data: { busWidth: '32b' } },
-        { id: 'mul_out', label: 'PROD', data: { busWidth: '64b' } }
+        { id: 'mul_a', label: 'A', direction: 'in', data: { busWidth: '32b' } },
+        { id: 'mul_b', label: 'B', direction: 'in', data: { busWidth: '32b' } },
+        { id: 'mul_out', label: 'PROD', direction: 'out', data: { busWidth: '64b' } }
       ],
       data: { logicGate: 'MUL_32' }
     },
@@ -67,8 +69,8 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       label: 'R0_Register',
       type: 'Module',
       ports: [
-        { id: 'd_in', label: 'D', data: { busWidth: '32b' } },
-        { id: 'q_out', label: 'Q', data: { busWidth: '32b' } }
+        { id: 'd_in', label: 'D', direction: 'in', data: { busWidth: '32b' } },
+        { id: 'q_out', label: 'Q', direction: 'out', data: { busWidth: '32b' } }
       ],
       data: { logicGate: 'DFF_32' }
     }
@@ -114,14 +116,13 @@ export const SysDemo: React.FC = () => {
   } = useGraphHistory(INITIAL_VERILOG_GRAPH);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [direction, setDirection] = useState<'LR' | 'TB'>('LR');
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [showConfigTable, setShowConfigTable] = useState(false);
 
-  // Global Keybinds (L, N, Ctrl+Z, Ctrl+Y, Ctrl+C, Ctrl+X, Ctrl+V, Del/Backspace)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -147,7 +148,7 @@ export const SysDemo: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, graph, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection, setGraphDirect]);
+  }, [selectedIds, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection]);
 
   const handleGraphChange = (action: GraphAction) => {
     if (action.type === 'SELECTION_CHANGE') {
@@ -167,10 +168,7 @@ export const SysDemo: React.FC = () => {
       label,
       parentId: parentId || null,
       type: 'Module',
-      // Initialize with one port
-      ports: [
-        { id: `p_${Date.now()}`, label: 'port_1', direction: 'inout', data: { busWidth: '32b' } }
-      ],
+      ports: [{ id: `p_${Date.now()}`, label: 'port_1', direction: 'inout', data: { busWidth: '32b' } }],
       data: { logicGate: 'CUSTOM_LOGIC' }
     };
     setGraphDirect({ ...graph, nodes: { ...graph.nodes, [id]: newNode } });
@@ -181,7 +179,7 @@ export const SysDemo: React.FC = () => {
     const newContainer: ContainerEntity = {
       id,
       label,
-      ports: [{ id: `clk_${Date.now()}`, label: 'clk' }],
+      ports: [{ id: `clk_${Date.now()}`, label: 'clk', direction: 'in' }],
       collapsed: false
     };
     setGraphDirect({ ...graph, containers: { ...graph.containers, [id]: newContainer } });
@@ -229,15 +227,16 @@ export const SysDemo: React.FC = () => {
       >
         <strong style={{ color: '#38bdf8' }}>Interactive Sys CAD:</strong>
         <ul style={{ margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }}>
-          <li><strong>Drag node:</strong> Reparent in/out of containers.</li>
-          <li><strong>Keybinds:</strong> <code>N</code>: New Node | <code>Ctrl+Z/Y</code>: Undo/Redo | <code>Del</code>: Delete.</li>
-          <li>Click any module to edit parameters & HDL in the expanded Inspector.</li>
+          <li><strong>Config Table:</strong> Click "Config Table" in toolbar to view and edit all modules and ports.</li>
+          <li><strong>Keys:</strong> <code>Tab</code>/<code>Arrows</code> | <code>F</code> (Fit) | <code>Ctrl+A</code> | <code>Del</code>.</li>
         </ul>
       </div>
 
       <Toolbar
         graph={graph}
         selectedIds={selectedIds}
+        direction={direction}
+        onToggleDirection={() => setDirection((prev) => (prev === 'LR' ? 'TB' : 'LR'))}
         onAddNode={handleAddNode}
         onAddContainer={handleAddContainer}
         onDeleteSelected={() => {
@@ -245,18 +244,194 @@ export const SysDemo: React.FC = () => {
           setSelectedIds([]);
         }}
         onUpdateGraph={setGraphDirect}
-        onOpenInspector={() => setInspectorOpen(true)}
+        extraActions={
+          <button
+            style={{
+              background: showConfigTable ? '#38bdf8' : '#1e293b',
+              color: showConfigTable ? '#0f172a' : '#f8fafc',
+              border: '1px solid #334155',
+              padding: '6px 12px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 700
+            }}
+            onClick={() => setShowConfigTable(!showConfigTable)}
+          >
+            📋 Config Table
+          </button>
+        }
       />
 
       <SysFlowCanvas
         graph={graph}
         onChange={handleGraphChange}
         interactionStrategy={reparentStrategy}
+        direction={direction}
         nodeTypes={{ Module: SysModuleRenderer }}
         selectedIds={selectedIds}
       />
 
-      {inspectorOpen && (
+      {/* Demo 1 Configuration Table Modal */}
+      {showConfigTable && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 70,
+            left: 20,
+            right: 20,
+            bottom: 20,
+            background: '#090d16',
+            border: '1px solid #334155',
+            borderRadius: 8,
+            zIndex: 60,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.8)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
+          <div
+            style={{
+              padding: '12px 20px',
+              background: '#0b1120',
+              borderBottom: '1px solid #1e293b',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <h3 style={{ margin: 0, color: '#38bdf8', fontSize: 16 }}>
+              System Configuration Table: Modules & Ports
+            </h3>
+            <button
+              onClick={() => setShowConfigTable(false)}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#f8fafc', fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: '#1e293b', textAlign: 'left' }}>
+                  <th style={thStyle}>Type</th>
+                  <th style={thStyle}>ID / Label</th>
+                  <th style={thStyle}>Parent</th>
+                  <th style={thStyle}>Ports ({Object.values(graph.nodes).reduce((acc, n) => acc + n.ports.length, 0)} total)</th>
+                  <th style={thStyle}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Modules */}
+                {Object.values(graph.nodes).map((node) => (
+                  <tr key={node.id} style={{ borderBottom: '1px solid #1e293b' }}>
+                    <td style={tdStyle}><span style={{ color: '#38bdf8', fontWeight: 600 }}>Module</span></td>
+                    <td style={tdStyle}>
+                      <input
+                        type="text"
+                        value={node.label}
+                        onChange={(e) => handleUpdateEntity(node.id, { label: e.target.value })}
+                        style={tableInputStyle}
+                      />
+                    </td>
+                    <td style={tdStyle}>
+                      <select
+                        value={node.parentId || ''}
+                        onChange={(e) => handleUpdateEntity(node.id, { parentId: e.target.value || null })}
+                        style={tableInputStyle}
+                      >
+                        <option value="">(Root)</option>
+                        {Object.values(graph.containers).map((c) => (
+                          <option key={c.id} value={c.id}>{c.label}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={tdStyle}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {node.ports.map((p, pIdx) => (
+                          <span
+                            key={p.id}
+                            style={{
+                              background: '#131b2e',
+                              border: '1px solid #334155',
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              fontSize: 11
+                            }}
+                          >
+                            {p.label} ({p.direction || 'inout'})
+                            <button
+                              onClick={() => {
+                                const nextPorts = node.ports.filter((_, i) => i !== pIdx);
+                                handleUpdateEntity(node.id, { ports: nextPorts });
+                              }}
+                              style={{ background: 'transparent', border: 'none', color: '#ef4444', marginLeft: 4, cursor: 'pointer' }}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                        <button
+                          onClick={() => {
+                            const name = prompt('Port name:');
+                            if (name) {
+                              handleUpdateEntity(node.id, {
+                                ports: [...node.ports, { id: `p_${Date.now()}`, label: name, direction: 'inout' }]
+                              });
+                            }
+                          }}
+                          style={{ ...tableInputStyle, width: 'auto', cursor: 'pointer' }}
+                        >
+                          + Port
+                        </button>
+                      </div>
+                    </td>
+                    <td style={tdStyle}>
+                      <button
+                        onClick={() => deleteSelection([node.id])}
+                        style={{ background: '#7f1d1d', border: 'none', color: '#fff', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Subsystems / Containers */}
+                {Object.values(graph.containers).map((c) => (
+                  <tr key={c.id} style={{ borderBottom: '1px solid #1e293b', background: 'rgba(30, 41, 59, 0.3)' }}>
+                    <td style={tdStyle}><span style={{ color: '#a855f7', fontWeight: 600 }}>Container</span></td>
+                    <td style={tdStyle}>
+                      <input
+                        type="text"
+                        value={c.label}
+                        onChange={(e) => handleUpdateEntity(c.id, { label: e.target.value })}
+                        style={tableInputStyle}
+                      />
+                    </td>
+                    <td style={tdStyle}><span style={{ opacity: 0.5 }}>-</span></td>
+                    <td style={tdStyle}>
+                      {c.ports.map((p) => p.label).join(', ') || 'No ports'}
+                    </td>
+                    <td style={tdStyle}>
+                      <button
+                        onClick={() => deleteSelection([c.id])}
+                        style={{ background: '#7f1d1d', border: 'none', color: '#fff', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {inspectorOpen && !showConfigTable && (
         <InspectorDrawer
           graph={graph}
           selectedIds={selectedIds}
@@ -266,4 +441,22 @@ export const SysDemo: React.FC = () => {
       )}
     </div>
   );
+};
+
+const thStyle: React.CSSProperties = {
+  padding: '10px 12px',
+  borderBottom: '2px solid #334155'
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: '8px 12px'
+};
+
+const tableInputStyle: React.CSSProperties = {
+  background: '#131b2e',
+  border: '1px solid #334155',
+  color: '#f8fafc',
+  padding: '4px 8px',
+  borderRadius: 4,
+  fontSize: 12
 };

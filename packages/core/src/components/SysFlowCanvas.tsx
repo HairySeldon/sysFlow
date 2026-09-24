@@ -18,6 +18,7 @@ export interface SysFlowCanvasProps {
   layoutEngine?: LayoutEngine;
   interactionStrategy?: InteractionStrategy;
   direction?: 'LR' | 'TB';
+  showEdgeArrows?: boolean;
   nodeTypes?: Record<string, React.ComponentType<{ node: NodeEntity; selected: boolean }>>;
   containerTypes?: Record<string, React.ComponentType<{ container: ContainerEntity; selected: boolean }>>;
   zoomBounds?: { min: number; max: number };
@@ -33,6 +34,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   layoutEngine,
   interactionStrategy = DEFAULT_STRATEGY,
   direction = 'TB',
+  showEdgeArrows = true,
   nodeTypes,
   containerTypes,
   zoomBounds,
@@ -425,6 +427,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           layout={layout}
           selectedIds={selectedIds}
           direction={direction}
+          showArrows={showEdgeArrows}
           onEdgeClick={(edgeId) =>
             onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } })
           }

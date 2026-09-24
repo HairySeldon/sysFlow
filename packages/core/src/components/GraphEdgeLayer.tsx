@@ -7,6 +7,7 @@ interface GraphEdgeLayerProps {
   layout: LayoutResult;
   selectedIds: ID[];
   direction?: 'LR' | 'TB';
+  showArrows?: boolean;
   onEdgeClick?: (edgeId: ID) => void;
 }
 
@@ -15,6 +16,7 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   layout,
   selectedIds,
   direction = 'LR',
+  showArrows = true,
   onEdgeClick
 }) => {
   // Resolve an entity to its outermost collapsed ancestor if it or its parent is collapsed
@@ -158,7 +160,13 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
               fill="none"
               stroke={isSelected ? 'var(--sysflow-edge-selected)' : 'var(--sysflow-edge-stroke)'}
               strokeWidth={isSelected ? 2.5 : 1.75}
-              markerEnd={isSelected ? 'url(#sysflow-arrow-selected)' : 'url(#sysflow-arrow)'}
+              markerEnd={
+                showArrows
+                  ? isSelected
+                    ? 'url(#sysflow-arrow-selected)'
+                    : 'url(#sysflow-arrow)'
+                  : undefined
+              }
             />
           </g>
         );

@@ -5,10 +5,10 @@ import {
   SysFlowCanvas,
   EdgeRewireStrategy,
   NodeEntity,
-  ContainerEntity
+  ContainerEntity,
+  Port
 } from '@sysflow/core';
 import { Toolbar } from '../../components/Toolbar';
-import { InspectorDrawer } from '../../components/InspectorDrawer';
 import { useGraphHistory } from '../../hooks/useGraphHistory';
 import '@sysflow/core/dist/style.css';
 
@@ -19,15 +19,15 @@ const INITIAL_PIPELINE_GRAPH: LogicalGraph = {
     INGEST: {
       id: 'INGEST',
       label: 'Task: Ingest Telemetry',
-      ports: [{ id: 'p_out', label: 'out' }],
+      ports: [{ id: 'p_out', label: 'out', direction: 'out' }],
       data: { priority: 'P0', duration: '12ms' }
     },
     VALIDATE: {
       id: 'VALIDATE',
       label: 'Task: Schema Validation',
       ports: [
-        { id: 'p_in', label: 'in' },
-        { id: 'p_out', label: 'out' }
+        { id: 'p_in', label: 'in', direction: 'in' },
+        { id: 'p_out', label: 'out', direction: 'out' }
       ],
       data: { priority: 'P0', duration: '5ms' }
     },
@@ -35,15 +35,15 @@ const INITIAL_PIPELINE_GRAPH: LogicalGraph = {
       id: 'ENRICH',
       label: 'Task: AI Classification',
       ports: [
-        { id: 'p_in', label: 'in' },
-        { id: 'p_out', label: 'out' }
+        { id: 'p_in', label: 'in', direction: 'in' },
+        { id: 'p_out', label: 'out', direction: 'out' }
       ],
       data: { priority: 'P1', duration: '140ms' }
     },
     PERSIST: {
       id: 'PERSIST',
       label: 'Task: Cold Storage Sink',
-      ports: [{ id: 'p_in', label: 'in' }],
+      ports: [{ id: 'p_in', label: 'in', direction: 'in' }],
       data: { priority: 'P2', duration: '45ms' }
     }
   },
@@ -88,14 +88,14 @@ export const FlowDemo: React.FC = () => {
   } = useGraphHistory(INITIAL_PIPELINE_GRAPH);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [direction, setDirection] = useState<'LR' | 'TB'>('LR');
+  const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
 
-  // Keybinds (L, N, Ctrl+Z, Ctrl+Y, Ctrl+C, Ctrl+X, Ctrl+V, Del/Backspace)
+  const selectedNode = editorNodeId ? graph.nodes[editorNodeId] : null;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -113,21 +113,26 @@ export const FlowDemo: React.FC = () => {
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         deleteSelection(selectedIds);
         setSelectedIds([]);
+        setEditorNodeId(null);
       } else if (e.key.toLowerCase() === 'n') {
         const name = prompt('New task label:', 'Task: Process Batch');
         if (name) handleAddTask(name);
-      } else if (e.key.toLowerCase() === 'l') {
-        setGraphDirect({ ...graph });
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, graph, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection, setGraphDirect]);
+  }, [selectedIds, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection]);
 
   const handleGraphChange = (action: GraphAction) => {
     if (action.type === 'SELECTION_CHANGE') {
       setSelectedIds(action.payload.selectedIds);
+      const firstId = action.payload.selectedIds[0];
+      if (firstId && graph.nodes[firstId]) {
+        setEditorNodeId(firstId);
+      } else {
+        setEditorNodeId(null);
+      }
     } else {
       applyAction(action);
     }
@@ -138,10 +143,7 @@ export const FlowDemo: React.FC = () => {
     const newTask: NodeEntity = {
       id,
       label,
-      // Initialize with exactly one bidirectional port
-      ports: [
-        { id: `p_${Date.now()}`, label: 'port_1', direction: 'inout' }
-      ],
+      ports: [{ id: `p_${Date.now()}`, label: 'port_1', direction: 'inout' }],
       data: { priority: 'P1', duration: '20ms' }
     };
     setGraphDirect({
@@ -155,7 +157,7 @@ export const FlowDemo: React.FC = () => {
     const newContainer: ContainerEntity = {
       id,
       label,
-      ports: [{ id: `p_stage_${Date.now()}`, label: 'sync', direction: 'inout' }],
+      ports: [{ id: `p_${Date.now()}`, label: 'sync', direction: 'inout' }],
       collapsed: false
     };
     setGraphDirect({
@@ -164,27 +166,15 @@ export const FlowDemo: React.FC = () => {
     });
   };
 
-  const handleUpdateEntity = (
-    id: string,
-    updates: Partial<NodeEntity | ContainerEntity>,
-    cleanGraph?: LogicalGraph
-  ) => {
-    if (cleanGraph) {
-      setGraphDirect(cleanGraph);
-      return;
-    }
-
-    if (graph.nodes[id]) {
-      setGraphDirect({
-        ...graph,
-        nodes: { ...graph.nodes, [id]: { ...graph.nodes[id], ...updates } }
-      });
-    } else if (graph.containers[id]) {
-      setGraphDirect({
-        ...graph,
-        containers: { ...graph.containers, [id]: { ...graph.containers[id], ...updates } }
-      });
-    }
+  const updateSelectedNode = (updates: Partial<NodeEntity>) => {
+    if (!editorNodeId || !graph.nodes[editorNodeId]) return;
+    setGraphDirect({
+      ...graph,
+      nodes: {
+        ...graph.nodes,
+        [editorNodeId]: { ...graph.nodes[editorNodeId], ...updates }
+      }
+    });
   };
 
   return (
@@ -204,41 +194,208 @@ export const FlowDemo: React.FC = () => {
           maxWidth: 450
         }}
       >
-        <strong style={{ color: '#38bdf8' }}>Flow Priority Flow Reference:</strong>
+        <strong style={{ color: '#38bdf8' }}>Flow Pipeline Demo:</strong>
         <ul style={{ margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }}>
-          <li><strong>Pipeline Reordering:</strong> Drag any task node and drop it onto an edge or another node to splice and reorder the pipeline.</li>
-          <li><strong>CRUD & Keybinds:</strong> <code>N</code> (New Task), <code>Ctrl+Z/Y</code>, <code>Del</code>.</li>
+          <li><strong>Clean Edges:</strong> Arrows removed for clean modern graph connections.</li>
+          <li><strong>Reordering:</strong> Drag any task onto an edge to splice it in.</li>
+          <li><strong>Keys:</strong> <code>Tab</code>/<code>Arrows</code>: Navigate | <code>F</code>: Fit | <code>Ctrl+A</code>: All | <code>Del</code>: Delete.</li>
         </ul>
       </div>
 
       <Toolbar
         graph={graph}
         selectedIds={selectedIds}
+        direction={direction}
+        onToggleDirection={() => setDirection((prev) => (prev === 'LR' ? 'TB' : 'LR'))}
         onAddNode={handleAddTask}
         onAddContainer={handleAddContainer}
         onDeleteSelected={() => {
           deleteSelection(selectedIds);
           setSelectedIds([]);
+          setEditorNodeId(null);
         }}
         onUpdateGraph={setGraphDirect}
-        onOpenInspector={() => setInspectorOpen(true)}
       />
 
       <SysFlowCanvas
         graph={graph}
         onChange={handleGraphChange}
         interactionStrategy={rewireStrategy}
+        direction={direction}
+        showEdgeArrows={false}
         selectedIds={selectedIds}
       />
 
-      {inspectorOpen && (
-        <InspectorDrawer
-          graph={graph}
-          selectedIds={selectedIds}
-          onClose={() => setInspectorOpen(false)}
-          onUpdateEntity={handleUpdateEntity}
-        />
+      {/* Demo 2 Dedicated Node Editor */}
+      {selectedNode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: 340,
+            height: '100%',
+            background: '#090d16',
+            borderLeft: '1px solid #1e293b',
+            zIndex: 40,
+            padding: 20,
+            boxSizing: 'border-box',
+            color: '#f8fafc',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 16, color: '#38bdf8' }}>Task Node Editor</h3>
+            <button
+              onClick={() => setEditorNodeId(null)}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Task Name</label>
+            <input
+              type="text"
+              value={selectedNode.label}
+              onChange={(e) => updateSelectedNode({ label: e.target.value })}
+              style={inputStyle}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Priority</label>
+              <select
+                value={String(selectedNode.data?.priority || 'P1')}
+                onChange={(e) =>
+                  updateSelectedNode({ data: { ...selectedNode.data, priority: e.target.value } })
+                }
+                style={inputStyle}
+              >
+                <option value="P0">P0 (Critical)</option>
+                <option value="P1">P1 (High)</option>
+                <option value="P2">P2 (Normal)</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Duration</label>
+              <input
+                type="text"
+                value={String(selectedNode.data?.duration || '10ms')}
+                onChange={(e) =>
+                  updateSelectedNode({ data: { ...selectedNode.data, duration: e.target.value } })
+                }
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={labelStyle}>Ports ({selectedNode.ports.length})</label>
+              <button
+                style={smallBtnStyle}
+                onClick={() => {
+                  const name = prompt('Port name:', `port_${selectedNode.ports.length + 1}`);
+                  if (name) {
+                    updateSelectedNode({
+                      ports: [
+                        ...selectedNode.ports,
+                        { id: `p_${Date.now()}`, label: name, direction: 'inout' }
+                      ]
+                    });
+                  }
+                }}
+              >
+                + Add Port
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              {selectedNode.ports.map((port, idx) => (
+                <div
+                  key={port.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#131b2e',
+                    padding: '6px 10px',
+                    borderRadius: 4
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={port.label}
+                    onChange={(e) => {
+                      const updated = [...selectedNode.ports];
+                      updated[idx] = { ...port, label: e.target.value };
+                      updateSelectedNode({ ports: updated });
+                    }}
+                    style={{ ...inputStyle, marginTop: 0, flex: 2 }}
+                  />
+                  <select
+                    value={port.direction || 'inout'}
+                    onChange={(e) => {
+                      const updated = [...selectedNode.ports];
+                      updated[idx] = { ...port, direction: e.target.value as any };
+                      updateSelectedNode({ ports: updated });
+                    }}
+                    style={{ ...inputStyle, marginTop: 0, flex: 1.5 }}
+                  >
+                    <option value="in">In</option>
+                    <option value="out">Out</option>
+                    <option value="inout">InOut</option>
+                  </select>
+                  <button
+                    onClick={() => {
+                      const updated = selectedNode.ports.filter((_, i) => i !== idx);
+                      updateSelectedNode({ ports: updated });
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: '#94a3b8',
+  textTransform: 'uppercase'
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  marginTop: 4,
+  background: '#131b2e',
+  border: '1px solid #1e293b',
+  color: '#f8fafc',
+  padding: '6px 10px',
+  borderRadius: 4,
+  fontSize: 12,
+  boxSizing: 'border-box'
+};
+
+const smallBtnStyle: React.CSSProperties = {
+  background: '#1e293b',
+  border: '1px solid #334155',
+  color: '#f8fafc',
+  padding: '4px 8px',
+  borderRadius: 4,
+  cursor: 'pointer',
+  fontSize: 11,
+  fontWeight: 600
 };

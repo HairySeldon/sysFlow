@@ -1,28 +1,31 @@
 import React, { useRef } from 'react';
-import { LogicalGraph, ID, NodeEntity, ContainerEntity } from '@sysflow/core';
+import { LogicalGraph, ID } from '@sysflow/core';
 
 interface ToolbarProps {
   graph: LogicalGraph;
   selectedIds: ID[];
+  direction?: 'LR' | 'TB';
+  onToggleDirection?: () => void;
   onAddNode: (label: string, parentId?: string | null) => void;
   onAddContainer: (label: string) => void;
   onDeleteSelected: () => void;
   onUpdateGraph: (graph: LogicalGraph) => void;
-  onOpenInspector?: () => void;
+  extraActions?: React.ReactNode;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
   graph,
   selectedIds,
+  direction = 'LR',
+  onToggleDirection,
   onAddNode,
   onAddContainer,
   onDeleteSelected,
   onUpdateGraph,
-  onOpenInspector
+  extraActions
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Download JSON
   const handleSaveJson = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(graph, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -33,7 +36,45 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     downloadAnchor.remove();
   };
 
-  // Upload JSON
+  const validateGraphJson = (raw: string): LogicalGraph => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      throw new Error(`Invalid JSON syntax: ${(e as Error).message}`);
+    }
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Root JSON must be an object.');
+    }
+
+    const g = parsed as Record<string, unknown>;
+
+    if (typeof g.nodes !== 'object' || g.nodes === null || Array.isArray(g.nodes)) {
+      throw new Error('Schema error: "nodes" property must be a valid object map.');
+    }
+    if (typeof g.containers !== 'object' || g.containers === null || Array.isArray(g.containers)) {
+      throw new Error('Schema error: "containers" property must be a valid object map.');
+    }
+    if (typeof g.edges !== 'object' || g.edges === null || Array.isArray(g.edges)) {
+      throw new Error('Schema error: "edges" property must be a valid object map.');
+    }
+
+    const nodeIds = new Set(Object.keys(g.nodes as object));
+    const containerIds = new Set(Object.keys(g.containers as object));
+
+    for (const [eId, edge] of Object.entries(g.edges as Record<string, any>)) {
+      if (!edge.sourceId || (!nodeIds.has(edge.sourceId) && !containerIds.has(edge.sourceId))) {
+        throw new Error(`Schema error in edge "${eId}": sourceId "${edge.sourceId}" does not exist.`);
+      }
+      if (!edge.targetId || (!nodeIds.has(edge.targetId) && !containerIds.has(edge.targetId))) {
+        throw new Error(`Schema error in edge "${eId}": targetId "${edge.targetId}" does not exist.`);
+      }
+    }
+
+    return parsed as LogicalGraph;
+  };
+
   const handleUploadJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -41,14 +82,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (parsed && parsed.nodes && parsed.edges && parsed.containers) {
-          onUpdateGraph(parsed);
-        } else {
-          alert('Invalid SysFlow LogicalGraph JSON file structure.');
-        }
+        const validated = validateGraphJson(event.target?.result as string);
+        onUpdateGraph(validated);
       } catch (err) {
-        alert('Failed to parse JSON file.');
+        alert(`Failed to load graph:\n${(err as Error).message}`);
       }
     };
     reader.readAsText(file);
@@ -72,19 +109,30 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
       }}
     >
+      {onToggleDirection && (
+        <button
+          style={{ ...actionBtnStyle, background: '#0369a1', borderColor: '#38bdf8' }}
+          onClick={onToggleDirection}
+          title="Toggle Layout Direction"
+        >
+          {direction === 'LR' ? '⇄ Left to Right' : '⇅ Top to Bottom'}
+        </button>
+      )}
+
       <button
         style={actionBtnStyle}
         onClick={() => {
-          const name = prompt('Enter node label:', 'New_Module');
+          const name = prompt('Enter node label:', 'New_Node');
           if (name) onAddNode(name, null);
         }}
       >
         + Add Node
       </button>
+
       <button
         style={actionBtnStyle}
         onClick={() => {
-          const name = prompt('Enter container label:', 'module Subsystem');
+          const name = prompt('Enter container label:', 'Group_Container');
           if (name) onAddContainer(name);
         }}
       >
@@ -92,23 +140,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </button>
 
       {selectedIds.length > 0 && (
-        <>
-          <button
-            style={{ ...actionBtnStyle, backgroundColor: '#7f1d1d', borderColor: '#ef4444' }}
-            onClick={onDeleteSelected}
-          >
-            Delete Selected (Del)
-          </button>
-          {onOpenInspector && (
-            <button
-              style={{ ...actionBtnStyle, backgroundColor: '#2563eb', borderColor: '#60a5fa' }}
-              onClick={onOpenInspector}
-            >
-              Inspect Module
-            </button>
-          )}
-        </>
+        <button
+          style={{ ...actionBtnStyle, backgroundColor: '#7f1d1d', borderColor: '#ef4444' }}
+          onClick={onDeleteSelected}
+        >
+          Delete Selected ({selectedIds.length})
+        </button>
       )}
+
+      {extraActions}
 
       <button style={actionBtnStyle} onClick={handleSaveJson}>
         Save JSON
@@ -121,10 +161,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         style={{ display: 'none' }}
         onChange={handleUploadJson}
       />
-      <button
-        style={actionBtnStyle}
-        onClick={() => fileInputRef.current?.click()}
-      >
+      <button style={actionBtnStyle} onClick={() => fileInputRef.current?.click()}>
         Upload JSON
       </button>
     </div>
