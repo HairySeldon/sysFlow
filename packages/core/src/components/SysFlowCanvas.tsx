@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { LogicalGraph, ID, NodeEntity, ContainerEntity, GraphAction } from '../models';
+import { LogicalGraph, ID, NodeEntity, ContainerEntity, GraphAction, computeEntityPortLocations } from '../models';
 import { LayoutEngine, LayoutResult } from '../layout/LayoutEngine';
 import { WorkerBridge } from '../layout/worker/WorkerBridge';
 import { InteractionStrategy } from '../strategies/InteractionStrategy';
@@ -65,6 +65,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   const [activeWire, setActiveWire] = useState<{
     sourceId: ID;
     sourcePortId: ID;
+    startWorldPos: { x: number; y: number };
     currentWorldPos: { x: number; y: number };
   } | null>(null);
 
@@ -96,14 +97,23 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     isSource: boolean,
     e: React.PointerEvent
   ) => {
-    if (isSource) {
-      const worldPos = screenToWorld(e.clientX, e.clientY);
-      setActiveWire({
-        sourceId: entityId,
-        sourcePortId: portId,
-        currentWorldPos: worldPos
-      });
-    }
+    const entity = graph.nodes[entityId] || graph.containers[entityId];
+    const itemLayout = layout.nodes[entityId] || layout.containers[entityId];
+    if (!entity || !itemLayout) return;
+
+    const portLocs = computeEntityPortLocations(entity, itemLayout);
+    const loc = portLocs.get(portId);
+
+    const startPos = loc
+      ? { x: loc.worldX, y: loc.worldY }
+      : { x: itemLayout.x + itemLayout.width, y: itemLayout.y + itemLayout.height / 2 };
+
+    setActiveWire({
+      sourceId: entityId,
+      sourcePortId: portId,
+      startWorldPos: startPos,
+      currentWorldPos: screenToWorld(e.clientX, e.clientY)
+    });
   };
 
   const handlePortPointerUp = (entityId: string, portId: string, isSource: boolean) => {
@@ -223,8 +233,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         {activeWire && (
           <svg className="sysflow-edge-layer" style={{ pointerEvents: 'none' }}>
             <line
-              x1={layout.nodes[activeWire.sourceId]?.x || layout.containers[activeWire.sourceId]?.x || 0}
-              y1={layout.nodes[activeWire.sourceId]?.y || layout.containers[activeWire.sourceId]?.y || 0}
+              x1={activeWire.startWorldPos.x}
+              y1={activeWire.startWorldPos.y}
               x2={activeWire.currentWorldPos.x}
               y2={activeWire.currentWorldPos.y}
               stroke="#38bdf8"

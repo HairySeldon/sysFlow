@@ -1,10 +1,11 @@
 import React from 'react';
-import { NodeEntity, ContainerEntity, Port } from '../models';
+import { NodeEntity, ContainerEntity, computeEntityPortLocations } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 
 interface GraphPortLayerProps {
   entity: NodeEntity | ContainerEntity;
   layout: NodeLayoutResult;
+  direction?: 'LR' | 'TB';
   onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
   onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
 }
@@ -12,50 +13,50 @@ interface GraphPortLayerProps {
 export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
   entity,
   layout,
+  direction = 'LR',
   onPortPointerDown,
   onPortPointerUp
 }) => {
-  const portsCount = entity.ports.length;
+  if (!entity.ports || entity.ports.length === 0) {
+    return null;
+  }
+
+  const portLocations = computeEntityPortLocations(entity, layout, direction);
 
   return (
     <>
-      {/* Input Ports (Left) */}
-      {entity.ports.map((port: Port, idx: number) => {
-        const top = (layout.height / (portsCount + 1)) * (idx + 1);
-        return (
-          <div
-            key={`in-${port.id}`}
-            className="sysflow-port-anchor"
-            style={{ top: `${top}px`, left: '0px' }}
-            title={`Input Port: ${port.label}`}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onPortPointerDown?.(entity.id, port.id, false, e);
-            }}
-            onPointerUp={(e) => {
-              e.stopPropagation();
-              onPortPointerUp?.(entity.id, port.id, false);
-            }}
-          />
-        );
-      })}
+      {entity.ports.map((port) => {
+        const loc = portLocations.get(port.id);
+        if (!loc) return null;
 
-      {/* Output Ports (Right) */}
-      {entity.ports.map((port: Port, idx: number) => {
-        const top = (layout.height / (portsCount + 1)) * (idx + 1);
+        // Determine if port can act as source (output/inout) or target (input/inout)
+        const canBeSource = port.direction !== 'in';
+        const canBeTarget = port.direction !== 'out';
+
         return (
           <div
-            key={`out-${port.id}`}
-            className="sysflow-port-anchor"
-            style={{ top: `${top}px`, left: `${layout.width}px` }}
-            title={`Output Port: ${port.label}`}
+            key={port.id}
+            className={`sysflow-port-anchor sysflow-port-${loc.side}`}
+            style={{
+              position: 'absolute',
+              left: `${loc.localX}px`,
+              top: `${loc.localY}px`,
+              transform: 'translate(-50%, -50%)',
+              cursor: canBeSource ? 'crosshair' : 'default',
+              zIndex: 10
+            }}
+            title={`${port.label} (${port.direction || 'inout'} · ${loc.side})`}
             onPointerDown={(e) => {
               e.stopPropagation();
-              onPortPointerDown?.(entity.id, port.id, true, e);
+              if (canBeSource) {
+                onPortPointerDown?.(entity.id, port.id, true, e);
+              }
             }}
             onPointerUp={(e) => {
               e.stopPropagation();
-              onPortPointerUp?.(entity.id, port.id, true);
+              if (canBeTarget) {
+                onPortPointerUp?.(entity.id, port.id, false);
+              }
             }}
           />
         );

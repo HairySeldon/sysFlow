@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogicalGraph, ID, EdgeEntity, Port, ContainerEntity } from '../models';
+import { LogicalGraph, ID, EdgeEntity, Port, ContainerEntity, computeEntityPortLocations } from '../models';
 import { LayoutResult } from '../layout/LayoutEngine';
 
 interface GraphEdgeLayerProps {
@@ -20,12 +20,10 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
     let currentId: ID | null = entityId;
     let collapsedContainer: ContainerEntity | null = null;
 
-    // Check if the entity itself is a collapsed container
     if (graph.containers[entityId]?.collapsed) {
       collapsedContainer = graph.containers[entityId];
     }
 
-    // Traverse upwards to find if any ancestor is collapsed
     while (currentId) {
       const parentId: ID | null =
         graph.nodes[currentId]?.parentId ?? graph.containers[currentId]?.parentId ?? null;
@@ -39,7 +37,6 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
       const cLayout = layout.containers[collapsedContainer.id];
       if (!cLayout) return { x: 0, y: 0, valid: false, entityId: collapsedContainer.id };
 
-      // Dock to the collapsed container's left (target) or right (source)
       const x = isSource ? cLayout.x + cLayout.width : cLayout.x;
       const y = cLayout.y + cLayout.height / 2;
       return { x, y, valid: true, entityId: collapsedContainer.id };
@@ -53,13 +50,17 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
       return { x: 0, y: 0, valid: false, entityId };
     }
 
-    const portIndex = Math.max(0, entity.ports.findIndex((p: Port) => p.id === portId));
-    const totalPorts = entity.ports.length || 1;
+    const portLocs = computeEntityPortLocations(entity, itemLayout);
+    const loc = portLocs.get(portId);
 
-    const x = isSource ? itemLayout.x + itemLayout.width : itemLayout.x;
-    const y = itemLayout.y + (itemLayout.height / (totalPorts + 1)) * (portIndex + 1);
+    if (loc) {
+      return { x: loc.worldX, y: loc.worldY, valid: true, entityId };
+    }
 
-    return { x, y, valid: true, entityId };
+    // Fallback if portId is missing
+    const fallbackX = isSource ? itemLayout.x + itemLayout.width : itemLayout.x;
+    const fallbackY = itemLayout.y + itemLayout.height / 2;
+    return { x: fallbackX, y: fallbackY, valid: true, entityId };
   };
 
   return (
