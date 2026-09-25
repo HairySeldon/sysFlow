@@ -1,12 +1,10 @@
 import React from 'react';
-import { NodeEntity, LogicalGraph, computeEntityPortLocations } from '../models';
-import { NodeLayoutResult, LayoutResult } from '../layout/LayoutEngine';
+import { NodeEntity, ContainerEntity, computeEntityPortLocations } from '../models';
+import { NodeLayoutResult } from '../layout/LayoutEngine';
 
 interface GraphPortLayerProps {
   entity: NodeEntity;
   layout: NodeLayoutResult;
-  allLayouts?: LayoutResult;
-  graph?: LogicalGraph;
   direction?: 'LR' | 'TB';
   onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
   onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
@@ -15,8 +13,6 @@ interface GraphPortLayerProps {
 export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
   entity,
   layout,
-  allLayouts,
-  graph,
   direction = 'LR',
   onPortPointerDown,
   onPortPointerUp
@@ -25,7 +21,7 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
     return null;
   }
 
-  const portLocations = computeEntityPortLocations(entity, layout, direction, graph, allLayouts);
+  const portLocations = computeEntityPortLocations(entity, layout, direction);
 
   return (
     <>
@@ -33,6 +29,7 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
         const loc = portLocations.get(port.id);
         if (!loc) return null;
 
+        // Determine if port can act as source (output/inout) or target (input/inout)
         const canBeSource = port.direction !== 'in';
         const canBeTarget = port.direction !== 'out';
 
