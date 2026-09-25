@@ -475,8 +475,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                   e.stopPropagation();
                   onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [container.id] } });
                 }}
-                onPortPointerDown={handlePortPointerDown}
-                onPortPointerUp={handlePortPointerUp}
               />
             );
           })}

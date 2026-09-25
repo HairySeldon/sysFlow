@@ -3,7 +3,7 @@ import { NodeEntity, LogicalGraph, computeEntityPortLocations } from '../models'
 import { NodeLayoutResult, LayoutResult } from '../layout/LayoutEngine';
 
 interface GraphPortLayerProps {
-  entity: NodeEntity | ContainerEntity;
+  entity: NodeEntity;
   layout: NodeLayoutResult;
   allLayouts?: LayoutResult;
   graph?: LogicalGraph;

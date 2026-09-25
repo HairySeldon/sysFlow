@@ -26,7 +26,7 @@ export interface PortPerimeterLocation {
  * optimal side (top, bottom, left, right).
  */
 export function computeEntityPortLocations(
-  entity: NodeEntity | ContainerEntity,
+  entity: NodeEntity,
   layout: NodeLayoutResult,
   defaultLayoutDirection: 'LR' | 'TB' = 'LR',
   graph?: LogicalGraph,
@@ -197,15 +197,14 @@ export function pruneDanglingEdges(graph: LogicalGraph): LogicalGraph {
   const validEdges: Record<ID, EdgeEntity> = {};
 
   const getEntityPorts = (id: ID): Set<ID> => {
-    const entity = graph.nodes[id] || graph.containers[id];
-    return new Set(entity?.ports?.map((p) => p.id) || []);
+    const node = graph.nodes[id];
+    return new Set(node?.ports?.map((p) => p.id) || []);
   };
 
   for (const [edgeId, edge] of Object.entries(graph.edges)) {
     const sourcePorts = getEntityPorts(edge.sourceId);
     const targetPorts = getEntityPorts(edge.targetId);
 
-    // Edge is valid only if both source and target ports still exist on their respective entities
     const isSourceValid = sourcePorts.has(edge.sourcePortId);
     const isTargetValid = targetPorts.has(edge.targetPortId);
 
