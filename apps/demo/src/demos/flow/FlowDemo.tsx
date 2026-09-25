@@ -88,7 +88,7 @@ export const FlowDemo: React.FC = () => {
   } = useGraphHistory(INITIAL_PIPELINE_GRAPH);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [direction, setDirection] = useState<'LR' | 'TB'>('LR');
+  const [direction, setDirection] = useState<'LR' | 'TB'>('TB');
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
 
   const selectedNode = editorNodeId ? graph.nodes[editorNodeId] : null;
@@ -222,6 +222,7 @@ export const FlowDemo: React.FC = () => {
         onChange={handleGraphChange}
         interactionStrategy={rewireStrategy}
         direction={direction}
+        layoutOptions={{ mode: 'flow' }}
         showEdgeArrows={false}
         selectedIds={selectedIds}
       />

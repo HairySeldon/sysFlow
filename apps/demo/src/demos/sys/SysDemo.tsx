@@ -268,6 +268,7 @@ export const SysDemo: React.FC = () => {
         onChange={handleGraphChange}
         interactionStrategy={reparentStrategy}
         direction={direction}
+        layoutOptions={{ mode: 'concurrent' }}
         nodeTypes={{ Module: SysModuleRenderer }}
         selectedIds={selectedIds}
       />

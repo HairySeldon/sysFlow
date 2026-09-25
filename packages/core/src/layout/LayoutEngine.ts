@@ -1,3 +1,5 @@
+// packages/core/src/layout/LayoutEngine.ts
+
 import { ID, LogicalGraph } from '../models';
 
 export interface NodeLayoutResult {
@@ -15,6 +17,14 @@ export interface LayoutResult {
 
 export interface LayoutOptions {
   direction?: 'LR' | 'TB';
+  /**
+   * 'flow' for sequential DAGs/trees (median-centered hierarchy)
+   * 'concurrent' for modular/nested CAD architectures (aspect-ratio multi-row packing)
+   * 'auto' chooses based on graph topology (presence of deep containment vs pure edge flow)
+   */
+  mode?: 'flow' | 'concurrent' | 'auto';
+  /** Target width/height ratio for concurrent packing (defaults to 16/9 ~ 1.77) */
+  aspectRatio?: number;
 }
 
 export interface LayoutEngine {

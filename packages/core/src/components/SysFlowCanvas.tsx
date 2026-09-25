@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { LogicalGraph, ID, NodeEntity, ContainerEntity, GraphAction, computeEntityPortLocations } from '../models';
-import { LayoutEngine, LayoutResult } from '../layout/LayoutEngine';
+import { LayoutEngine, LayoutResult, LayoutOptions } from '../layout/LayoutEngine';
 import { WorkerBridge } from '../layout/worker/WorkerBridge';
 import { InteractionStrategy } from '../strategies/InteractionStrategy';
 import { ReparentStrategy } from '../strategies/ReparentStrategy';
@@ -18,6 +18,7 @@ export interface SysFlowCanvasProps {
   layoutEngine?: LayoutEngine;
   interactionStrategy?: InteractionStrategy;
   direction?: 'LR' | 'TB';
+  layoutOptions?: LayoutOptions; // <-- NEW
   showEdgeArrows?: boolean;
   nodeTypes?: Record<string, React.ComponentType<{ node: NodeEntity; selected: boolean }>>;
   containerTypes?: Record<string, React.ComponentType<{ container: ContainerEntity; selected: boolean }>>;
@@ -34,6 +35,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   layoutEngine,
   interactionStrategy = DEFAULT_STRATEGY,
   direction = 'TB',
+  layoutOptions,
   showEdgeArrows = true,
   nodeTypes,
   containerTypes,
@@ -205,15 +207,32 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   // Layout resolution
   useEffect(() => {
     let cancelled = false;
-    activeEngine.execute(graph, measurements, { direction }).then((computed) => {
+
+    // Detect actual container aspect ratio from the DOM
+    let dynamicAspect = 16 / 9;
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        dynamicAspect = rect.width / rect.height;
+      }
+    }
+
+    const options: LayoutOptions = {
+      direction,
+      aspectRatio: dynamicAspect,
+      ...layoutOptions
+    };
+
+    activeEngine.execute(graph, measurements, options).then((computed) => {
       if (!cancelled) {
         setLayout(computed);
       }
     });
+
     return () => {
       cancelled = true;
     };
-  }, [graph, measurements, activeEngine, direction]);
+  }, [graph, measurements, activeEngine, direction, layoutOptions]);
 
   // Port wiring handlers
   const handlePortPointerDown = (
