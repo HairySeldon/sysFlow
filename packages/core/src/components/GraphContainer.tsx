@@ -1,6 +1,7 @@
 import React from 'react';
 import { ContainerEntity } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
+import { GraphPortLayer } from './GraphPortLayer';
 
 interface GraphContainerProps {
   container: ContainerEntity;
@@ -12,6 +13,8 @@ interface GraphContainerProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onClick: (e: React.MouseEvent) => void;
+  onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
+  onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
   customRenderer?: React.ComponentType<{ container: ContainerEntity; selected: boolean }>;
 }
 
@@ -25,6 +28,8 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
   onMouseEnter,
   onMouseLeave,
   onClick,
+  onPortPointerDown,
+  onPortPointerUp,
   customRenderer: CustomRenderer
 }) => {
   return (
@@ -40,6 +45,12 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
       onMouseLeave={onMouseLeave}
       onClick={onClick}
     >
+      <GraphPortLayer
+        entity={container}
+        layout={layout}
+        onPortPointerDown={onPortPointerDown}
+        onPortPointerUp={onPortPointerUp}
+      />
       {CustomRenderer ? (
         <CustomRenderer container={container} selected={selected} />
       ) : (

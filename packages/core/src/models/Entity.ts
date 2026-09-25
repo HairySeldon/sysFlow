@@ -26,6 +26,7 @@ export interface ContainerEntity {
   label: string;
   parentId?: ID | null;
   type?: string;
+  ports: Port[];
   collapsed?: boolean;
   data?: Record<string, unknown>;
   className?: string;
