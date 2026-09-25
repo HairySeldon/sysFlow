@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogicalGraph, ID, EdgeEntity, Port, ContainerEntity, computeEntityPortLocations } from '../models';
+import { LogicalGraph, ID, EdgeEntity, ContainerEntity, computeEntityPortLocations } from '../models';
 import { LayoutResult } from '../layout/LayoutEngine';
 
 interface GraphEdgeLayerProps {
@@ -19,7 +19,6 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   showArrows = true,
   onEdgeClick
 }) => {
-  // Resolve an entity to its outermost collapsed ancestor if it or its parent is collapsed
   const resolveEffectiveEndpoint = (entityId: ID, portId: ID, isSource: boolean) => {
     let currentId: ID | null = entityId;
     let collapsedContainer: ContainerEntity | null = null;
@@ -39,32 +38,31 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
 
     if (collapsedContainer) {
       const cLayout = layout.containers[collapsedContainer.id];
-      if (!cLayout) return { x: 0, y: 0, valid: false, entityId: collapsedContainer.id };
+      if (!cLayout) return { x: 0, y: 0, valid: false, entityId: collapsedContainer.id, side: 'bottom' as const };
 
-      const x = isSource ? cLayout.x + cLayout.width : cLayout.x;
-      const y = cLayout.y + cLayout.height / 2;
-      return { x, y, valid: true, entityId: collapsedContainer.id };
+      const x = isSource ? cLayout.x + cLayout.width / 2 : cLayout.x + cLayout.width / 2;
+      const y = isSource ? cLayout.y + cLayout.height : cLayout.y;
+      return { x, y, valid: true, entityId: collapsedContainer.id, side: (isSource ? 'bottom' : 'top') as const };
     }
 
-    const isContainer = Boolean(graph.containers[entityId]);
-    const entity = isContainer ? graph.containers[entityId] : graph.nodes[entityId];
-    const itemLayout = isContainer ? layout.containers[entityId] : layout.nodes[entityId];
+    const node = graph.nodes[entityId];
+    const nodeLayout = layout.nodes[entityId];
 
-    if (!entity || !itemLayout) {
-      return { x: 0, y: 0, valid: false, entityId };
+    if (!node || !nodeLayout) {
+      return { x: 0, y: 0, valid: false, entityId, side: 'bottom' as const };
     }
 
-    const portLocs = computeEntityPortLocations(entity, itemLayout);
+    const portLocs = computeEntityPortLocations(node, nodeLayout, direction, graph, layout);
     const loc = portLocs.get(portId);
 
     if (loc) {
-      return { x: loc.worldX, y: loc.worldY, valid: true, entityId };
+      return { x: loc.worldX, y: loc.worldY, valid: true, entityId, side: loc.side };
     }
 
     // Fallback if portId is missing
-    const fallbackX = isSource ? itemLayout.x + itemLayout.width : itemLayout.x;
-    const fallbackY = itemLayout.y + itemLayout.height / 2;
-    return { x: fallbackX, y: fallbackY, valid: true, entityId };
+    const fallbackX = isSource ? nodeLayout.x + nodeLayout.width : nodeLayout.x;
+    const fallbackY = nodeLayout.y + nodeLayout.height / 2;
+    return { x: fallbackX, y: fallbackY, valid: true, entityId, side: (isSource ? 'right' : 'left') as const };
   };
 
   return (
@@ -99,48 +97,34 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
         const p1 = resolveEffectiveEndpoint(edge.targetId, edge.targetPortId, false);
 
         if (!p0.valid || !p1.valid) return null;
-
-        // If both endpoints collapse into the exact same container, hide the internal edge
         if (p0.entityId === p1.entityId) return null;
 
         const isSelected = selectedIds.includes(edge.id);
-        const deltaX = p1.x - p0.x;
-        const deltaY = p1.y - p0.y;
+        const dx = p1.x - p0.x;
+        const dy = p1.y - p0.y;
 
-        let pathStr: string;
-        if (direction === 'TB') {
-          // Vertical Tree Flow (Top to Bottom)
-          if (p1.y >= p0.y) {
-            const c0x = p0.x;
-            const c0y = p0.y + Math.max(30, 0.5 * deltaY);
-            const c1x = p1.x;
-            const c1y = p1.y - Math.max(30, 0.5 * deltaY);
-            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
-          } else {
-            // Feedback loop around the side
-            const c0x = p0.x + 80;
-            const c0y = p0.y + 40;
-            const c1x = p1.x + 80;
-            const c1y = p1.y - 40;
-            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
+        const getControlPoint = (
+          p: { x: number; y: number; side?: 'left' | 'right' | 'top' | 'bottom' },
+          dist: number,
+          isSource: boolean
+        ) => {
+          const side = p.side || (direction === 'TB' ? (isSource ? 'bottom' : 'top') : (isSource ? 'right' : 'left'));
+          switch (side) {
+            case 'top':
+              return { x: p.x, y: p.y - dist };
+            case 'bottom':
+              return { x: p.x, y: p.y + dist };
+            case 'left':
+              return { x: p.x - dist, y: p.y };
+            case 'right':
+              return { x: p.x + dist, y: p.y };
           }
-        } else {
-          // Horizontal Pipeline Flow (Left to Right)
-          if (p1.x >= p0.x) {
-            const c0x = p0.x + Math.max(40, 0.5 * deltaX);
-            const c0y = p0.y;
-            const c1x = p1.x - Math.max(40, 0.5 * deltaX);
-            const c1y = p1.y;
-            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
-          } else {
-            // Feedback / loop back over top
-            const c0x = p0.x + 60;
-            const c0y = p0.y - 80;
-            const c1x = p1.x - 60;
-            const c1y = p1.y - 80;
-            pathStr = `M ${p0.x} ${p0.y} C ${c0x} ${c0y} ${c1x} ${c1y} ${p1.x} ${p1.y}`;
-          }
-        }
+        };
+
+        const dist = Math.max(30, Math.min(120, Math.hypot(dx, dy) * 0.4));
+        const c0 = getControlPoint(p0, dist, true);
+        const c1 = getControlPoint(p1, dist, false);
+        const pathStr = `M ${p0.x} ${p0.y} C ${c0.x} ${c0.y} ${c1.x} ${c1.y} ${p1.x} ${p1.y}`;
 
         return (
           <g key={edge.id} style={{ pointerEvents: 'stroke' }}>

@@ -1,11 +1,14 @@
 import React from 'react';
-import { NodeEntity } from '../models';
-import { NodeLayoutResult } from '../layout/LayoutEngine';
+import { NodeEntity, LogicalGraph } from '../models';
+import { NodeLayoutResult, LayoutResult } from '../layout/LayoutEngine';
 import { GraphPortLayer } from './GraphPortLayer';
 
 interface GraphNodeProps {
   node: NodeEntity;
   layout: NodeLayoutResult;
+  allLayouts?: LayoutResult;
+  graph?: LogicalGraph;
+  direction?: 'LR' | 'TB';
   selected: boolean;
   onPointerDown: (node: NodeEntity, e: React.PointerEvent) => void;
   onMouseEnter: () => void;
@@ -19,6 +22,9 @@ interface GraphNodeProps {
 export const GraphNode: React.FC<GraphNodeProps> = ({
   node,
   layout,
+  allLayouts,
+  graph,
+  direction,
   selected,
   onPointerDown,
   onMouseEnter,
@@ -44,6 +50,9 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
       <GraphPortLayer
         entity={node}
         layout={layout}
+        allLayouts={allLayouts}
+        graph={graph}
+        direction={direction}
         onPortPointerDown={onPortPointerDown}
         onPortPointerUp={onPortPointerUp}
       />
