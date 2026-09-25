@@ -3,15 +3,15 @@
 import { ID, LogicalGraph } from '../../models';
 import { LayoutResult, NodeLayoutResult, LayoutOptions } from '../LayoutEngine';
 
-const COLUMN_GAP = 36;
-const ROW_GAP = 28;
-const CONTAINER_PADDING_X = 24;
-const CONTAINER_PADDING_Y = 20;
-const HEADER_HEIGHT = 40;
-const COLLAPSED_CONTAINER_WIDTH = 220;
+const COLUMN_GAP = 32;
+const ROW_GAP = 24;
+const CONTAINER_PADDING_X = 22;
+const CONTAINER_PADDING_Y = 18;
+const HEADER_HEIGHT = 38;
+const COLLAPSED_CONTAINER_WIDTH = 210;
 const COLLAPSED_CONTAINER_HEIGHT = 36;
-const DEFAULT_NODE_WIDTH = 190;
-const DEFAULT_NODE_HEIGHT = 58;
+const DEFAULT_NODE_WIDTH = 180;
+const DEFAULT_NODE_HEIGHT = 54;
 
 interface LocalBox {
   id: ID;
@@ -19,6 +19,25 @@ interface LocalBox {
   localY: number;
   width: number;
   height: number;
+}
+
+interface ItemDim {
+  id: ID;
+  width: number;
+  height: number;
+}
+
+interface PackingCandidate {
+  width: number;
+  height: number;
+  boxes: LocalBox[];
+  score: number;
+}
+
+interface SkylineSegment {
+  x: number;
+  width: number;
+  y: number;
 }
 
 export class CoordinateAssigner {
@@ -73,14 +92,13 @@ export class CoordinateAssigner {
       );
     }
 
-    // Dynamic port orientations
     CoordinateAssigner.assignDynamicPortSides(graph, nodesLayout, containersLayout, isTB);
 
     return { nodes: nodesLayout, containers: containersLayout };
   }
 
   // ===========================================================================
-  // AREA-BALANCED WRAP PACKING FOR CONCURRENT ARCHITECTURES
+  // CONCURRENT COMPOUND PACKING WITH SKYLINE 2D BIN PACKING
   // ===========================================================================
   private static layoutConcurrentHierarchy(
     graph: LogicalGraph,
@@ -109,7 +127,7 @@ export class CoordinateAssigner {
     const containerInnerDimensions = new Map<ID, { width: number; height: number }>();
     const localPositions = new Map<ID, LocalBox>();
 
-    // Bottom-Up: Pack every container's children using Area-Balanced Shelf Packing
+    // 1. Bottom-up: Find optimal, minimal-waste packing for every container
     for (const containerId of sortedContainers) {
       const isCollapsed = Boolean(graph.containers[containerId]?.collapsed);
       if (isCollapsed) {
@@ -123,79 +141,51 @@ export class CoordinateAssigner {
       const children = childrenMap.get(containerId) || [];
       if (children.length === 0) {
         containerInnerDimensions.set(containerId, {
-          width: getBaseDim(containerId).width,
+          width: COLLAPSED_CONTAINER_WIDTH,
           height: HEADER_HEIGHT + CONTAINER_PADDING_Y * 2
         });
         continue;
       }
 
-      const { packedWidth, packedHeight } = CoordinateAssigner.packChildrenAspectBalanced(
-        children,
-        containerInnerDimensions,
-        getBaseDim,
-        targetAspect,
-        localPositions
-      );
+      const items: ItemDim[] = children.map((cId) => {
+        const dims = containerInnerDimensions.has(cId)
+          ? containerInnerDimensions.get(cId)!
+          : getBaseDim(cId);
+        return { id: cId, width: dims.width, height: dims.height };
+      });
 
-      const totalW = Math.max(
-        packedWidth + CONTAINER_PADDING_X * 2,
-        getBaseDim(containerId).width
-      );
-      const totalH = Math.max(
-        packedHeight + HEADER_HEIGHT + CONTAINER_PADDING_Y * 2,
-        HEADER_HEIGHT + CONTAINER_PADDING_Y * 2
-      );
+      const best = CoordinateAssigner.findBestTightPacking(items, targetAspect);
+
+      for (const box of best.boxes) {
+        localPositions.set(box.id, box);
+      }
+
+      // Open containers size tightly to their content + padding + header
+      const totalW = Math.max(best.width + CONTAINER_PADDING_X * 2, COLLAPSED_CONTAINER_WIDTH);
+      const totalH = best.height + HEADER_HEIGHT + CONTAINER_PADDING_Y * 2;
 
       containerInnerDimensions.set(containerId, { width: totalW, height: totalH });
     }
 
-    // Pack Root Level Elements
+    // 2. Root-level packing: Balance canvas aspect ratio and eliminate dead space
     const rootItems = childrenMap.get(null) || [];
-    const rootBoxes: LocalBox[] = [];
+    let rootBoxes: LocalBox[] = [];
 
     if (rootItems.length > 0) {
-      const rootItemDims = rootItems.map((rId) => {
-        const isContainer = Boolean(graph.containers[rId]);
-        const dims = isContainer
-          ? containerInnerDimensions.get(rId) || getBaseDim(rId)
-          : getBaseDim(rId);
+      const rootItemDims: ItemDim[] = rootItems.map((rId) => {
+        const dims = containerInnerDimensions.get(rId) || getBaseDim(rId);
         return { id: rId, width: dims.width, height: dims.height };
       });
 
-      // Target root canvas width based on total area
-      let totalArea = 0;
-      let maxItemW = 0;
-      for (const d of rootItemDims) {
-        totalArea += (d.width + COLUMN_GAP * 1.5) * (d.height + ROW_GAP * 1.5);
-        maxItemW = Math.max(maxItemW, d.width);
-      }
-      const targetCanvasW = Math.max(maxItemW, Math.sqrt(totalArea * targetAspect));
-
-      let curX = 60;
-      let curY = 60;
-      let shelfH = 0;
-
-      for (const item of rootItemDims) {
-        if (curX > 60 && curX + item.width > targetCanvasW + 60) {
-          curX = 60;
-          curY += shelfH + ROW_GAP * 1.5;
-          shelfH = 0;
-        }
-
-        rootBoxes.push({
-          id: item.id,
-          localX: curX,
-          localY: curY,
-          width: item.width,
-          height: item.height
-        });
-
-        curX += item.width + COLUMN_GAP * 1.5;
-        shelfH = Math.max(shelfH, item.height);
-      }
+      const bestRoot = CoordinateAssigner.findBestTightPacking(rootItemDims, targetAspect);
+      rootBoxes = bestRoot.boxes.map((b) => ({
+        ...b,
+        localX: b.localX + 60,
+        localY: b.localY + 60
+      }));
     }
 
-    // Top-Down: Compute absolute world coordinates
+    // 3. Top-down: Convert local coordinates into absolute world coordinates
     const assignWorldCoordinates = (
       itemId: ID,
       worldX: number,
@@ -236,63 +226,176 @@ export class CoordinateAssigner {
   }
 
   /**
-   * Packs child boxes into an area-balanced bounding rectangle with ratio ~ targetAspect.
-   * Eliminates the exponential horizontal expansion and dead vertical space.
+   * Evaluates multiple candidate bounding widths using 2D skyline bin packing
+   * and picks the configuration that minimizes empty space while respecting targetAspect.
    */
-  private static packChildrenAspectBalanced(
-    children: ID[],
-    containerDims: Map<ID, { width: number; height: number }>,
-    getBaseDim: (id: ID) => { width: number; height: number },
-    targetAspect: number,
-    localPositions: Map<ID, LocalBox>
-  ): { packedWidth: number; packedHeight: number } {
-    const items = children.map((cId) => {
-      const dims = containerDims.has(cId) ? containerDims.get(cId)! : getBaseDim(cId);
-      return { id: cId, width: dims.width, height: dims.height };
-    });
-
-    // 1. Calculate target row width from total area
-    let totalArea = 0;
-    let maxChildW = 0;
-    for (const item of items) {
-      totalArea += (item.width + COLUMN_GAP) * (item.height + ROW_GAP);
-      maxChildW = Math.max(maxChildW, item.width);
+  private static findBestTightPacking(items: ItemDim[], targetAspect: number): PackingCandidate {
+    if (items.length === 1) {
+      return {
+        width: items[0].width,
+        height: items[0].height,
+        boxes: [{ id: items[0].id, localX: 0, localY: 0, width: items[0].width, height: items[0].height }],
+        score: 0
+      };
     }
 
-    // Ideal width to keep the container close to target aspect ratio
-    const targetRowWidth = Math.max(maxChildW, Math.sqrt(totalArea * targetAspect));
+    const totalItemArea = items.reduce((acc, it) => acc + it.width * it.height, 0);
+    const maxSingleW = Math.max(...items.map((it) => it.width));
 
-    // 2. Shelf packing
-    let curX = 0;
-    let curY = 0;
-    let shelfHeight = 0;
-    let maxOverallW = 0;
+    // Sort items by width to generate natural multi-column candidate widths
+    const sortedByWidth = [...items].sort((a, b) => b.width - a.width);
 
-    for (const item of items) {
-      // Wrap to next shelf if adding this item exceeds target width
-      if (curX > 0 && curX + item.width > targetRowWidth) {
-        maxOverallW = Math.max(maxOverallW, curX - COLUMN_GAP);
-        curX = 0;
-        curY += shelfHeight + ROW_GAP;
-        shelfHeight = 0;
+    const candidateWidths = new Set<number>();
+
+    // 1. Single row width (all items horizontally)
+    const singleRowW = items.reduce((acc, it) => acc + it.width, 0) + (items.length - 1) * COLUMN_GAP;
+    candidateWidths.add(singleRowW);
+
+    // 2. Pure vertical column width
+    candidateWidths.add(maxSingleW);
+
+    // 3. Aspect-ratio area targets
+    const idealAspectW = Math.max(maxSingleW, Math.sqrt(totalItemArea * targetAspect));
+    candidateWidths.add(idealAspectW);
+    candidateWidths.add(idealAspectW * 0.85);
+    candidateWidths.add(idealAspectW * 1.15);
+
+    // 4. Test multi-column splits (1 to N columns)
+    const maxCols = Math.min(items.length, 6);
+    for (let c = 2; c <= maxCols; c++) {
+      let colWidthEstimate = 0;
+      for (let i = 0; i < c && i < sortedByWidth.length; i++) {
+        colWidthEstimate += sortedByWidth[i].width;
+      }
+      colWidthEstimate += (c - 1) * COLUMN_GAP;
+      if (colWidthEstimate >= maxSingleW) {
+        candidateWidths.add(colWidthEstimate);
+      }
+    }
+
+    let bestCandidate: PackingCandidate | null = null;
+
+    for (const maxRowWidth of candidateWidths) {
+      const candidate = CoordinateAssigner.simulateSkylinePacking(items, maxRowWidth);
+
+      const boundingArea = candidate.width * candidate.height;
+      const wastedArea = Math.max(0, boundingArea - totalItemArea);
+      const aspect = candidate.width / Math.max(1, candidate.height);
+      const aspectDeviation = Math.abs(Math.log(aspect / targetAspect));
+
+      // Primary goal: minimize wasted area. Secondary preference: aspect ratio.
+      const score = (wastedArea / totalItemArea) * 2.0 + aspectDeviation * 0.25;
+      candidate.score = score;
+
+      if (!bestCandidate || score < bestCandidate.score) {
+        bestCandidate = candidate;
+      }
+    }
+
+    return bestCandidate!;
+  }
+
+  /**
+   * Bottom-Left Skyline 2D Bin Packing:
+   * Sorts items descending by height (First-Fit Decreasing) and packs into the lowest
+   * available height valley, preventing tall items from locking the vertical baseline.
+   */
+  private static simulateSkylinePacking(items: ItemDim[], maxRowWidth: number): PackingCandidate {
+    // Sort descending by height to anchor tall containers first
+    const sorted = [...items].sort((a, b) => b.height - a.height);
+
+    const skyline: SkylineSegment[] = [{ x: 0, width: maxRowWidth, y: 0 }];
+    const boxes: LocalBox[] = [];
+
+    for (const item of sorted) {
+      let bestY = Infinity;
+      let bestIdx = -1;
+
+      // Find the lowest skyline segment that can accommodate the item's width
+      for (let i = 0; i < skyline.length; i++) {
+        const seg = skyline[i];
+        if (seg.x + item.width > maxRowWidth) continue;
+
+        let maxH = 0;
+        let wCovered = 0;
+        for (let j = i; j < skyline.length && wCovered < item.width; j++) {
+          maxH = Math.max(maxH, skyline[j].y);
+          wCovered += skyline[j].width;
+        }
+
+        if (maxH < bestY) {
+          bestY = maxH;
+          bestIdx = i;
+        }
       }
 
-      localPositions.set(item.id, {
+      if (bestIdx === -1) {
+        // Exceeds maxRowWidth: place at bottom of entire bounding box
+        const maxY = Math.max(...skyline.map((s) => s.y));
+        const posY = maxY === 0 ? 0 : maxY + ROW_GAP;
+        boxes.push({
+          id: item.id,
+          localX: 0,
+          localY: posY,
+          width: item.width,
+          height: item.height
+        });
+
+        skyline.length = 0;
+        skyline.push({ x: 0, width: item.width + COLUMN_GAP, y: posY + item.height });
+        if (maxRowWidth > item.width + COLUMN_GAP) {
+          skyline.push({
+            x: item.width + COLUMN_GAP,
+            width: maxRowWidth - (item.width + COLUMN_GAP),
+            y: 0
+          });
+        }
+        continue;
+      }
+
+      const startX = skyline[bestIdx].x;
+      const startY = bestY === 0 ? 0 : bestY + ROW_GAP;
+
+      boxes.push({
         id: item.id,
-        localX: curX,
-        localY: curY,
+        localX: startX,
+        localY: startY,
         width: item.width,
         height: item.height
       });
 
-      curX += item.width + COLUMN_GAP;
-      shelfHeight = Math.max(shelfHeight, item.height);
+      // Update skyline
+      const itemSpanW = item.width + COLUMN_GAP;
+      const newY = startY + item.height;
+      const newSeg: SkylineSegment = { x: startX, width: itemSpanW, y: newY };
+
+      const updatedSkyline: SkylineSegment[] = [];
+      for (const seg of skyline) {
+        if (seg.x + seg.width <= startX || seg.x >= startX + itemSpanW) {
+          updatedSkyline.push(seg);
+        } else {
+          if (seg.x < startX) {
+            updatedSkyline.push({ x: seg.x, width: startX - seg.x, y: seg.y });
+          }
+          if (seg.x + seg.width > startX + itemSpanW) {
+            updatedSkyline.push({
+              x: startX + itemSpanW,
+              width: seg.x + seg.width - (startX + itemSpanW),
+              y: seg.y
+            });
+          }
+        }
+      }
+      updatedSkyline.push(newSeg);
+      updatedSkyline.sort((a, b) => a.x - b.x);
+      skyline.length = 0;
+      skyline.push(...updatedSkyline);
     }
 
-    maxOverallW = Math.max(maxOverallW, curX > 0 ? curX - COLUMN_GAP : 0);
-    const maxOverallH = curY + shelfHeight;
+    const overallW = Math.max(...boxes.map((b) => b.localX + b.width), 0);
+    const overallH = Math.max(...boxes.map((b) => b.localY + b.height), 0);
 
-    return { packedWidth: maxOverallW, packedHeight: maxOverallH };
+    return { width: overallW, height: overallH, boxes, score: 0 };
   }
 
   // ===========================================================================
@@ -436,9 +539,6 @@ export class CoordinateAssigner {
     }
   }
 
-  // ===========================================================================
-  // UTILITIES
-  // ===========================================================================
   private static assignDynamicPortSides(
     graph: LogicalGraph,
     nodesLayout: Record<ID, NodeLayoutResult>,
