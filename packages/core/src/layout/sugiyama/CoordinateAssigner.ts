@@ -1,15 +1,17 @@
+// packages/core/src/layout/sugiyama/CoordinateAssigner.ts
+
 import { ID, LogicalGraph } from '../../models';
 import { LayoutResult, NodeLayoutResult, LayoutOptions } from '../LayoutEngine';
 
-const COLUMN_GAP = 70;
-const ROW_GAP = 50;
-const CONTAINER_PADDING_X = 28;
-const CONTAINER_PADDING_Y = 24;
-const HEADER_HEIGHT = 44;
-const COLLAPSED_CONTAINER_WIDTH = 240;
-const COLLAPSED_CONTAINER_HEIGHT = 38;
-const DEFAULT_NODE_WIDTH = 200;
-const DEFAULT_NODE_HEIGHT = 64;
+const COLUMN_GAP = 36;
+const ROW_GAP = 28;
+const CONTAINER_PADDING_X = 24;
+const CONTAINER_PADDING_Y = 20;
+const HEADER_HEIGHT = 40;
+const COLLAPSED_CONTAINER_WIDTH = 220;
+const COLLAPSED_CONTAINER_HEIGHT = 36;
+const DEFAULT_NODE_WIDTH = 190;
+const DEFAULT_NODE_HEIGHT = 58;
 
 interface LocalBox {
   id: ID;
@@ -24,10 +26,10 @@ export class CoordinateAssigner {
     graph: LogicalGraph,
     orderedLayers: Map<number, ID[]>,
     measurements: Map<ID, { width: number; height: number }>,
-    options: LayoutOptions = { direction: 'TB', mode: 'auto', aspectRatio: 1.6 }
+    options: LayoutOptions = { direction: 'TB', mode: 'auto', aspectRatio: 1.55 }
   ): LayoutResult {
     const isTB = options.direction === 'TB';
-    const targetAspect = options.aspectRatio ?? 1.6;
+    const targetAspect = options.aspectRatio ?? 1.55;
 
     const numContainers = Object.keys(graph.containers).length;
     const mode =
@@ -53,9 +55,6 @@ export class CoordinateAssigner {
     };
 
     if (mode === 'concurrent') {
-      // =========================================================================
-      // 1. CONCURRENT / CAD COMPOUND HIERARCHY PACKING
-      // =========================================================================
       CoordinateAssigner.layoutConcurrentHierarchy(
         graph,
         getBaseDim,
@@ -64,9 +63,6 @@ export class CoordinateAssigner {
         containersLayout
       );
     } else {
-      // =========================================================================
-      // 2. FLOW / DAG TREE CENTERING (DEMO 2)
-      // =========================================================================
       CoordinateAssigner.layoutFlowTree(
         graph,
         orderedLayers,
@@ -77,14 +73,14 @@ export class CoordinateAssigner {
       );
     }
 
-    // Assign perimeter sides for auto ports
+    // Dynamic port orientations
     CoordinateAssigner.assignDynamicPortSides(graph, nodesLayout, containersLayout, isTB);
 
     return { nodes: nodesLayout, containers: containersLayout };
   }
 
   // ===========================================================================
-  // CONCURRENT COMPOUND PACKING IMPLEMENTATION
+  // AREA-BALANCED WRAP PACKING FOR CONCURRENT ARCHITECTURES
   // ===========================================================================
   private static layoutConcurrentHierarchy(
     graph: LogicalGraph,
@@ -93,7 +89,6 @@ export class CoordinateAssigner {
     nodesLayout: Record<ID, NodeLayoutResult>,
     containersLayout: Record<ID, NodeLayoutResult>
   ) {
-    // Map parent -> children (nodes and sub-containers)
     const childrenMap = new Map<ID | null, ID[]>();
     for (const [id, node] of Object.entries(graph.nodes)) {
       const p = node.parentId ?? null;
@@ -106,17 +101,15 @@ export class CoordinateAssigner {
       childrenMap.get(p)!.push(id);
     }
 
-    // Depth map to compute sizes bottom-up
     const depths = CoordinateAssigner.getContainerDepths(graph);
     const sortedContainers = Object.keys(graph.containers).sort(
       (a, b) => (depths.get(b) || 0) - (depths.get(a) || 0)
     );
 
-    // Stores calculated dimensions & local positions of items inside their parent
     const containerInnerDimensions = new Map<ID, { width: number; height: number }>();
     const localPositions = new Map<ID, LocalBox>();
 
-    // Bottom-Up Pass: Pack each container's direct children into local 2D grid
+    // Bottom-Up: Pack every container's children using Area-Balanced Shelf Packing
     for (const containerId of sortedContainers) {
       const isCollapsed = Boolean(graph.containers[containerId]?.collapsed);
       if (isCollapsed) {
@@ -136,7 +129,7 @@ export class CoordinateAssigner {
         continue;
       }
 
-      const { packedWidth, packedHeight } = CoordinateAssigner.packChildrenIntoLocalGrid(
+      const { packedWidth, packedHeight } = CoordinateAssigner.packChildrenAspectBalanced(
         children,
         containerInnerDimensions,
         getBaseDim,
@@ -156,61 +149,67 @@ export class CoordinateAssigner {
       containerInnerDimensions.set(containerId, { width: totalW, height: totalH });
     }
 
-    // Pack Root Items (items with parentId = null) into top-level 2D grid
+    // Pack Root Level Elements
     const rootItems = childrenMap.get(null) || [];
     const rootBoxes: LocalBox[] = [];
 
     if (rootItems.length > 0) {
-      const rootCols = Math.max(
-        1,
-        Math.min(rootItems.length, Math.round(Math.sqrt(rootItems.length * targetAspect)))
-      );
-
-      let curX = 80;
-      let curY = 80;
-      let rowMaxH = 0;
-      let colIdx = 0;
-
-      for (const rId of rootItems) {
+      const rootItemDims = rootItems.map((rId) => {
         const isContainer = Boolean(graph.containers[rId]);
-        let w: number;
-        let h: number;
+        const dims = isContainer
+          ? containerInnerDimensions.get(rId) || getBaseDim(rId)
+          : getBaseDim(rId);
+        return { id: rId, width: dims.width, height: dims.height };
+      });
 
-        if (isContainer) {
-          const dims = containerInnerDimensions.get(rId) || getBaseDim(rId);
-          w = dims.width;
-          h = dims.height;
-        } else {
-          const dims = getBaseDim(rId);
-          w = dims.width;
-          h = dims.height;
+      // Target root canvas width based on total area
+      let totalArea = 0;
+      let maxItemW = 0;
+      for (const d of rootItemDims) {
+        totalArea += (d.width + COLUMN_GAP * 1.5) * (d.height + ROW_GAP * 1.5);
+        maxItemW = Math.max(maxItemW, d.width);
+      }
+      const targetCanvasW = Math.max(maxItemW, Math.sqrt(totalArea * targetAspect));
+
+      let curX = 60;
+      let curY = 60;
+      let shelfH = 0;
+
+      for (const item of rootItemDims) {
+        if (curX > 60 && curX + item.width > targetCanvasW + 60) {
+          curX = 60;
+          curY += shelfH + ROW_GAP * 1.5;
+          shelfH = 0;
         }
 
-        if (colIdx >= rootCols) {
-          curX = 80;
-          curY += rowMaxH + ROW_GAP * 1.5;
-          rowMaxH = 0;
-          colIdx = 0;
-        }
+        rootBoxes.push({
+          id: item.id,
+          localX: curX,
+          localY: curY,
+          width: item.width,
+          height: item.height
+        });
 
-        rootBoxes.push({ id: rId, localX: curX, localY: curY, width: w, height: h });
-        curX += w + COLUMN_GAP * 1.2;
-        rowMaxH = Math.max(rowMaxH, h);
-        colIdx++;
+        curX += item.width + COLUMN_GAP * 1.5;
+        shelfH = Math.max(shelfH, item.height);
       }
     }
 
-    // Top-Down Pass: Recursively convert local coordinates into absolute world coordinates
-    const assignWorldCoordinates = (itemId: ID, worldX: number, worldY: number, width: number, height: number) => {
+    // Top-Down: Compute absolute world coordinates
+    const assignWorldCoordinates = (
+      itemId: ID,
+      worldX: number,
+      worldY: number,
+      width: number,
+      height: number
+    ) => {
       const isContainer = Boolean(graph.containers[itemId]);
       const itemLayout: NodeLayoutResult = { id: itemId, x: worldX, y: worldY, width, height };
 
       if (isContainer) {
         containersLayout[itemId] = itemLayout;
-        const isCollapsed = Boolean(graph.containers[itemId]?.collapsed);
-        if (isCollapsed) return;
+        if (graph.containers[itemId]?.collapsed) return;
 
-        // Origin for children inside this container
         const innerOriginX = worldX + CONTAINER_PADDING_X;
         const innerOriginY = worldY + HEADER_HEIGHT + CONTAINER_PADDING_Y;
 
@@ -218,7 +217,6 @@ export class CoordinateAssigner {
         for (const childId of children) {
           const lBox = localPositions.get(childId);
           if (!lBox) continue;
-
           assignWorldCoordinates(
             childId,
             innerOriginX + lBox.localX,
@@ -237,54 +235,62 @@ export class CoordinateAssigner {
     }
   }
 
-  private static packChildrenIntoLocalGrid(
+  /**
+   * Packs child boxes into an area-balanced bounding rectangle with ratio ~ targetAspect.
+   * Eliminates the exponential horizontal expansion and dead vertical space.
+   */
+  private static packChildrenAspectBalanced(
     children: ID[],
     containerDims: Map<ID, { width: number; height: number }>,
     getBaseDim: (id: ID) => { width: number; height: number },
     targetAspect: number,
     localPositions: Map<ID, LocalBox>
   ): { packedWidth: number; packedHeight: number } {
-    const count = children.length;
-    // Calculate optimal columns to fill widescreen aspect ratio
-    const cols = Math.max(1, Math.min(count, Math.round(Math.sqrt(count * targetAspect))));
+    const items = children.map((cId) => {
+      const dims = containerDims.has(cId) ? containerDims.get(cId)! : getBaseDim(cId);
+      return { id: cId, width: dims.width, height: dims.height };
+    });
 
+    // 1. Calculate target row width from total area
+    let totalArea = 0;
+    let maxChildW = 0;
+    for (const item of items) {
+      totalArea += (item.width + COLUMN_GAP) * (item.height + ROW_GAP);
+      maxChildW = Math.max(maxChildW, item.width);
+    }
+
+    // Ideal width to keep the container close to target aspect ratio
+    const targetRowWidth = Math.max(maxChildW, Math.sqrt(totalArea * targetAspect));
+
+    // 2. Shelf packing
     let curX = 0;
     let curY = 0;
-    let rowMaxH = 0;
+    let shelfHeight = 0;
     let maxOverallW = 0;
-    let colIdx = 0;
 
-    for (const cId of children) {
-      let w: number;
-      let h: number;
-
-      if (containerDims.has(cId)) {
-        const dims = containerDims.get(cId)!;
-        w = dims.width;
-        h = dims.height;
-      } else {
-        const dims = getBaseDim(cId);
-        w = dims.width;
-        h = dims.height;
-      }
-
-      if (colIdx >= cols) {
+    for (const item of items) {
+      // Wrap to next shelf if adding this item exceeds target width
+      if (curX > 0 && curX + item.width > targetRowWidth) {
         maxOverallW = Math.max(maxOverallW, curX - COLUMN_GAP);
         curX = 0;
-        curY += rowMaxH + ROW_GAP;
-        rowMaxH = 0;
-        colIdx = 0;
+        curY += shelfHeight + ROW_GAP;
+        shelfHeight = 0;
       }
 
-      localPositions.set(cId, { id: cId, localX: curX, localY: curY, width: w, height: h });
+      localPositions.set(item.id, {
+        id: item.id,
+        localX: curX,
+        localY: curY,
+        width: item.width,
+        height: item.height
+      });
 
-      curX += w + COLUMN_GAP;
-      rowMaxH = Math.max(rowMaxH, h);
-      colIdx++;
+      curX += item.width + COLUMN_GAP;
+      shelfHeight = Math.max(shelfHeight, item.height);
     }
 
     maxOverallW = Math.max(maxOverallW, curX > 0 ? curX - COLUMN_GAP : 0);
-    const maxOverallH = curY + rowMaxH;
+    const maxOverallH = curY + shelfHeight;
 
     return { packedWidth: maxOverallW, packedHeight: maxOverallH };
   }
@@ -304,10 +310,9 @@ export class CoordinateAssigner {
     const primaryOffsets = new Map<number, number>();
     let curPrimary = 80;
 
-    const primGap = isTB ? ROW_GAP * 1.6 : COLUMN_GAP * 1.6;
+    const primGap = isTB ? ROW_GAP * 1.5 : COLUMN_GAP * 1.5;
     const secGap = isTB ? COLUMN_GAP : ROW_GAP;
 
-    // 1. Calculate primary offsets per layer
     for (const layerIdx of sortedLayers) {
       const entities = orderedLayers.get(layerIdx) || [];
       let maxPrimaryBreadth = 0;
@@ -320,7 +325,6 @@ export class CoordinateAssigner {
       curPrimary += maxPrimaryBreadth + primGap;
     }
 
-    // Build DAG adjacency
     const parentsOf = new Map<ID, ID[]>();
     const childrenOf = new Map<ID, ID[]>();
     for (const e of Object.values(graph.edges)) {
@@ -333,7 +337,7 @@ export class CoordinateAssigner {
 
     const secondaryPos = new Map<ID, number>();
 
-    // Pass 1: Top-Down Median Centering
+    // Pass 1: Top-down median positioning
     for (const layerIdx of sortedLayers) {
       const entities = orderedLayers.get(layerIdx) || [];
       let prevEnd = -Infinity;
@@ -369,7 +373,7 @@ export class CoordinateAssigner {
       }
     }
 
-    // Pass 2: Bottom-Up Centering (center parents over children)
+    // Pass 2: Bottom-up median centering
     for (let i = sortedLayers.length - 1; i >= 0; i--) {
       const layerIdx = sortedLayers[i];
       const entities = orderedLayers.get(layerIdx) || [];
@@ -395,7 +399,6 @@ export class CoordinateAssigner {
         }
       }
 
-      // Enforce non-overlapping
       let prevEnd = -Infinity;
       for (const id of entities) {
         const dim = getBaseDim(id);
@@ -409,7 +412,6 @@ export class CoordinateAssigner {
       }
     }
 
-    // Normalize coordinates to stay >= 80px from borders
     let minSec = Infinity;
     for (const p of secondaryPos.values()) minSec = Math.min(minSec, p);
     const secShift = minSec < 80 ? 80 - minSec : 0;
