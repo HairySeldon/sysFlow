@@ -3,7 +3,7 @@ import { NodeEntity, ContainerEntity, computeEntityPortLocations } from '../mode
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 
 interface GraphPortLayerProps {
-  entity: NodeEntity | ContainerEntity;
+  entity: NodeEntity;
   layout: NodeLayoutResult;
   direction?: 'LR' | 'TB';
   onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
