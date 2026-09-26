@@ -67,7 +67,7 @@ const rewireStrategy = new EdgeRewireStrategy();
 export const FlowDemo = () => {
     const { graph, setGraphDirect, applyAction, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection } = useGraphHistory(INITIAL_PIPELINE_GRAPH);
     const [selectedIds, setSelectedIds] = useState([]);
-    const [direction, setDirection] = useState('LR');
+    const [direction, setDirection] = useState('TB');
     const [editorNodeId, setEditorNodeId] = useState(null);
     const selectedNode = editorNodeId ? graph.nodes[editorNodeId] : null;
     useEffect(() => {
@@ -125,12 +125,16 @@ export const FlowDemo = () => {
             applyAction(action);
         }
     };
+    // FlowDemo.tsx
     const handleAddTask = (label) => {
         const id = `task_${Date.now()}`;
         const newTask = {
             id,
             label,
-            ports: [{ id: `p_${Date.now()}`, label: 'port_1', direction: 'inout' }],
+            ports: [
+                { id: `p_in_${Date.now()}`, label: 'in', direction: 'in' },
+                { id: `p_out_${Date.now()}`, label: 'out', direction: 'out' }
+            ],
             data: { priority: 'P1', duration: '20ms' }
         };
         setGraphDirect({
@@ -143,7 +147,6 @@ export const FlowDemo = () => {
         const newContainer = {
             id,
             label,
-            ports: [{ id: `p_${Date.now()}`, label: 'sync', direction: 'inout' }],
             collapsed: false
         };
         setGraphDirect({
@@ -178,7 +181,7 @@ export const FlowDemo = () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                     setEditorNodeId(null);
-                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: direction, showEdgeArrows: false, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
+                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: direction, layoutOptions: { mode: 'flow' }, showEdgeArrows: false, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 0,
                     right: 0,

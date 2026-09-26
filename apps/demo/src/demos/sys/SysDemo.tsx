@@ -5,9 +5,7 @@ import {
   SysFlowCanvas,
   ReparentStrategy,
   NodeEntity,
-  ContainerEntity,
-  PortSide,
-  PortDirection
+  ContainerEntity
 } from '@sysflow/core';
 import { SysModuleRenderer } from './SysModuleEditor';
 import { Toolbar } from '../../components/Toolbar';
@@ -21,13 +19,11 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
     ALU_BLOCK: {
       id: 'ALU_BLOCK',
       label: 'module ALU (Arithmetic Logic Unit)',
-      ports: [{ id: 'ALU_CLK', label: 'clk', direction: 'in' }],
       collapsed: false
     },
     REG_BANK: {
       id: 'REG_BANK',
       label: 'module RegisterBank',
-      ports: [{ id: 'RB_CLK', label: 'clk', direction: 'in' }],
       collapsed: false
     }
   },
@@ -80,8 +76,8 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       id: 'E1',
       sourceId: 'CLK_GEN',
       sourcePortId: 'out_clk',
-      targetId: 'REG_BANK',
-      targetPortId: 'RB_CLK'
+      targetId: 'REG_R0',
+      targetPortId: 'd_in'
     },
     E2: {
       id: 'E2',
@@ -179,7 +175,6 @@ export const SysDemo: React.FC = () => {
     const newContainer: ContainerEntity = {
       id,
       label,
-      ports: [{ id: `clk_${Date.now()}`, label: 'clk', direction: 'in' }],
       collapsed: false
     };
     setGraphDirect({ ...graph, containers: { ...graph.containers, [id]: newContainer } });
@@ -414,7 +409,7 @@ export const SysDemo: React.FC = () => {
                     </td>
                     <td style={tdStyle}><span style={{ opacity: 0.5 }}>-</span></td>
                     <td style={tdStyle}>
-                      {c.ports.map((p) => p.label).join(', ') || 'No ports'}
+                      <span style={{ opacity: 0.4 }}>N/A (Group Container)</span>
                     </td>
                     <td style={tdStyle}>
                       <button

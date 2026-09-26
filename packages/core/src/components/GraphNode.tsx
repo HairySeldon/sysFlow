@@ -7,6 +7,7 @@ interface GraphNodeProps {
   node: NodeEntity;
   layout: NodeLayoutResult;
   selected: boolean;
+  direction?: 'LR' | 'TB'; // <--- 1. Add direction prop
   onPointerDown: (node: NodeEntity, e: React.PointerEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -20,6 +21,7 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
   node,
   layout,
   selected,
+  direction = 'LR',
   onPointerDown,
   onMouseEnter,
   onMouseLeave,
@@ -44,6 +46,7 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
       <GraphPortLayer
         entity={node}
         layout={layout}
+        direction={direction}
         onPortPointerDown={onPortPointerDown}
         onPortPointerUp={onPortPointerUp}
       />

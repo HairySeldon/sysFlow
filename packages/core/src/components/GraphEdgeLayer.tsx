@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogicalGraph, ID, EdgeEntity, Port, ContainerEntity, computeEntityPortLocations } from '../models';
+import { LogicalGraph, ID, EdgeEntity, ContainerEntity, computeEntityPortLocations } from '../models';
 import { LayoutResult } from '../layout/LayoutEngine';
 
 interface GraphEdgeLayerProps {
@@ -47,23 +47,48 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
     }
 
     const isContainer = Boolean(graph.containers[entityId]);
-    const entity = isContainer ? graph.containers[entityId] : graph.nodes[entityId];
-    const itemLayout = isContainer ? layout.containers[entityId] : layout.nodes[entityId];
 
-    if (!entity || !itemLayout) {
+    if (isContainer) {
+      const cLayout = layout.containers[entityId];
+      if (!cLayout) return { x: 0, y: 0, valid: false, entityId };
+
+      let x: number;
+      let y: number;
+      if (direction === 'TB') {
+        x = cLayout.x + cLayout.width / 2;
+        y = isSource ? cLayout.y + cLayout.height : cLayout.y;
+      } else {
+        x = isSource ? cLayout.x + cLayout.width : cLayout.x;
+        y = cLayout.y + cLayout.height / 2;
+      }
+      return { x, y, valid: true, entityId };
+    }
+
+    // Nodes have ports:
+    const node = graph.nodes[entityId];
+    const nLayout = layout.nodes[entityId];
+
+    if (!node || !nLayout) {
       return { x: 0, y: 0, valid: false, entityId };
     }
 
-    const portLocs = computeEntityPortLocations(entity, itemLayout);
+    const portLocs = computeEntityPortLocations(node, nLayout, direction);
     const loc = portLocs.get(portId);
 
     if (loc) {
       return { x: loc.worldX, y: loc.worldY, valid: true, entityId };
     }
 
-    // Fallback if portId is missing
-    const fallbackX = isSource ? itemLayout.x + itemLayout.width : itemLayout.x;
-    const fallbackY = itemLayout.y + itemLayout.height / 2;
+    // Fallback if portId is missing on node
+    let fallbackX: number;
+    let fallbackY: number;
+    if (direction === 'TB') {
+      fallbackX = nLayout.x + nLayout.width / 2;
+      fallbackY = isSource ? nLayout.y + nLayout.height : nLayout.y;
+    } else {
+      fallbackX = isSource ? nLayout.x + nLayout.width : nLayout.x;
+      fallbackY = nLayout.y + nLayout.height / 2;
+    }
     return { x: fallbackX, y: fallbackY, valid: true, entityId };
   };
 

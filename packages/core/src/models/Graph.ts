@@ -42,15 +42,27 @@ export function computeEntityPortLocations(
     bottom: []
   };
 
-  entity.ports.forEach((port) => {
+  entity.ports.forEach((port, idx) => {
     let side: PortSide = port.side || 'auto';
 
     if (side === 'auto') {
       if (defaultLayoutDirection === 'TB') {
-        side = port.direction === 'in' ? 'top' : 'bottom';
+        if (port.direction === 'in') {
+          side = 'top';
+        } else if (port.direction === 'out') {
+          side = 'bottom';
+        } else {
+          // If node has multiple ports, alternate top/bottom; if single, place at top if it can receive
+          side = idx === 0 && entity.ports.length > 1 ? 'top' : 'bottom';
+        }
       } else {
-        // 'LR' default: inputs on left, outputs on right
-        side = port.direction === 'in' ? 'left' : 'right';
+        if (port.direction === 'in') {
+          side = 'left';
+        } else if (port.direction === 'out') {
+          side = 'right';
+        } else {
+          side = idx === 0 && entity.ports.length > 1 ? 'left' : 'right';
+        }
       }
     }
 

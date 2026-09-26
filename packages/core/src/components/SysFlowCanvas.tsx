@@ -245,7 +245,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     const itemLayout = layout.nodes[entityId] || layout.containers[entityId];
     if (!entity || !itemLayout) return;
 
-    const portLocs = computeEntityPortLocations(entity, itemLayout);
+    const portLocs = computeEntityPortLocations(entity, itemLayout, direction);
     const loc = portLocs.get(portId);
 
     const startPos = loc
@@ -498,7 +498,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
             );
           })}
 
-          {nodesList.map((node: NodeEntity) => {
+          {Object.values(graph.nodes).map((node) => {
             const nodeLayout = layout.nodes[node.id];
             if (!nodeLayout) return null;
 
@@ -507,6 +507,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 key={node.id}
                 node={node}
                 layout={nodeLayout}
+                direction={direction}
                 selected={selectedIds.includes(node.id)}
                 customRenderer={node.type ? nodeTypes?.[node.type] : undefined}
                 onPointerDown={onEntityPointerDown}

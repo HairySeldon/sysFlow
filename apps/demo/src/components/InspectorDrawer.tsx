@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { LogicalGraph, ID, NodeEntity, ContainerEntity } from '@sysflow/core';
+import { LogicalGraph, NodeEntity, ContainerEntity, Port, PortSide, PortDirection, pruneDanglingEdges } from '@sysflow/core';
 
 interface InspectorDrawerProps {
   graph: LogicalGraph;
-  selectedIds: ID[];
+  selectedIds: string[];
   onClose: () => void;
-  onUpdateEntity: (id: string, updates: Partial<NodeEntity | ContainerEntity>) => void;
+  onUpdateEntity: (id: string, updates: Partial<NodeEntity | ContainerEntity>, prunedGraph?: LogicalGraph) => void;
 }
 
 export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
@@ -14,7 +14,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   onClose,
   onUpdateEntity
 }) => {
-  const [activeTab, setActiveTab] = useState<'properties' | 'source'>('source');
+  const [activeTab, setActiveTab] = useState<'source' | 'properties'>('source');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedId = selectedIds[0];
@@ -26,29 +26,29 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   const entity = (selectedNode || selectedContainer)!;
   const isNode = Boolean(selectedNode);
 
-  const defaultTemplate =
-    `// Module: ${entity.label}\n` +
-    `module ${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
-    entity.ports.map((p) => `  input wire [31:0] ${p.label}`).join(',\n') +
-    `\n);\n\n` +
-    `  // Internal signals & registers\n` +
-    `  reg [31:0] internal_reg;\n\n` +
-    `  always @(posedge clk) begin\n` +
-    `    // Pipeline execution logic\n` +
-    `    internal_reg <= 32'h0;\n` +
-    `  end\n\n` +
-    `endmodule\n`;
+  const defaultTemplate = isNode && selectedNode
+    ? `// Module: ${entity.label}\n` +
+      `module ${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
+      selectedNode.ports.map((p: Port) => `  input wire [31:0] ${p.label}`).join(',\n') +
+      `\n);\n\n` +
+      `  // Internal signals & registers\n` +
+      `  reg [31:0] internal_reg;\n\n` +
+      `  always @(posedge clk) begin\n` +
+      `    // Pipeline execution logic\n` +
+      `    internal_reg <= 32'h0;\n` +
+      `  end\n\n` +
+      `endmodule\n`
+    : `// Container: ${entity.label}\n`;
 
   const sourceCode = (entity.data?.sourceCode as string) || defaultTemplate;
 
-  // Open file from disk
   const handleOpenFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result as string;
+      const content = event.target?.result;
       onUpdateEntity(entity.id, {
         data: { ...entity.data, sourceCode: content, boundFile: file.name }
       });
@@ -57,7 +57,6 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
     e.target.value = '';
   };
 
-  // Export HDL file
   const handleSaveFile = () => {
     const blob = new Blob([sourceCode], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -67,6 +66,21 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
     document.body.appendChild(a);
     a.click();
     a.remove();
+  };
+
+  const handleUpdatePorts = (updatedPorts: Port[]) => {
+    if (!selectedNode) return;
+
+    const nextGraph: LogicalGraph = {
+      ...graph,
+      nodes: {
+        ...graph.nodes,
+        [selectedNode.id]: { ...selectedNode, ports: updatedPorts }
+      }
+    };
+
+    const cleanGraph = pruneDanglingEdges(nextGraph);
+    onUpdateEntity(selectedNode.id, { ports: updatedPorts }, cleanGraph);
   };
 
   return (
@@ -106,10 +120,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             {entity.id}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}
-        >
+        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}>
           ✕
         </button>
       </div>
@@ -134,11 +145,11 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             color: activeTab === 'properties' ? '#38bdf8' : '#94a3b8'
           }}
         >
-          Configuration
+          Configuration & Ports
         </button>
       </div>
 
-      {/* Tab Content */}
+      {/* Body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
         {activeTab === 'source' ? (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }}>
@@ -147,35 +158,22 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                 Bound Source: <strong>{String(entity.data?.boundFile || `${entity.label}.v`)}</strong>
               </span>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".v,.sv,.vhd,.txt"
-                  style={{ display: 'none' }}
-                  onChange={handleOpenFile}
-                />
-                <button
-                  style={{ ...btnStyle, fontSize: 11 }}
-                  onClick={() => fileInputRef.current?.click()}
-                >
+                <input ref={fileInputRef} type="file" accept=".v,.sv,.vhd,.txt" style={{ display: 'none' }} onChange={handleOpenFile} />
+                <button style={{ ...btnStyle, fontSize: 11 }} onClick={() => fileInputRef.current?.click()}>
                   Open HDL File...
                 </button>
-                <button
-                  style={{ ...btnStyle, fontSize: 11 }}
-                  onClick={handleSaveFile}
-                >
+                <button style={{ ...btnStyle, fontSize: 11 }} onClick={handleSaveFile}>
                   Export .v File
                 </button>
               </div>
             </div>
-
             <textarea
               value={sourceCode}
-              onChange={(e) => {
+              onChange={(e) =>
                 onUpdateEntity(entity.id, {
                   data: { ...entity.data, sourceCode: e.target.value }
-                });
-              }}
+                })
+              }
               spellCheck={false}
               style={{
                 flex: 1,
@@ -221,65 +219,102 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
               </select>
             </div>
 
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={labelStyle}>Ports & Pins ({entity.ports.length})</label>
-                <button
-                  style={{ ...btnStyle, fontSize: 11 }}
-                  onClick={() => {
-                    const name = prompt('New port label (e.g. data_in, clk):', 'port_in');
-                    if (name) {
-                      onUpdateEntity(entity.id, {
-                        ports: [
-                          ...entity.ports,
-                          { id: `p_${Date.now()}`, label: name, data: { busWidth: '32b' } }
-                        ]
-                      });
-                    }
-                  }}
-                >
-                  + Add Port
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-                {entity.ports.map((port, idx) => (
-                  <div
-                    key={port.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      background: '#131b2e',
-                      padding: '6px 12px',
-                      borderRadius: 6,
-                      border: '1px solid #1e293b'
+            {/* Ports Section: Only displayed for Nodes */}
+            {selectedNode && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={labelStyle}>Ports & Pins ({selectedNode.ports.length})</label>
+                  <button
+                    style={{ ...btnStyle, fontSize: 11 }}
+                    onClick={() => {
+                      const name = prompt('New port label (e.g. data_in, clk):', 'port_1');
+                      if (name) {
+                        handleUpdatePorts([
+                          ...selectedNode.ports,
+                          { id: `p_${Date.now()}`, label: name, side: 'auto', direction: 'out', data: { busWidth: '32b' } }
+                        ]);
+                      }
                     }}
                   >
-                    <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>#{idx + 1}</span>
-                    <input
-                      type="text"
-                      value={port.label}
-                      onChange={(e) => {
-                        const updatedPorts = [...entity.ports];
-                        updatedPorts[idx] = { ...port, label: e.target.value };
-                        onUpdateEntity(entity.id, { ports: updatedPorts });
+                    + Add Port
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                  {selectedNode.ports.map((port: Port, idx: number) => (
+                    <div
+                      key={port.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        background: '#131b2e',
+                        padding: '8px 12px',
+                        borderRadius: 6,
+                        border: '1px solid #1e293b'
                       }}
-                      style={{ ...inputStyle, marginTop: 0, flex: 1 }}
-                    />
-                    <button
-                      onClick={() => {
-                        const updatedPorts = entity.ports.filter((_, i) => i !== idx);
-                        onUpdateEntity(entity.id, { ports: updatedPorts });
-                      }}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
                     >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+                      <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>#{idx + 1}</span>
+                      <input
+                        type="text"
+                        value={port.label}
+                        onChange={(e) => {
+                          const updated = [...selectedNode.ports];
+                          updated[idx] = { ...port, label: e.target.value };
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ ...inputStyle, marginTop: 0, flex: 2 }}
+                      />
+
+                      {/* Perimeter Side Selection */}
+                      <select
+                        value={port.side || 'auto'}
+                        onChange={(e) => {
+                          const updated = [...selectedNode.ports];
+                          updated[idx] = { ...port, side: e.target.value as PortSide };
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ ...inputStyle, marginTop: 0, flex: 1.2 }}
+                        title="Perimeter Edge Side"
+                      >
+                        <option value="auto">Auto Side</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                      </select>
+
+                      {/* Direction Selection */}
+                      <select
+                        value={port.direction || 'out'}
+                        onChange={(e) => {
+                          const updated = [...selectedNode.ports];
+                          updated[idx] = { ...port, direction: e.target.value as PortDirection };
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+                        title="Port Flow Direction"
+                      >
+                        <option value="in">In</option>
+                        <option value="out">Out</option>
+                        <option value="inout">InOut</option>
+                      </select>
+
+                      <button
+                        onClick={() => {
+                          const updated = selectedNode.ports.filter((_: Port, i: number) => i !== idx);
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                        title="Delete Port and Connected Edges"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

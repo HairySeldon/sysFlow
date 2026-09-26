@@ -1,10 +1,10 @@
 import React from 'react';
-import { LogicalGraph, ID, NodeEntity, ContainerEntity } from '@sysflow/core';
+import { LogicalGraph, NodeEntity, ContainerEntity } from '@sysflow/core';
 interface InspectorDrawerProps {
     graph: LogicalGraph;
-    selectedIds: ID[];
+    selectedIds: string[];
     onClose: () => void;
-    onUpdateEntity: (id: string, updates: Partial<NodeEntity | ContainerEntity>) => void;
+    onUpdateEntity: (id: string, updates: Partial<NodeEntity | ContainerEntity>, prunedGraph?: LogicalGraph) => void;
 }
 export declare const InspectorDrawer: React.FC<InspectorDrawerProps>;
 export {};

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LogicalGraph, NodeEntity, ContainerEntity, PortSide, PortDirection, pruneDanglingEdges } from '@sysflow/core';
+import { LogicalGraph, NodeEntity, ContainerEntity, Port, PortSide, PortDirection, pruneDanglingEdges } from '@sysflow/core';
 
 interface InspectorDrawerProps {
   graph: LogicalGraph;
@@ -26,18 +26,19 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   const entity = (selectedNode || selectedContainer)!;
   const isNode = Boolean(selectedNode);
 
-  const defaultTemplate =
-    `// Module: ${entity.label}\n` +
-    `module ${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
-    entity.ports.map((p) => `  input wire [31:0] ${p.label}`).join(',\n') +
-    `\n);\n\n` +
-    `  // Internal signals & registers\n` +
-    `  reg [31:0] internal_reg;\n\n` +
-    `  always @(posedge clk) begin\n` +
-    `    // Pipeline execution logic\n` +
-    `    internal_reg <= 32'h0;\n` +
-    `  end\n\n` +
-    `endmodule\n`;
+  const defaultTemplate = isNode && selectedNode
+    ? `// Module: ${entity.label}\n` +
+      `module ${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
+      selectedNode.ports.map((p: Port) => `  input wire [31:0] ${p.label}`).join(',\n') +
+      `\n);\n\n` +
+      `  // Internal signals & registers\n` +
+      `  reg [31:0] internal_reg;\n\n` +
+      `  always @(posedge clk) begin\n` +
+      `    // Pipeline execution logic\n` +
+      `    internal_reg <= 32'h0;\n` +
+      `  end\n\n` +
+      `endmodule\n`
+    : `// Container: ${entity.label}\n`;
 
   const sourceCode = (entity.data?.sourceCode as string) || defaultTemplate;
 
@@ -67,19 +68,23 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
     a.remove();
   };
 
-  const handleUpdatePorts = (updatedPorts: typeof entity.ports) => {
-    // 1. Construct temporary next graph state
+  const handleUpdatePorts = (updatedPorts: Port[]) => {
+    if (!selectedNode) return;
+
+    // 1. Construct temporary next graph state (only nodes have ports)
     const nextGraph: LogicalGraph = {
       ...graph,
-      nodes: isNode ? { ...graph.nodes, [entity.id]: { ...entity, ports: updatedPorts } as NodeEntity } : graph.nodes,
-      containers: !isNode ? { ...graph.containers, [entity.id]: { ...entity, ports: updatedPorts } as ContainerEntity } : graph.containers
+      nodes: {
+        ...graph.nodes,
+        [selectedNode.id]: { ...selectedNode, ports: updatedPorts }
+      }
     };
 
     // 2. Prune edges referencing deleted ports
     const cleanGraph = pruneDanglingEdges(nextGraph);
 
     // 3. Dispatch update
-    onUpdateEntity(entity.id, { ports: updatedPorts }, cleanGraph);
+    onUpdateEntity(selectedNode.id, { ports: updatedPorts }, cleanGraph);
   };
 
   return (
@@ -218,100 +223,102 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
               </select>
             </div>
 
-            {/* Ports Section with side and direction controls */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={labelStyle}>Ports & Pins ({entity.ports.length})</label>
-                <button
-                  style={{ ...btnStyle, fontSize: 11 }}
-                  onClick={() => {
-                    const name = prompt('New port label (e.g. data_in, clk):', 'port_1');
-                    if (name) {
-                      handleUpdatePorts([
-                        ...entity.ports,
-                        { id: `p_${Date.now()}`, label: name, side: 'auto', direction: 'out', data: { busWidth: '32b' } }
-                      ]);
-                    }
-                  }}
-                >
-                  + Add Port
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-                {entity.ports.map((port, idx) => (
-                  <div
-                    key={port.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      background: '#131b2e',
-                      padding: '8px 12px',
-                      borderRadius: 6,
-                      border: '1px solid #1e293b'
+            {/* Ports Section: Only displayed when selecting a Node */}
+            {selectedNode && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={labelStyle}>Ports & Pins ({selectedNode.ports.length})</label>
+                  <button
+                    style={{ ...btnStyle, fontSize: 11 }}
+                    onClick={() => {
+                      const name = prompt('New port label (e.g. data_in, clk):', 'port_1');
+                      if (name) {
+                        handleUpdatePorts([
+                          ...selectedNode.ports,
+                          { id: `p_${Date.now()}`, label: name, side: 'auto', direction: 'out', data: { busWidth: '32b' } }
+                        ]);
+                      }
                     }}
                   >
-                    <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>#{idx + 1}</span>
-                    <input
-                      type="text"
-                      value={port.label}
-                      onChange={(e) => {
-                        const updated = [...entity.ports];
-                        updated[idx] = { ...port, label: e.target.value };
-                        handleUpdatePorts(updated);
-                      }}
-                      style={{ ...inputStyle, marginTop: 0, flex: 2 }}
-                    />
+                    + Add Port
+                  </button>
+                </div>
 
-                    {/* Perimeter Side Selection */}
-                    <select
-                      value={port.side || 'auto'}
-                      onChange={(e) => {
-                        const updated = [...entity.ports];
-                        updated[idx] = { ...port, side: e.target.value as PortSide };
-                        handleUpdatePorts(updated);
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                  {selectedNode.ports.map((port: Port, idx: number) => (
+                    <div
+                      key={port.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        background: '#131b2e',
+                        padding: '8px 12px',
+                        borderRadius: 6,
+                        border: '1px solid #1e293b'
                       }}
-                      style={{ ...inputStyle, marginTop: 0, flex: 1.2 }}
-                      title="Perimeter Edge Side"
                     >
-                      <option value="auto">Auto Side</option>
-                      <option value="left">Left</option>
-                      <option value="right">Right</option>
-                      <option value="top">Top</option>
-                      <option value="bottom">Bottom</option>
-                    </select>
+                      <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>#{idx + 1}</span>
+                      <input
+                        type="text"
+                        value={port.label}
+                        onChange={(e) => {
+                          const updated = [...selectedNode.ports];
+                          updated[idx] = { ...port, label: e.target.value };
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ ...inputStyle, marginTop: 0, flex: 2 }}
+                      />
 
-                    {/* Direction Selection */}
-                    <select
-                      value={port.direction || 'out'}
-                      onChange={(e) => {
-                        const updated = [...entity.ports];
-                        updated[idx] = { ...port, direction: e.target.value as PortDirection };
-                        handleUpdatePorts(updated);
-                      }}
-                      style={{ ...inputStyle, marginTop: 0, flex: 1 }}
-                      title="Port Flow Direction"
-                    >
-                      <option value="in">In</option>
-                      <option value="out">Out</option>
-                      <option value="inout">InOut</option>
-                    </select>
+                      {/* Perimeter Side Selection */}
+                      <select
+                        value={port.side || 'auto'}
+                        onChange={(e) => {
+                          const updated = [...selectedNode.ports];
+                          updated[idx] = { ...port, side: e.target.value as PortSide };
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ ...inputStyle, marginTop: 0, flex: 1.2 }}
+                        title="Perimeter Edge Side"
+                      >
+                        <option value="auto">Auto Side</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                      </select>
 
-                    <button
-                      onClick={() => {
-                        const updated = entity.ports.filter((_, i) => i !== idx);
-                        handleUpdatePorts(updated);
-                      }}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                      title="Delete Port and Connected Edges"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+                      {/* Direction Selection */}
+                      <select
+                        value={port.direction || 'out'}
+                        onChange={(e) => {
+                          const updated = [...selectedNode.ports];
+                          updated[idx] = { ...port, direction: e.target.value as PortDirection };
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+                        title="Port Flow Direction"
+                      >
+                        <option value="in">In</option>
+                        <option value="out">Out</option>
+                        <option value="inout">InOut</option>
+                      </select>
+
+                      <button
+                        onClick={() => {
+                          const updated = selectedNode.ports.filter((_, i) => i !== idx);
+                          handleUpdatePorts(updated);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                        title="Delete Port and Connected Edges"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

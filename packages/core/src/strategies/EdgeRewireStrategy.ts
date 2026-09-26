@@ -1,17 +1,18 @@
 import { InteractionStrategy, DragContext } from './InteractionStrategy';
 import { GraphAction, NodeEntity, ContainerEntity, EdgeEntity, LogicalGraph } from '../models';
 
+// EdgeRewireStrategy.ts
 export class EdgeRewireStrategy implements InteractionStrategy {
-  public canDrag(entity: NodeEntity | ContainerEntity, graph: LogicalGraph): boolean {
-    return true;
-  }
-
-  public onDragMove(context: DragContext): { x: number; y: number } | null {
-    return context.cursorWorld;
-  }
-
+  // ...
   public onDragEnd(context: DragContext): GraphAction | null {
     const { draggedEntity, hoveredEdge, hoveredEntity, graph } = context;
+
+    // Helper to find the best input port on the target
+    const findTargetPort = (entity: NodeEntity | ContainerEntity): string => {
+      const node = graph.nodes[entity.id] || (entity as NodeEntity);
+      const inPort = node.ports?.find(p => p.direction === 'in' || p.direction === 'inout');
+      return inPort ? inPort.id : node.ports?.[0]?.id || '';
+    };
 
     // 1. Splice directly into hovered edge
     if (hoveredEdge) {
@@ -24,14 +25,14 @@ export class EdgeRewireStrategy implements InteractionStrategy {
         payload: {
           edgeId: hoveredEdge.id,
           newSourceId: hoveredEdge.sourceId,
-          newTargetId: draggedEntity.id
+          newTargetId: draggedEntity.id,
+          newTargetPortId: findTargetPort(draggedEntity) // ✅ Pass matching port
         }
       };
     }
 
     // 2. Reorder when dropped over an adjacent node
     if (hoveredEntity && hoveredEntity.id !== draggedEntity.id) {
-      // Find edge pointing into hoveredEntity to splice ahead of it
       const incomingEdge = Object.values(graph.edges).find(
         (e) => e.targetId === hoveredEntity.id && e.sourceId !== draggedEntity.id
       );
@@ -42,7 +43,8 @@ export class EdgeRewireStrategy implements InteractionStrategy {
           payload: {
             edgeId: incomingEdge.id,
             newSourceId: incomingEdge.sourceId,
-            newTargetId: draggedEntity.id
+            newTargetId: draggedEntity.id,
+            newTargetPortId: findTargetPort(draggedEntity) // ✅ Pass matching port
           }
         };
       }

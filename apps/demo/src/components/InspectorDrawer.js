@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useRef } from 'react';
+import { pruneDanglingEdges } from '@sysflow/core';
 export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity }) => {
     const [activeTab, setActiveTab] = useState('source');
     const fileInputRef = useRef(null);
@@ -10,19 +11,20 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
         return null;
     const entity = (selectedNode || selectedContainer);
     const isNode = Boolean(selectedNode);
-    const defaultTemplate = `// Module: ${entity.label}\n` +
-        `module ${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
-        entity.ports.map((p) => `  input wire [31:0] ${p.label}`).join(',\n') +
-        `\n);\n\n` +
-        `  // Internal signals & registers\n` +
-        `  reg [31:0] internal_reg;\n\n` +
-        `  always @(posedge clk) begin\n` +
-        `    // Pipeline execution logic\n` +
-        `    internal_reg <= 32'h0;\n` +
-        `  end\n\n` +
-        `endmodule\n`;
+    const defaultTemplate = isNode && selectedNode
+        ? `// Module: ${entity.label}\n` +
+            `module ${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
+            selectedNode.ports.map((p) => `  input wire [31:0] ${p.label}`).join(',\n') +
+            `\n);\n\n` +
+            `  // Internal signals & registers\n` +
+            `  reg [31:0] internal_reg;\n\n` +
+            `  always @(posedge clk) begin\n` +
+            `    // Pipeline execution logic\n` +
+            `    internal_reg <= 32'h0;\n` +
+            `  end\n\n` +
+            `endmodule\n`
+        : `// Container: ${entity.label}\n`;
     const sourceCode = entity.data?.sourceCode || defaultTemplate;
-    // Open file from disk
     const handleOpenFile = (e) => {
         const file = e.target.files?.[0];
         if (!file)
@@ -37,7 +39,6 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
         reader.readAsText(file);
         e.target.value = '';
     };
-    // Export HDL file
     const handleSaveFile = () => {
         const blob = new Blob([sourceCode], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -47,6 +48,19 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
         document.body.appendChild(a);
         a.click();
         a.remove();
+    };
+    const handleUpdatePorts = (updatedPorts) => {
+        if (!selectedNode)
+            return;
+        const nextGraph = {
+            ...graph,
+            nodes: {
+                ...graph.nodes,
+                [selectedNode.id]: { ...selectedNode, ports: updatedPorts }
+            }
+        };
+        const cleanGraph = pruneDanglingEdges(nextGraph);
+        onUpdateEntity(selectedNode.id, { ports: updatedPorts }, cleanGraph);
     };
     return (_jsxs("div", { style: {
             position: 'absolute',
@@ -77,11 +91,9 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
                             ...tabBtnStyle,
                             borderBottom: activeTab === 'properties' ? '2px solid #38bdf8' : 'none',
                             color: activeTab === 'properties' ? '#38bdf8' : '#94a3b8'
-                        }, children: "Configuration" })] }), _jsx("div", { style: { flex: 1, overflowY: 'auto', padding: 20 }, children: activeTab === 'source' ? (_jsxs("div", { style: { display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("span", { style: { fontSize: 12, color: '#94a3b8' }, children: ["Bound Source: ", _jsx("strong", { children: String(entity.data?.boundFile || `${entity.label}.v`) })] }), _jsxs("div", { style: { display: 'flex', gap: 8 }, children: [_jsx("input", { ref: fileInputRef, type: "file", accept: ".v,.sv,.vhd,.txt", style: { display: 'none' }, onChange: handleOpenFile }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: () => fileInputRef.current?.click(), children: "Open HDL File..." }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: handleSaveFile, children: "Export .v File" })] })] }), _jsx("textarea", { value: sourceCode, onChange: (e) => {
-                                onUpdateEntity(entity.id, {
-                                    data: { ...entity.data, sourceCode: e.target.value }
-                                });
-                            }, spellCheck: false, style: {
+                        }, children: "Configuration & Ports" })] }), _jsx("div", { style: { flex: 1, overflowY: 'auto', padding: 20 }, children: activeTab === 'source' ? (_jsxs("div", { style: { display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("span", { style: { fontSize: 12, color: '#94a3b8' }, children: ["Bound Source: ", _jsx("strong", { children: String(entity.data?.boundFile || `${entity.label}.v`) })] }), _jsxs("div", { style: { display: 'flex', gap: 8 }, children: [_jsx("input", { ref: fileInputRef, type: "file", accept: ".v,.sv,.vhd,.txt", style: { display: 'none' }, onChange: handleOpenFile }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: () => fileInputRef.current?.click(), children: "Open HDL File..." }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: handleSaveFile, children: "Export .v File" })] })] }), _jsx("textarea", { value: sourceCode, onChange: (e) => onUpdateEntity(entity.id, {
+                                data: { ...entity.data, sourceCode: e.target.value }
+                            }), spellCheck: false, style: {
                                 flex: 1,
                                 minHeight: 480,
                                 backgroundColor: '#030712',
@@ -94,32 +106,38 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
                                 borderRadius: 6,
                                 outline: 'none',
                                 resize: 'none'
-                            } })] })) : (_jsxs("div", { style: { display: 'flex', flexDirection: 'column', gap: 16 }, children: [_jsxs("div", { children: [_jsx("label", { style: labelStyle, children: "Label / Module Name" }), _jsx("input", { type: "text", value: entity.label, onChange: (e) => onUpdateEntity(entity.id, { label: e.target.value }), style: inputStyle })] }), _jsxs("div", { children: [_jsx("label", { style: labelStyle, children: "Parent Container" }), _jsxs("select", { value: entity.parentId || '', onChange: (e) => onUpdateEntity(entity.id, { parentId: e.target.value || null }), style: inputStyle, children: [_jsx("option", { value: "", children: "Canvas Root (No Parent Container)" }), Object.values(graph.containers).map((c) => (_jsxs("option", { value: c.id, disabled: c.id === entity.id, children: [c.label, " (", c.id, ")"] }, c.id)))] })] }), _jsxs("div", { children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("label", { style: labelStyle, children: ["Ports & Pins (", entity.ports.length, ")"] }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: () => {
-                                                const name = prompt('New port label (e.g. data_in, clk):', 'port_in');
+                            } })] })) : (_jsxs("div", { style: { display: 'flex', flexDirection: 'column', gap: 16 }, children: [_jsxs("div", { children: [_jsx("label", { style: labelStyle, children: "Label / Module Name" }), _jsx("input", { type: "text", value: entity.label, onChange: (e) => onUpdateEntity(entity.id, { label: e.target.value }), style: inputStyle })] }), _jsxs("div", { children: [_jsx("label", { style: labelStyle, children: "Parent Container" }), _jsxs("select", { value: entity.parentId || '', onChange: (e) => onUpdateEntity(entity.id, { parentId: e.target.value || null }), style: inputStyle, children: [_jsx("option", { value: "", children: "Canvas Root (No Parent Container)" }), Object.values(graph.containers).map((c) => (_jsxs("option", { value: c.id, disabled: c.id === entity.id, children: [c.label, " (", c.id, ")"] }, c.id)))] })] }), selectedNode && (_jsxs("div", { children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("label", { style: labelStyle, children: ["Ports & Pins (", selectedNode.ports.length, ")"] }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: () => {
+                                                const name = prompt('New port label (e.g. data_in, clk):', 'port_1');
                                                 if (name) {
-                                                    onUpdateEntity(entity.id, {
-                                                        ports: [
-                                                            ...entity.ports,
-                                                            { id: `p_${Date.now()}`, label: name, data: { busWidth: '32b' } }
-                                                        ]
-                                                    });
+                                                    handleUpdatePorts([
+                                                        ...selectedNode.ports,
+                                                        { id: `p_${Date.now()}`, label: name, side: 'auto', direction: 'out', data: { busWidth: '32b' } }
+                                                    ]);
                                                 }
-                                            }, children: "+ Add Port" })] }), _jsx("div", { style: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }, children: entity.ports.map((port, idx) => (_jsxs("div", { style: {
+                                            }, children: "+ Add Port" })] }), _jsx("div", { style: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }, children: selectedNode.ports.map((port, idx) => (_jsxs("div", { style: {
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: 8,
                                             background: '#131b2e',
-                                            padding: '6px 12px',
+                                            padding: '8px 12px',
                                             borderRadius: 6,
                                             border: '1px solid #1e293b'
                                         }, children: [_jsxs("span", { style: { fontSize: 11, color: '#38bdf8', fontWeight: 600 }, children: ["#", idx + 1] }), _jsx("input", { type: "text", value: port.label, onChange: (e) => {
-                                                    const updatedPorts = [...entity.ports];
-                                                    updatedPorts[idx] = { ...port, label: e.target.value };
-                                                    onUpdateEntity(entity.id, { ports: updatedPorts });
-                                                }, style: { ...inputStyle, marginTop: 0, flex: 1 } }), _jsx("button", { onClick: () => {
-                                                    const updatedPorts = entity.ports.filter((_, i) => i !== idx);
-                                                    onUpdateEntity(entity.id, { ports: updatedPorts });
-                                                }, style: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }, children: "\u2715" })] }, port.id))) })] })] })) })] }));
+                                                    const updated = [...selectedNode.ports];
+                                                    updated[idx] = { ...port, label: e.target.value };
+                                                    handleUpdatePorts(updated);
+                                                }, style: { ...inputStyle, marginTop: 0, flex: 2 } }), _jsxs("select", { value: port.side || 'auto', onChange: (e) => {
+                                                    const updated = [...selectedNode.ports];
+                                                    updated[idx] = { ...port, side: e.target.value };
+                                                    handleUpdatePorts(updated);
+                                                }, style: { ...inputStyle, marginTop: 0, flex: 1.2 }, title: "Perimeter Edge Side", children: [_jsx("option", { value: "auto", children: "Auto Side" }), _jsx("option", { value: "left", children: "Left" }), _jsx("option", { value: "right", children: "Right" }), _jsx("option", { value: "top", children: "Top" }), _jsx("option", { value: "bottom", children: "Bottom" })] }), _jsxs("select", { value: port.direction || 'out', onChange: (e) => {
+                                                    const updated = [...selectedNode.ports];
+                                                    updated[idx] = { ...port, direction: e.target.value };
+                                                    handleUpdatePorts(updated);
+                                                }, style: { ...inputStyle, marginTop: 0, flex: 1 }, title: "Port Flow Direction", children: [_jsx("option", { value: "in", children: "In" }), _jsx("option", { value: "out", children: "Out" }), _jsx("option", { value: "inout", children: "InOut" })] }), _jsx("button", { onClick: () => {
+                                                    const updated = selectedNode.ports.filter((_, i) => i !== idx);
+                                                    handleUpdatePorts(updated);
+                                                }, style: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }, title: "Delete Port and Connected Edges", children: "\u2715" })] }, port.id))) })] }))] })) })] }));
 };
 const tabBtnStyle = {
     flex: 1,

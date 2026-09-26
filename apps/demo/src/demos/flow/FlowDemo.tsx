@@ -138,12 +138,16 @@ export const FlowDemo: React.FC = () => {
     }
   };
 
+  // FlowDemo.tsx
   const handleAddTask = (label: string) => {
     const id = `task_${Date.now()}`;
     const newTask: NodeEntity = {
       id,
       label,
-      ports: [{ id: `p_${Date.now()}`, label: 'port_1', direction: 'inout' }],
+      ports: [
+        { id: `p_in_${Date.now()}`, label: 'in', direction: 'in' },
+        { id: `p_out_${Date.now()}`, label: 'out', direction: 'out' }
+      ],
       data: { priority: 'P1', duration: '20ms' }
     };
     setGraphDirect({
@@ -157,7 +161,6 @@ export const FlowDemo: React.FC = () => {
     const newContainer: ContainerEntity = {
       id,
       label,
-      ports: [{ id: `p_${Date.now()}`, label: 'sync', direction: 'inout' }],
       collapsed: false
     };
     setGraphDirect({
