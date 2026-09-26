@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LogicalGraph, NodeEntity, ContainerEntity, Port, PortSide, PortDirection, pruneDanglingEdges } from '@sysflow/core';
+import { LogicalGraph, NodeEntity, ContainerEntity, Port, PortSide, pruneDanglingEdges } from '@sysflow/core';
 
 interface InspectorDrawerProps {
   graph: LogicalGraph;
@@ -231,7 +231,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                       if (name) {
                         handleUpdatePorts([
                           ...selectedNode.ports,
-                          { id: `p_${Date.now()}`, label: name, side: 'auto', direction: 'out', data: { busWidth: '32b' } }
+                          { id: `p_${Date.now()}`, label: name, side: 'auto', data: { busWidth: '32b' } }
                         ]);
                       }
                     }}
@@ -282,22 +282,6 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                         <option value="right">Right</option>
                         <option value="top">Top</option>
                         <option value="bottom">Bottom</option>
-                      </select>
-
-                      {/* Direction Selection */}
-                      <select
-                        value={port.direction || 'out'}
-                        onChange={(e) => {
-                          const updated = [...selectedNode.ports];
-                          updated[idx] = { ...port, direction: e.target.value as PortDirection };
-                          handleUpdatePorts(updated);
-                        }}
-                        style={{ ...inputStyle, marginTop: 0, flex: 1 }}
-                        title="Port Flow Direction"
-                      >
-                        <option value="in">In</option>
-                        <option value="out">Out</option>
-                        <option value="inout">InOut</option>
                       </select>
 
                       <button

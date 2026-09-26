@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LogicalGraph, NodeEntity, ContainerEntity, Port, PortSide, PortDirection, pruneDanglingEdges } from '@sysflow/core';
+import { LogicalGraph, NodeEntity, ContainerEntity, Port, PortSide, pruneDanglingEdges } from '@sysflow/core';
 
 interface InspectorDrawerProps {
   graph: LogicalGraph;
@@ -71,7 +71,6 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   const handleUpdatePorts = (updatedPorts: Port[]) => {
     if (!selectedNode) return;
 
-    // 1. Construct temporary next graph state (only nodes have ports)
     const nextGraph: LogicalGraph = {
       ...graph,
       nodes: {
@@ -80,10 +79,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
       }
     };
 
-    // 2. Prune edges referencing deleted ports
     const cleanGraph = pruneDanglingEdges(nextGraph);
-
-    // 3. Dispatch update
     onUpdateEntity(selectedNode.id, { ports: updatedPorts }, cleanGraph);
   };
 
@@ -223,7 +219,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
               </select>
             </div>
 
-            {/* Ports Section: Only displayed when selecting a Node */}
+            {/* Ports Section: Only displayed for Nodes */}
             {selectedNode && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -235,7 +231,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                       if (name) {
                         handleUpdatePorts([
                           ...selectedNode.ports,
-                          { id: `p_${Date.now()}`, label: name, side: 'auto', direction: 'out', data: { busWidth: '32b' } }
+                          { id: `p_${Date.now()}`, label: name, side: 'auto', data: { busWidth: '32b' } }
                         ]);
                       }
                     }}
@@ -288,25 +284,9 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                         <option value="bottom">Bottom</option>
                       </select>
 
-                      {/* Direction Selection */}
-                      <select
-                        value={port.direction || 'out'}
-                        onChange={(e) => {
-                          const updated = [...selectedNode.ports];
-                          updated[idx] = { ...port, direction: e.target.value as PortDirection };
-                          handleUpdatePorts(updated);
-                        }}
-                        style={{ ...inputStyle, marginTop: 0, flex: 1 }}
-                        title="Port Flow Direction"
-                      >
-                        <option value="in">In</option>
-                        <option value="out">Out</option>
-                        <option value="inout">InOut</option>
-                      </select>
-
                       <button
                         onClick={() => {
-                          const updated = selectedNode.ports.filter((_, i) => i !== idx);
+                          const updated = selectedNode.ports.filter((_: Port, i: number) => i !== idx);
                           handleUpdatePorts(updated);
                         }}
                         style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}

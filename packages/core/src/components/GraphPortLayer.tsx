@@ -1,5 +1,5 @@
 import React from 'react';
-import { NodeEntity, ContainerEntity, computeEntityPortLocations } from '../models';
+import { NodeEntity, computeEntityPortLocations } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 
 interface GraphPortLayerProps {
@@ -29,10 +29,6 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
         const loc = portLocations.get(port.id);
         if (!loc) return null;
 
-        // Determine if port can act as source (output/inout) or target (input/inout)
-        const canBeSource = port.direction !== 'in';
-        const canBeTarget = port.direction !== 'out';
-
         return (
           <div
             key={port.id}
@@ -42,21 +38,17 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
               left: `${loc.localX}px`,
               top: `${loc.localY}px`,
               transform: 'translate(-50%, -50%)',
-              cursor: canBeSource ? 'crosshair' : 'default',
+              cursor: 'crosshair',
               zIndex: 10
             }}
-            title={`${port.label} (${port.direction || 'inout'} · ${loc.side})`}
+            title={`${port.label} (${loc.side})`}
             onPointerDown={(e) => {
               e.stopPropagation();
-              if (canBeSource) {
-                onPortPointerDown?.(entity.id, port.id, true, e);
-              }
+              onPortPointerDown?.(entity.id, port.id, true, e);
             }}
             onPointerUp={(e) => {
               e.stopPropagation();
-              if (canBeTarget) {
-                onPortPointerUp?.(entity.id, port.id, false);
-              }
+              onPortPointerUp?.(entity.id, port.id, false);
             }}
           />
         );

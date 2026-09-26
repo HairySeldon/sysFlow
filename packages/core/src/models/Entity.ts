@@ -1,13 +1,11 @@
 export type ID = string;
 
 export type PortSide = 'left' | 'right' | 'top' | 'bottom' | 'auto';
-export type PortDirection = 'in' | 'out' | 'inout';
 
 export interface Port {
   id: ID;
   label: string;
   side?: PortSide;
-  direction?: PortDirection;
   data?: Record<string, unknown>;
 }
 

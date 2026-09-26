@@ -25,7 +25,7 @@ const INITIAL_VERILOG_GRAPH = {
             id: 'CLK_GEN',
             label: 'Clock_Oscillator',
             type: 'Module',
-            ports: [{ id: 'out_clk', label: 'clk_out', direction: 'out', data: { busWidth: '1b' } }],
+            ports: [{ id: 'out_clk', label: 'clk_out', data: { busWidth: '1b' } }],
             data: { logicGate: 'OSC', isClock: true }
         },
         ADDER: {
@@ -34,9 +34,9 @@ const INITIAL_VERILOG_GRAPH = {
             label: '32b_FullAdder',
             type: 'Module',
             ports: [
-                { id: 'in_a', label: 'A', direction: 'in', data: { busWidth: '32b' } },
-                { id: 'in_b', label: 'B', direction: 'in', data: { busWidth: '32b' } },
-                { id: 'out_sum', label: 'SUM', direction: 'out', data: { busWidth: '32b' } }
+                { id: 'in_a', label: 'A', data: { busWidth: '32b' } },
+                { id: 'in_b', label: 'B', data: { busWidth: '32b' } },
+                { id: 'out_sum', label: 'SUM', data: { busWidth: '32b' } }
             ],
             data: { logicGate: 'ADDER_32' }
         },
@@ -46,9 +46,9 @@ const INITIAL_VERILOG_GRAPH = {
             label: 'WallaceTree_Mul',
             type: 'Module',
             ports: [
-                { id: 'mul_a', label: 'A', direction: 'in', data: { busWidth: '32b' } },
-                { id: 'mul_b', label: 'B', direction: 'in', data: { busWidth: '32b' } },
-                { id: 'mul_out', label: 'PROD', direction: 'out', data: { busWidth: '64b' } }
+                { id: 'mul_a', label: 'A', data: { busWidth: '32b' } },
+                { id: 'mul_b', label: 'B', data: { busWidth: '32b' } },
+                { id: 'mul_out', label: 'PROD', data: { busWidth: '64b' } }
             ],
             data: { logicGate: 'MUL_32' }
         },
@@ -58,8 +58,8 @@ const INITIAL_VERILOG_GRAPH = {
             label: 'R0_Register',
             type: 'Module',
             ports: [
-                { id: 'd_in', label: 'D', direction: 'in', data: { busWidth: '32b' } },
-                { id: 'q_out', label: 'Q', direction: 'out', data: { busWidth: '32b' } }
+                { id: 'd_in', label: 'D', data: { busWidth: '32b' } },
+                { id: 'q_out', label: 'Q', data: { busWidth: '32b' } }
             ],
             data: { logicGate: 'DFF_32' }
         }
@@ -152,7 +152,7 @@ export const SysDemo = () => {
             label,
             parentId: parentId || null,
             type: 'Module',
-            ports: [{ id: `p_${Date.now()}`, label: 'port_1', direction: 'inout', data: { busWidth: '32b' } }],
+            ports: [{ id: `p_${Date.now()}`, label: 'port_1', data: { busWidth: '32b' } }],
             data: { logicGate: 'CUSTOM_LOGIC' }
         };
         setGraphDirect({ ...graph, nodes: { ...graph.nodes, [id]: newNode } });
@@ -235,14 +235,14 @@ export const SysDemo = () => {
                                                                     padding: '2px 6px',
                                                                     borderRadius: 4,
                                                                     fontSize: 11
-                                                                }, children: [p.label, " (", p.direction || 'inout', ")", _jsx("button", { onClick: () => {
+                                                                }, children: [p.label, _jsx("button", { onClick: () => {
                                                                             const nextPorts = node.ports.filter((_, i) => i !== pIdx);
                                                                             handleUpdateEntity(node.id, { ports: nextPorts });
                                                                         }, style: { background: 'transparent', border: 'none', color: '#ef4444', marginLeft: 4, cursor: 'pointer' }, children: "\u2715" })] }, p.id))), _jsx("button", { onClick: () => {
                                                                     const name = prompt('Port name:');
                                                                     if (name) {
                                                                         handleUpdateEntity(node.id, {
-                                                                            ports: [...node.ports, { id: `p_${Date.now()}`, label: name, direction: 'inout' }]
+                                                                            ports: [...node.ports, { id: `p_${Date.now()}`, label: name }]
                                                                         });
                                                                     }
                                                                 }, style: { ...tableInputStyle, width: 'auto', cursor: 'pointer' }, children: "+ Port" })] }) }), _jsx("td", { style: tdStyle, children: _jsx("button", { onClick: () => deleteSelection([node.id]), style: { background: '#7f1d1d', border: 'none', color: '#fff', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }, children: "Delete" }) })] }, node.id))), Object.values(graph.containers).map((c) => (_jsxs("tr", { style: { borderBottom: '1px solid #1e293b', background: 'rgba(30, 41, 59, 0.3)' }, children: [_jsx("td", { style: tdStyle, children: _jsx("span", { style: { color: '#a855f7', fontWeight: 600 }, children: "Container" }) }), _jsx("td", { style: tdStyle, children: _jsx("input", { type: "text", value: c.label, onChange: (e) => handleUpdateEntity(c.id, { label: e.target.value }), style: tableInputStyle }) }), _jsx("td", { style: tdStyle, children: _jsx("span", { style: { opacity: 0.5 }, children: "-" }) }), _jsx("td", { style: tdStyle, children: _jsx("span", { style: { opacity: 0.4 }, children: "N/A (Group Container)" }) }), _jsx("td", { style: tdStyle, children: _jsx("button", { onClick: () => deleteSelection([c.id]), style: { background: '#7f1d1d', border: 'none', color: '#fff', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }, children: "Delete" }) })] }, c.id)))] })] }) })] })), inspectorOpen && !showConfigTable && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));

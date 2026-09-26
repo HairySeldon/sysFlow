@@ -32,7 +32,7 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       id: 'CLK_GEN',
       label: 'Clock_Oscillator',
       type: 'Module',
-      ports: [{ id: 'out_clk', label: 'clk_out', direction: 'out', data: { busWidth: '1b' } }],
+      ports: [{ id: 'out_clk', label: 'clk_out', data: { busWidth: '1b' } }],
       data: { logicGate: 'OSC', isClock: true }
     },
     ADDER: {
@@ -41,9 +41,9 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       label: '32b_FullAdder',
       type: 'Module',
       ports: [
-        { id: 'in_a', label: 'A', direction: 'in', data: { busWidth: '32b' } },
-        { id: 'in_b', label: 'B', direction: 'in', data: { busWidth: '32b' } },
-        { id: 'out_sum', label: 'SUM', direction: 'out', data: { busWidth: '32b' } }
+        { id: 'in_a', label: 'A', data: { busWidth: '32b' } },
+        { id: 'in_b', label: 'B', data: { busWidth: '32b' } },
+        { id: 'out_sum', label: 'SUM', data: { busWidth: '32b' } }
       ],
       data: { logicGate: 'ADDER_32' }
     },
@@ -53,9 +53,9 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       label: 'WallaceTree_Mul',
       type: 'Module',
       ports: [
-        { id: 'mul_a', label: 'A', direction: 'in', data: { busWidth: '32b' } },
-        { id: 'mul_b', label: 'B', direction: 'in', data: { busWidth: '32b' } },
-        { id: 'mul_out', label: 'PROD', direction: 'out', data: { busWidth: '64b' } }
+        { id: 'mul_a', label: 'A', data: { busWidth: '32b' } },
+        { id: 'mul_b', label: 'B', data: { busWidth: '32b' } },
+        { id: 'mul_out', label: 'PROD', data: { busWidth: '64b' } }
       ],
       data: { logicGate: 'MUL_32' }
     },
@@ -65,8 +65,8 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
       label: 'R0_Register',
       type: 'Module',
       ports: [
-        { id: 'd_in', label: 'D', direction: 'in', data: { busWidth: '32b' } },
-        { id: 'q_out', label: 'Q', direction: 'out', data: { busWidth: '32b' } }
+        { id: 'd_in', label: 'D', data: { busWidth: '32b' } },
+        { id: 'q_out', label: 'Q', data: { busWidth: '32b' } }
       ],
       data: { logicGate: 'DFF_32' }
     }
@@ -164,7 +164,7 @@ export const SysDemo: React.FC = () => {
       label,
       parentId: parentId || null,
       type: 'Module',
-      ports: [{ id: `p_${Date.now()}`, label: 'port_1', direction: 'inout', data: { busWidth: '32b' } }],
+      ports: [{ id: `p_${Date.now()}`, label: 'port_1', data: { busWidth: '32b' } }],
       data: { logicGate: 'CUSTOM_LOGIC' }
     };
     setGraphDirect({ ...graph, nodes: { ...graph.nodes, [id]: newNode } });
@@ -357,7 +357,7 @@ export const SysDemo: React.FC = () => {
                               fontSize: 11
                             }}
                           >
-                            {p.label} ({p.direction || 'inout'})
+                            {p.label}
                             <button
                               onClick={() => {
                                 const nextPorts = node.ports.filter((_, i) => i !== pIdx);
@@ -374,7 +374,7 @@ export const SysDemo: React.FC = () => {
                             const name = prompt('Port name:');
                             if (name) {
                               handleUpdateEntity(node.id, {
-                                ports: [...node.ports, { id: `p_${Date.now()}`, label: name, direction: 'inout' }]
+                                ports: [...node.ports, { id: `p_${Date.now()}`, label: name }]
                               });
                             }
                           }}

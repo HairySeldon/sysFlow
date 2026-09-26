@@ -27,12 +27,22 @@ export interface PortPerimeterLocation {
 export function computeEntityPortLocations(
   entity: NodeEntity,
   layout: NodeLayoutResult,
-  defaultLayoutDirection: 'LR' | 'TB' = 'LR'
+  defaultLayoutDirection: 'LR' | 'TB' = 'LR',
+  edges?: Record<ID, EdgeEntity> | EdgeEntity[]
 ): Map<ID, PortPerimeterLocation> {
   const result = new Map<ID, PortPerimeterLocation>();
   if (!entity || !layout || !entity.ports || entity.ports.length === 0) {
     return result;
   }
+
+  // Determine edge roles if edge information is available
+  const edgeList = edges ? (Array.isArray(edges) ? edges : Object.values(edges)) : [];
+  const targetPortIds = new Set(
+    edgeList.filter((e) => e.targetId === entity.id).map((e) => e.targetPortId)
+  );
+  const sourcePortIds = new Set(
+    edgeList.filter((e) => e.sourceId === entity.id).map((e) => e.sourcePortId)
+  );
 
   // 1. Group ports by their resolved perimeter side
   const sides: Record<'left' | 'right' | 'top' | 'bottom', Port[]> = {
@@ -46,19 +56,21 @@ export function computeEntityPortLocations(
     let side: PortSide = port.side || 'auto';
 
     if (side === 'auto') {
+      const isTarget = targetPortIds.has(port.id);
+      const isSource = sourcePortIds.has(port.id);
+
       if (defaultLayoutDirection === 'TB') {
-        if (port.direction === 'in') {
+        if (isTarget && !isSource) {
           side = 'top';
-        } else if (port.direction === 'out') {
+        } else if (isSource && !isTarget) {
           side = 'bottom';
         } else {
-          // If node has multiple ports, alternate top/bottom; if single, place at top if it can receive
           side = idx === 0 && entity.ports.length > 1 ? 'top' : 'bottom';
         }
       } else {
-        if (port.direction === 'in') {
+        if (isTarget && !isSource) {
           side = 'left';
-        } else if (port.direction === 'out') {
+        } else if (isSource && !isTarget) {
           side = 'right';
         } else {
           side = idx === 0 && entity.ports.length > 1 ? 'left' : 'right';

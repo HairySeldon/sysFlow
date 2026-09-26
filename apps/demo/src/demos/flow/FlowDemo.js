@@ -11,15 +11,15 @@ const INITIAL_PIPELINE_GRAPH = {
         INGEST: {
             id: 'INGEST',
             label: 'Task: Ingest Telemetry',
-            ports: [{ id: 'p_out', label: 'out', direction: 'out' }],
+            ports: [{ id: 'p_out', label: 'out' }],
             data: { priority: 'P0', duration: '12ms' }
         },
         VALIDATE: {
             id: 'VALIDATE',
             label: 'Task: Schema Validation',
             ports: [
-                { id: 'p_in', label: 'in', direction: 'in' },
-                { id: 'p_out', label: 'out', direction: 'out' }
+                { id: 'p_in', label: 'in' },
+                { id: 'p_out', label: 'out' }
             ],
             data: { priority: 'P0', duration: '5ms' }
         },
@@ -27,15 +27,15 @@ const INITIAL_PIPELINE_GRAPH = {
             id: 'ENRICH',
             label: 'Task: AI Classification',
             ports: [
-                { id: 'p_in', label: 'in', direction: 'in' },
-                { id: 'p_out', label: 'out', direction: 'out' }
+                { id: 'p_in', label: 'in' },
+                { id: 'p_out', label: 'out' }
             ],
             data: { priority: 'P1', duration: '140ms' }
         },
         PERSIST: {
             id: 'PERSIST',
             label: 'Task: Cold Storage Sink',
-            ports: [{ id: 'p_in', label: 'in', direction: 'in' }],
+            ports: [{ id: 'p_in', label: 'in' }],
             data: { priority: 'P2', duration: '45ms' }
         }
     },
@@ -125,15 +125,14 @@ export const FlowDemo = () => {
             applyAction(action);
         }
     };
-    // FlowDemo.tsx
     const handleAddTask = (label) => {
         const id = `task_${Date.now()}`;
         const newTask = {
             id,
             label,
             ports: [
-                { id: `p_in_${Date.now()}`, label: 'in', direction: 'in' },
-                { id: `p_out_${Date.now()}`, label: 'out', direction: 'out' }
+                { id: `p_in_${Date.now()}`, label: 'in' },
+                { id: `p_out_${Date.now()}`, label: 'out' }
             ],
             data: { priority: 'P1', duration: '20ms' }
         };
@@ -202,7 +201,7 @@ export const FlowDemo = () => {
                                                 updateSelectedNode({
                                                     ports: [
                                                         ...selectedNode.ports,
-                                                        { id: `p_${Date.now()}`, label: name, direction: 'inout' }
+                                                        { id: `p_${Date.now()}`, label: name }
                                                     ]
                                                 });
                                             }
@@ -217,11 +216,7 @@ export const FlowDemo = () => {
                                                 const updated = [...selectedNode.ports];
                                                 updated[idx] = { ...port, label: e.target.value };
                                                 updateSelectedNode({ ports: updated });
-                                            }, style: { ...inputStyle, marginTop: 0, flex: 2 } }), _jsxs("select", { value: port.direction || 'inout', onChange: (e) => {
-                                                const updated = [...selectedNode.ports];
-                                                updated[idx] = { ...port, direction: e.target.value };
-                                                updateSelectedNode({ ports: updated });
-                                            }, style: { ...inputStyle, marginTop: 0, flex: 1.5 }, children: [_jsx("option", { value: "in", children: "In" }), _jsx("option", { value: "out", children: "Out" }), _jsx("option", { value: "inout", children: "InOut" })] }), _jsx("button", { onClick: () => {
+                                            }, style: { ...inputStyle, marginTop: 0, flex: 2 } }), _jsx("button", { onClick: () => {
                                                 const updated = selectedNode.ports.filter((_, i) => i !== idx);
                                                 updateSelectedNode({ ports: updated });
                                             }, style: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }, children: "\u2715" })] }, port.id))) })] })] }))] }));

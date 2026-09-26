@@ -111,7 +111,7 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
                                                 if (name) {
                                                     handleUpdatePorts([
                                                         ...selectedNode.ports,
-                                                        { id: `p_${Date.now()}`, label: name, side: 'auto', direction: 'out', data: { busWidth: '32b' } }
+                                                        { id: `p_${Date.now()}`, label: name, side: 'auto', data: { busWidth: '32b' } }
                                                     ]);
                                                 }
                                             }, children: "+ Add Port" })] }), _jsx("div", { style: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }, children: selectedNode.ports.map((port, idx) => (_jsxs("div", { style: {
@@ -130,11 +130,7 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
                                                     const updated = [...selectedNode.ports];
                                                     updated[idx] = { ...port, side: e.target.value };
                                                     handleUpdatePorts(updated);
-                                                }, style: { ...inputStyle, marginTop: 0, flex: 1.2 }, title: "Perimeter Edge Side", children: [_jsx("option", { value: "auto", children: "Auto Side" }), _jsx("option", { value: "left", children: "Left" }), _jsx("option", { value: "right", children: "Right" }), _jsx("option", { value: "top", children: "Top" }), _jsx("option", { value: "bottom", children: "Bottom" })] }), _jsxs("select", { value: port.direction || 'out', onChange: (e) => {
-                                                    const updated = [...selectedNode.ports];
-                                                    updated[idx] = { ...port, direction: e.target.value };
-                                                    handleUpdatePorts(updated);
-                                                }, style: { ...inputStyle, marginTop: 0, flex: 1 }, title: "Port Flow Direction", children: [_jsx("option", { value: "in", children: "In" }), _jsx("option", { value: "out", children: "Out" }), _jsx("option", { value: "inout", children: "InOut" })] }), _jsx("button", { onClick: () => {
+                                                }, style: { ...inputStyle, marginTop: 0, flex: 1.2 }, title: "Perimeter Edge Side", children: [_jsx("option", { value: "auto", children: "Auto Side" }), _jsx("option", { value: "left", children: "Left" }), _jsx("option", { value: "right", children: "Right" }), _jsx("option", { value: "top", children: "Top" }), _jsx("option", { value: "bottom", children: "Bottom" })] }), _jsx("button", { onClick: () => {
                                                     const updated = selectedNode.ports.filter((_, i) => i !== idx);
                                                     handleUpdatePorts(updated);
                                                 }, style: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }, title: "Delete Port and Connected Edges", children: "\u2715" })] }, port.id))) })] }))] })) })] }));
