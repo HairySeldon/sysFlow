@@ -72,7 +72,7 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
       return { x: 0, y: 0, valid: false, entityId };
     }
 
-    const portLocs = computeEntityPortLocations(node, nLayout, direction);
+    const portLocs = computeEntityPortLocations(node, nLayout, direction, graph.edges);
     const loc = portLocs.get(portId);
 
     if (loc) {

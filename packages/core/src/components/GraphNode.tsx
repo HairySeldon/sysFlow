@@ -1,5 +1,5 @@
 import React from 'react';
-import { NodeEntity } from '../models';
+import { NodeEntity, EdgeEntity, ID } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 import { GraphPortLayer } from './GraphPortLayer';
 
@@ -7,7 +7,8 @@ interface GraphNodeProps {
   node: NodeEntity;
   layout: NodeLayoutResult;
   selected: boolean;
-  direction?: 'LR' | 'TB'; // <--- 1. Add direction prop
+  direction?: 'LR' | 'TB';
+  edges?: Record<ID, EdgeEntity>;
   onPointerDown: (node: NodeEntity, e: React.PointerEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -22,6 +23,7 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
   layout,
   selected,
   direction = 'LR',
+  edges,
   onPointerDown,
   onMouseEnter,
   onMouseLeave,
@@ -47,6 +49,7 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
         entity={node}
         layout={layout}
         direction={direction}
+        edges={edges}
         onPortPointerDown={onPortPointerDown}
         onPortPointerUp={onPortPointerUp}
       />

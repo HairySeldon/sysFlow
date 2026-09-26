@@ -1,3 +1,5 @@
+// packages/core/src/models/Graph.ts
+
 import { ID, NodeEntity, ContainerEntity, Port, PortSide } from './Entity';
 import { EdgeEntity } from './Edge';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
@@ -22,7 +24,7 @@ export interface PortPerimeterLocation {
 
 /**
  * Calculates exact perimeter port locations for an entity after layout dimensions are resolved.
- * Distributes ports evenly along each perimeter side (top, bottom, left, right).
+ * Uses edge connections (source vs target) to determine input vs output sides if side is 'auto'.
  */
 export function computeEntityPortLocations(
   entity: NodeEntity,
@@ -35,16 +37,20 @@ export function computeEntityPortLocations(
     return result;
   }
 
-  // Determine edge roles if edge information is available
-  const edgeList = edges ? (Array.isArray(edges) ? edges : Object.values(edges)) : [];
-  const targetPortIds = new Set(
+  // Extract edges involving this entity
+  const edgeList: EdgeEntity[] = edges
+    ? Array.isArray(edges)
+      ? edges
+      : (Object.values(edges) as EdgeEntity[])
+    : [];
+
+  const incomingPorts = new Set(
     edgeList.filter((e) => e.targetId === entity.id).map((e) => e.targetPortId)
   );
-  const sourcePortIds = new Set(
+  const outgoingPorts = new Set(
     edgeList.filter((e) => e.sourceId === entity.id).map((e) => e.sourcePortId)
   );
 
-  // 1. Group ports by their resolved perimeter side
   const sides: Record<'left' | 'right' | 'top' | 'bottom', Port[]> = {
     left: [],
     right: [],
@@ -52,28 +58,31 @@ export function computeEntityPortLocations(
     bottom: []
   };
 
-  entity.ports.forEach((port, idx) => {
+  entity.ports.forEach((port: Port, idx: number) => {
     let side: PortSide = port.side || 'auto';
 
     if (side === 'auto') {
-      const isTarget = targetPortIds.has(port.id);
-      const isSource = sourcePortIds.has(port.id);
+      const isIncoming = incomingPorts.has(port.id);
+      const isOutgoing = outgoingPorts.has(port.id);
 
       if (defaultLayoutDirection === 'TB') {
-        if (isTarget && !isSource) {
+        if (isIncoming && !isOutgoing) {
           side = 'top';
-        } else if (isSource && !isTarget) {
+        } else if (isOutgoing && !isIncoming) {
           side = 'bottom';
         } else {
-          side = idx === 0 && entity.ports.length > 1 ? 'top' : 'bottom';
+          // If port has both or no edges yet, distribute: first half top, second half bottom
+          side = idx < Math.ceil(entity.ports.length / 2) ? 'top' : 'bottom';
         }
       } else {
-        if (isTarget && !isSource) {
+        // 'LR'
+        if (isIncoming && !isOutgoing) {
           side = 'left';
-        } else if (isSource && !isTarget) {
+        } else if (isOutgoing && !isIncoming) {
           side = 'right';
         } else {
-          side = idx === 0 && entity.ports.length > 1 ? 'left' : 'right';
+          // Distribute: first half left, second half right
+          side = idx < Math.ceil(entity.ports.length / 2) ? 'left' : 'right';
         }
       }
     }
@@ -81,8 +90,7 @@ export function computeEntityPortLocations(
     sides[side as 'left' | 'right' | 'top' | 'bottom'].push(port);
   });
 
-  // 2. Distribute ports along each perimeter boundary
-  // Left perimeter
+  // Distribute along perimeters
   sides.left.forEach((port, idx) => {
     const total = sides.left.length;
     const localY = (layout.height / (total + 1)) * (idx + 1);
@@ -96,7 +104,6 @@ export function computeEntityPortLocations(
     });
   });
 
-  // Right perimeter
   sides.right.forEach((port, idx) => {
     const total = sides.right.length;
     const localY = (layout.height / (total + 1)) * (idx + 1);
@@ -110,7 +117,6 @@ export function computeEntityPortLocations(
     });
   });
 
-  // Top perimeter
   sides.top.forEach((port, idx) => {
     const total = sides.top.length;
     const localX = (layout.width / (total + 1)) * (idx + 1);
@@ -124,7 +130,6 @@ export function computeEntityPortLocations(
     });
   });
 
-  // Bottom perimeter
   sides.bottom.forEach((port, idx) => {
     const total = sides.bottom.length;
     const localX = (layout.width / (total + 1)) * (idx + 1);
