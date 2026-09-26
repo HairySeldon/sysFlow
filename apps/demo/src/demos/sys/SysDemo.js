@@ -92,9 +92,9 @@ const reparentStrategy = new ReparentStrategy();
 export const SysDemo = () => {
     const { graph, setGraphDirect, applyAction, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection } = useGraphHistory(INITIAL_VERILOG_GRAPH);
     const [selectedIds, setSelectedIds] = useState([]);
-    const [direction, setDirection] = useState('LR');
     const [inspectorOpen, setInspectorOpen] = useState(false);
     const [showConfigTable, setShowConfigTable] = useState(false);
+    const direction = 'LR';
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
@@ -113,6 +113,11 @@ export const SysDemo = () => {
             else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
                 if (selectedIds[0])
                     copyEntity(selectedIds[0]);
+            }
+            else if (!e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'c') {
+                // 'C' shortcut: create container around selection
+                e.preventDefault();
+                handleCreateContainerForSelection();
             }
             else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
                 if (selectedIds[0])
@@ -133,7 +138,31 @@ export const SysDemo = () => {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedIds, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection]);
+    }, [selectedIds, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection, graph]);
+    const handleCreateContainerForSelection = () => {
+        const containerId = `cnt_${Date.now()}`;
+        const label = prompt('Container Name:', 'Subsystem_Block');
+        if (!label)
+            return;
+        const newContainer = {
+            id: containerId,
+            label,
+            collapsed: false
+        };
+        const updatedNodes = { ...graph.nodes };
+        if (selectedIds.length > 0) {
+            selectedIds.forEach((id) => {
+                if (updatedNodes[id]) {
+                    updatedNodes[id] = { ...updatedNodes[id], parentId: containerId };
+                }
+            });
+        }
+        setGraphDirect({
+            ...graph,
+            containers: { ...graph.containers, [containerId]: newContainer },
+            nodes: updatedNodes
+        });
+    };
     const handleGraphChange = (action) => {
         if (action.type === 'SELECTION_CHANGE') {
             setSelectedIds(action.payload.selectedIds);
@@ -184,19 +213,7 @@ export const SysDemo = () => {
             });
         }
     };
-    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsxs("div", { style: {
-                    position: 'absolute',
-                    top: 14,
-                    left: 14,
-                    zIndex: 20,
-                    background: 'rgba(15, 23, 42, 0.88)',
-                    border: '1px solid #334155',
-                    borderRadius: 8,
-                    padding: '10px 16px',
-                    color: '#f8fafc',
-                    fontSize: '12px',
-                    maxWidth: 440
-                }, children: [_jsx("strong", { style: { color: '#38bdf8' }, children: "Interactive Sys CAD:" }), _jsxs("ul", { style: { margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }, children: [_jsxs("li", { children: [_jsx("strong", { children: "Config Table:" }), " Click \"Config Table\" in toolbar to view and edit all modules and ports."] }), _jsxs("li", { children: [_jsx("strong", { children: "Keys:" }), " ", _jsx("code", { children: "Tab" }), "/", _jsx("code", { children: "Arrows" }), " | ", _jsx("code", { children: "F" }), " (Fit) | ", _jsx("code", { children: "Ctrl+A" }), " | ", _jsx("code", { children: "Del" }), "."] })] })] }), _jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, onToggleDirection: () => setDirection((prev) => (prev === 'LR' ? 'TB' : 'LR')), onAddNode: handleAddNode, onAddContainer: handleAddContainer, onDeleteSelected: () => {
+    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, onAddNode: handleAddNode, onAddContainer: handleAddContainer, onDeleteSelected: () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                 }, onUpdateGraph: setGraphDirect, extraActions: _jsx("button", { style: {
@@ -208,7 +225,7 @@ export const SysDemo = () => {
                         cursor: 'pointer',
                         fontSize: '12px',
                         fontWeight: 700
-                    }, onClick: () => setShowConfigTable(!showConfigTable), children: "\uD83D\uDCCB Config Table" }) }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: direction, layoutOptions: { mode: 'concurrent' }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigTable && (_jsxs("div", { style: {
+                    }, onClick: () => setShowConfigTable(!showConfigTable), children: "\uD83D\uDCCB Config Table" }) }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigTable && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 70,
                     left: 20,

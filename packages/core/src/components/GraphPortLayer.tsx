@@ -1,12 +1,13 @@
 import React from 'react';
-import { NodeEntity, EdgeEntity, ID, computeEntityPortLocations } from '../models';
+import { NodeEntity, EdgeEntity, ID, computeEntityPortLocations, ComputePortOptions } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 
-interface GraphPortLayerProps {
+export interface GraphPortLayerProps {
   entity: NodeEntity;
   layout: NodeLayoutResult;
   direction?: 'LR' | 'TB';
   edges?: Record<ID, EdgeEntity>;
+  portOptions?: ComputePortOptions; // <-- Added
   onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
   onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
 }
@@ -16,6 +17,7 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
   layout,
   direction = 'LR',
   edges,
+  portOptions,
   onPortPointerDown,
   onPortPointerUp
 }) => {
@@ -23,7 +25,13 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
     return null;
   }
 
-  const portLocations = computeEntityPortLocations(entity, layout, direction, edges);
+  const portLocations = computeEntityPortLocations(
+    entity,
+    layout,
+    direction,
+    edges,
+    portOptions
+  );
 
   return (
     <>

@@ -1,29 +1,31 @@
 import React from 'react';
-import { NodeEntity, EdgeEntity, ID } from '../models';
+import { NodeEntity, ContainerEntity, EdgeEntity, ID, ComputePortOptions } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 import { GraphPortLayer } from './GraphPortLayer';
 
-interface GraphNodeProps {
+export interface GraphNodeProps {
   node: NodeEntity;
   layout: NodeLayoutResult;
-  selected: boolean;
   direction?: 'LR' | 'TB';
   edges?: Record<ID, EdgeEntity>;
-  onPointerDown: (node: NodeEntity, e: React.PointerEvent) => void;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-  onClick: (e: React.MouseEvent) => void;
+  selected?: boolean;
+  customRenderer?: React.ComponentType<{ node: NodeEntity; selected: boolean }>;
+  portOptions?: ComputePortOptions;
+  onPointerDown?: (entity: NodeEntity | ContainerEntity, e: React.PointerEvent) => void;
+  onMouseEnter?: (entityId: ID) => void;
+  onMouseLeave?: (entityId: ID) => void;
+  onClick?: (e: React.MouseEvent) => void;
   onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
   onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
-  customRenderer?: React.ComponentType<{ node: NodeEntity; selected: boolean }>;
 }
 
 export const GraphNode: React.FC<GraphNodeProps> = ({
   node,
   layout,
-  selected,
+  selected = false,
   direction = 'LR',
   edges,
+  portOptions,
   onPointerDown,
   onMouseEnter,
   onMouseLeave,
@@ -40,9 +42,9 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
         width: `${layout.width}px`,
         height: `${layout.height}px`
       }}
-      onPointerDown={(e) => onPointerDown(node, e)}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onPointerDown={(e) => onPointerDown?.(node, e)}
+      onMouseEnter={() => onMouseEnter?.(node.id)}
+      onMouseLeave={() => onMouseLeave?.(node.id)}
       onClick={onClick}
     >
       <GraphPortLayer
@@ -50,6 +52,7 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
         layout={layout}
         direction={direction}
         edges={edges}
+        portOptions={portOptions}
         onPortPointerDown={onPortPointerDown}
         onPortPointerUp={onPortPointerUp}
       />

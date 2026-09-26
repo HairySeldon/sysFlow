@@ -558,14 +558,25 @@ export class CoordinateAssigner {
       const dx = tgtPos.x + tgtPos.width / 2 - (srcPos.x + srcPos.width / 2);
       const dy = tgtPos.y + tgtPos.height / 2 - (srcPos.y + srcPos.height / 2);
 
+      // Determine dominant relative direction between the two connected entities
+      const isHorizontalDominant = Math.abs(dx) > Math.abs(dy) * 1.25;
+
       const srcPort = srcEntity?.ports?.find((p) => p.id === edge.sourcePortId);
       if (srcPort && (!srcPort.side || srcPort.side === 'auto')) {
-        srcPort.side = isTB ? (dy >= 0 ? 'bottom' : 'top') : dx >= 0 ? 'right' : 'left';
+        if (isHorizontalDominant) {
+          srcPort.side = dx >= 0 ? 'right' : 'left';
+        } else {
+          srcPort.side = dy >= 0 ? 'bottom' : 'top';
+        }
       }
 
       const tgtPort = tgtEntity?.ports?.find((p) => p.id === edge.targetPortId);
       if (tgtPort && (!tgtPort.side || tgtPort.side === 'auto')) {
-        tgtPort.side = isTB ? (dy >= 0 ? 'top' : 'bottom') : dx >= 0 ? 'left' : 'right';
+        if (isHorizontalDominant) {
+          tgtPort.side = dx >= 0 ? 'left' : 'right';
+        } else {
+          tgtPort.side = dy >= 0 ? 'top' : 'bottom';
+        }
       }
     }
   }

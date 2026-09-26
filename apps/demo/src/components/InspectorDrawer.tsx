@@ -145,7 +145,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             color: activeTab === 'properties' ? '#38bdf8' : '#94a3b8'
           }}
         >
-          Configuration & Ports
+          Ports
         </button>
       </div>
 
@@ -160,10 +160,10 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
               <div style={{ display: 'flex', gap: 8 }}>
                 <input ref={fileInputRef} type="file" accept=".v,.sv,.vhd,.txt" style={{ display: 'none' }} onChange={handleOpenFile} />
                 <button style={{ ...btnStyle, fontSize: 11 }} onClick={() => fileInputRef.current?.click()}>
-                  Open HDL File...
+                  Open File...
                 </button>
                 <button style={{ ...btnStyle, fontSize: 11 }} onClick={handleSaveFile}>
-                  Export .v File
+                  Export File
                 </button>
               </div>
             </div>
@@ -265,24 +265,6 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                         }}
                         style={{ ...inputStyle, marginTop: 0, flex: 2 }}
                       />
-
-                      {/* Perimeter Side Selection */}
-                      <select
-                        value={port.side || 'auto'}
-                        onChange={(e) => {
-                          const updated = [...selectedNode.ports];
-                          updated[idx] = { ...port, side: e.target.value as PortSide };
-                          handleUpdatePorts(updated);
-                        }}
-                        style={{ ...inputStyle, marginTop: 0, flex: 1.2 }}
-                        title="Perimeter Edge Side"
-                      >
-                        <option value="auto">Auto Side</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                        <option value="top">Top</option>
-                        <option value="bottom">Bottom</option>
-                      </select>
 
                       <button
                         onClick={() => {

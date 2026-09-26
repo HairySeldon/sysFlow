@@ -1,5 +1,13 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { LogicalGraph, ID, NodeEntity, ContainerEntity, GraphAction, computeEntityPortLocations } from '../models';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
+import {
+  LogicalGraph,
+  ID,
+  NodeEntity,
+  ContainerEntity,
+  GraphAction,
+  computeEntityPortLocations,
+  ComputePortOptions
+} from '../models';
 import { LayoutEngine, LayoutResult, LayoutOptions } from '../layout/LayoutEngine';
 import { WorkerBridge } from '../layout/worker/WorkerBridge';
 import { InteractionStrategy } from '../strategies/InteractionStrategy';
@@ -18,13 +26,15 @@ export interface SysFlowCanvasProps {
   layoutEngine?: LayoutEngine;
   interactionStrategy?: InteractionStrategy;
   direction?: 'LR' | 'TB';
-  layoutOptions?: LayoutOptions; // <-- NEW
+  layoutOptions?: LayoutOptions;
   showEdgeArrows?: boolean;
   nodeTypes?: Record<string, React.ComponentType<{ node: NodeEntity; selected: boolean }>>;
   containerTypes?: Record<string, React.ComponentType<{ container: ContainerEntity; selected: boolean }>>;
   zoomBounds?: { min: number; max: number };
   className?: string;
   selectedIds?: ID[];
+  portPlacementMode?: 'strict-flow' | 'perimeter-optimized';
+  routing?: 'bezier' | 'step' | 'auto';
 }
 
 const DEFAULT_STRATEGY = new ReparentStrategy();
@@ -36,6 +46,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   interactionStrategy = DEFAULT_STRATEGY,
   direction = 'TB',
   layoutOptions,
+  portPlacementMode,
+  routing,
   showEdgeArrows = true,
   nodeTypes,
   containerTypes,
@@ -67,6 +79,13 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
 
   const { measurements, registerMeasureElement } = useMeasurement(graph);
   const [layout, setLayout] = useState<LayoutResult>({ nodes: {}, containers: {} });
+
+  // Memoized port options available everywhere in the component
+  const resolvedPortOptions: ComputePortOptions = useMemo(() => ({
+    direction,
+    mode: portPlacementMode ?? (direction === 'TB' ? 'strict-flow' : 'perimeter-optimized'),
+    nodeLayouts: layout.nodes
+  }), [direction, portPlacementMode, layout.nodes]);
 
   // Active wire-drawing state (drag from source port to target port)
   const [activeWire, setActiveWire] = useState<{
@@ -168,7 +187,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           const dx = targetCenter.x - currentCenter.x;
           const dy = targetCenter.y - currentCenter.y;
 
-          // Check if candidate lies in directional quadrant
           let isInDirection = false;
           if (e.key === 'ArrowRight' && dx > 20) isInDirection = true;
           if (e.key === 'ArrowLeft' && dx < -20) isInDirection = true;
@@ -208,7 +226,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   useEffect(() => {
     let cancelled = false;
 
-    // Detect actual container aspect ratio from the DOM
     let dynamicAspect = 16 / 9;
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -245,7 +262,13 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     const itemLayout = layout.nodes[entityId] || layout.containers[entityId];
     if (!entity || !itemLayout) return;
 
-    const portLocs = computeEntityPortLocations(entity, itemLayout, direction, graph.edges);
+    const portLocs = computeEntityPortLocations(
+      entity,
+      itemLayout,
+      direction,
+      graph.edges,
+      resolvedPortOptions
+    );
     const loc = portLocs.get(portId);
 
     const startPos = loc
@@ -280,13 +303,11 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   };
 
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
-    // Pan canvas if middle mouse or spacebar held
     if (e.button === 1 || isSpacePressedRef.current) {
       startPan(e.clientX, e.clientY);
       return;
     }
 
-    // Left click on empty canvas starts marquee selection
     if (e.button === 0 && (e.target === containerRef.current || (e.target as HTMLElement).tagName === 'svg')) {
       const worldPos = screenToWorld(e.clientX, e.clientY);
       setMarqueeBox({
@@ -319,18 +340,15 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       endPan();
     }
 
-    // Commit Marquee Selection
     if (marqueeBox) {
       const boxLeft = Math.min(marqueeBox.startX, marqueeBox.currentX);
       const boxTop = Math.min(marqueeBox.startY, marqueeBox.currentY);
       const boxRight = Math.max(marqueeBox.startX, marqueeBox.currentX);
       const boxBottom = Math.max(marqueeBox.startY, marqueeBox.currentY);
 
-      // Only perform box selection if drag moved more than 4px
       if (boxRight - boxLeft > 4 || boxBottom - boxTop > 4) {
         const selected: ID[] = [];
 
-        // Check node intersections
         for (const [id, nLayout] of Object.entries(layout.nodes)) {
           if (
             nLayout.x < boxRight &&
@@ -342,7 +360,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           }
         }
 
-        // Check container intersections
         for (const [id, cLayout] of Object.entries(layout.containers)) {
           if (
             cLayout.x < boxRight &&
@@ -369,7 +386,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   };
 
   const containersList = Object.values(graph.containers) as ContainerEntity[];
-  const nodesList = Object.values(graph.nodes) as NodeEntity[];
 
   return (
     <div
@@ -421,7 +437,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`
         }}
       >
-
         {/* Marquee Selection Rectangle */}
         {marqueeBox && (
           <div
@@ -447,6 +462,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           selectedIds={selectedIds}
           direction={direction}
           showArrows={showEdgeArrows}
+          routing={routing}
+          portOptions={resolvedPortOptions}
           onEdgeClick={(edgeId) =>
             onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } })
           }
@@ -509,6 +526,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 layout={nodeLayout}
                 direction={direction}
                 edges={graph.edges}
+                portOptions={resolvedPortOptions}
                 selected={selectedIds.includes(node.id)}
                 customRenderer={node.type ? nodeTypes?.[node.type] : undefined}
                 onPointerDown={onEntityPointerDown}

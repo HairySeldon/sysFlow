@@ -88,8 +88,8 @@ export const FlowDemo: React.FC = () => {
   } = useGraphHistory(INITIAL_PIPELINE_GRAPH);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [direction, setDirection] = useState<'LR' | 'TB'>('TB');
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
+  const direction = 'TB' as const;
 
   const selectedNode = editorNodeId ? graph.nodes[editorNodeId] : null;
 
@@ -181,34 +181,11 @@ export const FlowDemo: React.FC = () => {
 
   return (
     <div style={{ width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }}>
-      <div
-        style={{
-          position: 'absolute',
-          top: 14,
-          left: 14,
-          zIndex: 20,
-          background: 'rgba(15, 23, 42, 0.88)',
-          border: '1px solid #334155',
-          borderRadius: 8,
-          padding: '10px 16px',
-          color: '#f8fafc',
-          fontSize: '12px',
-          maxWidth: 450
-        }}
-      >
-        <strong style={{ color: '#38bdf8' }}>Flow Pipeline Demo:</strong>
-        <ul style={{ margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }}>
-          <li><strong>Clean Edges:</strong> Arrows removed for clean modern graph connections.</li>
-          <li><strong>Reordering:</strong> Drag any task onto an edge to splice it in.</li>
-          <li><strong>Keys:</strong> <code>Tab</code>/<code>Arrows</code>: Navigate | <code>F</code>: Fit | <code>Ctrl+A</code>: All | <code>Del</code>: Delete.</li>
-        </ul>
-      </div>
 
       <Toolbar
         graph={graph}
         selectedIds={selectedIds}
         direction={direction}
-        onToggleDirection={() => setDirection((prev) => (prev === 'LR' ? 'TB' : 'LR'))}
         onAddNode={handleAddTask}
         onAddContainer={handleAddContainer}
         onDeleteSelected={() => {
@@ -223,8 +200,10 @@ export const FlowDemo: React.FC = () => {
         graph={graph}
         onChange={handleGraphChange}
         interactionStrategy={rewireStrategy}
-        direction={direction}
-        layoutOptions={{ mode: 'flow' }}
+        direction="TB"
+        routing="bezier"
+        portPlacementMode="strict-flow"
+        layoutOptions={{ mode: 'flow', channelSpacing: 30 }}
         showEdgeArrows={false}
         selectedIds={selectedIds}
       />

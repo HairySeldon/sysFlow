@@ -112,9 +112,9 @@ export const SysDemo: React.FC = () => {
   } = useGraphHistory(INITIAL_VERILOG_GRAPH);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [direction, setDirection] = useState<'LR' | 'TB'>('LR');
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [showConfigTable, setShowConfigTable] = useState(false);
+  const direction = 'LR' as const;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -129,6 +129,10 @@ export const SysDemo: React.FC = () => {
         redo();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         if (selectedIds[0]) copyEntity(selectedIds[0]);
+      } else if (!e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'c') {
+        // 'C' shortcut: create container around selection
+        e.preventDefault();
+        handleCreateContainerForSelection();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
         if (selectedIds[0]) cutEntity(selectedIds[0]);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
@@ -144,7 +148,35 @@ export const SysDemo: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection]);
+  }, [selectedIds, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection, graph]);
+
+  const handleCreateContainerForSelection = () => {
+    const containerId = `cnt_${Date.now()}`;
+    const label = prompt('Container Name:', 'Subsystem_Block');
+    if (!label) return;
+
+    const newContainer: ContainerEntity = {
+      id: containerId,
+      label,
+      collapsed: false
+    };
+
+    const updatedNodes = { ...graph.nodes };
+
+    if (selectedIds.length > 0) {
+      selectedIds.forEach((id) => {
+        if (updatedNodes[id]) {
+          updatedNodes[id] = { ...updatedNodes[id], parentId: containerId };
+        }
+      });
+    }
+
+    setGraphDirect({
+      ...graph,
+      containers: { ...graph.containers, [containerId]: newContainer },
+      nodes: updatedNodes
+    });
+  };
 
   const handleGraphChange = (action: GraphAction) => {
     if (action.type === 'SELECTION_CHANGE') {
@@ -205,33 +237,11 @@ export const SysDemo: React.FC = () => {
 
   return (
     <div style={{ width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }}>
-      <div
-        style={{
-          position: 'absolute',
-          top: 14,
-          left: 14,
-          zIndex: 20,
-          background: 'rgba(15, 23, 42, 0.88)',
-          border: '1px solid #334155',
-          borderRadius: 8,
-          padding: '10px 16px',
-          color: '#f8fafc',
-          fontSize: '12px',
-          maxWidth: 440
-        }}
-      >
-        <strong style={{ color: '#38bdf8' }}>Interactive Sys CAD:</strong>
-        <ul style={{ margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }}>
-          <li><strong>Config Table:</strong> Click "Config Table" in toolbar to view and edit all modules and ports.</li>
-          <li><strong>Keys:</strong> <code>Tab</code>/<code>Arrows</code> | <code>F</code> (Fit) | <code>Ctrl+A</code> | <code>Del</code>.</li>
-        </ul>
-      </div>
 
       <Toolbar
         graph={graph}
         selectedIds={selectedIds}
         direction={direction}
-        onToggleDirection={() => setDirection((prev) => (prev === 'LR' ? 'TB' : 'LR'))}
         onAddNode={handleAddNode}
         onAddContainer={handleAddContainer}
         onDeleteSelected={() => {
@@ -262,8 +272,10 @@ export const SysDemo: React.FC = () => {
         graph={graph}
         onChange={handleGraphChange}
         interactionStrategy={reparentStrategy}
-        direction={direction}
-        layoutOptions={{ mode: 'concurrent' }}
+        direction="LR"
+        routing="step"
+        portPlacementMode="perimeter-optimized"
+        layoutOptions={{ mode: 'concurrent', channelSpacing: 60 }}
         nodeTypes={{ Module: SysModuleRenderer }}
         selectedIds={selectedIds}
       />

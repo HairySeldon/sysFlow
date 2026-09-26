@@ -67,8 +67,8 @@ const rewireStrategy = new EdgeRewireStrategy();
 export const FlowDemo = () => {
     const { graph, setGraphDirect, applyAction, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection } = useGraphHistory(INITIAL_PIPELINE_GRAPH);
     const [selectedIds, setSelectedIds] = useState([]);
-    const [direction, setDirection] = useState('TB');
     const [editorNodeId, setEditorNodeId] = useState(null);
+    const direction = 'TB';
     const selectedNode = editorNodeId ? graph.nodes[editorNodeId] : null;
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -164,23 +164,11 @@ export const FlowDemo = () => {
             }
         });
     };
-    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsxs("div", { style: {
-                    position: 'absolute',
-                    top: 14,
-                    left: 14,
-                    zIndex: 20,
-                    background: 'rgba(15, 23, 42, 0.88)',
-                    border: '1px solid #334155',
-                    borderRadius: 8,
-                    padding: '10px 16px',
-                    color: '#f8fafc',
-                    fontSize: '12px',
-                    maxWidth: 450
-                }, children: [_jsx("strong", { style: { color: '#38bdf8' }, children: "Flow Pipeline Demo:" }), _jsxs("ul", { style: { margin: '4px 0 0 16px', padding: 0, lineHeight: 1.6 }, children: [_jsxs("li", { children: [_jsx("strong", { children: "Clean Edges:" }), " Arrows removed for clean modern graph connections."] }), _jsxs("li", { children: [_jsx("strong", { children: "Reordering:" }), " Drag any task onto an edge to splice it in."] }), _jsxs("li", { children: [_jsx("strong", { children: "Keys:" }), " ", _jsx("code", { children: "Tab" }), "/", _jsx("code", { children: "Arrows" }), ": Navigate | ", _jsx("code", { children: "F" }), ": Fit | ", _jsx("code", { children: "Ctrl+A" }), ": All | ", _jsx("code", { children: "Del" }), ": Delete."] })] })] }), _jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, onToggleDirection: () => setDirection((prev) => (prev === 'LR' ? 'TB' : 'LR')), onAddNode: handleAddTask, onAddContainer: handleAddContainer, onDeleteSelected: () => {
+    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, onAddNode: handleAddTask, onAddContainer: handleAddContainer, onDeleteSelected: () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                     setEditorNodeId(null);
-                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: direction, layoutOptions: { mode: 'flow' }, showEdgeArrows: false, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
+                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: "TB", routing: "bezier", portPlacementMode: "strict-flow", layoutOptions: { mode: 'flow', channelSpacing: 30 }, showEdgeArrows: false, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 0,
                     right: 0,

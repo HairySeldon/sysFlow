@@ -25,6 +25,7 @@ export interface LayoutOptions {
   mode?: 'flow' | 'concurrent' | 'auto';
   /** Target width/height ratio for concurrent packing (defaults to 16/9 ~ 1.77) */
   aspectRatio?: number;
+  channelSpacing?: number;
 }
 
 export interface LayoutEngine {
