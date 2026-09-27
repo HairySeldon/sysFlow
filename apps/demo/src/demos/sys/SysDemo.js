@@ -89,7 +89,8 @@ const INITIAL_VERILOG_GRAPH = {
     }
 };
 const reparentStrategy = new ReparentStrategy();
-export const SysDemo = ({ theme }) => {
+export const SysDemo = ({ theme = 'dark' }) => {
+    const isLight = theme === 'light';
     const { graph, setGraphDirect, applyAction, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection } = useGraphHistory(INITIAL_VERILOG_GRAPH);
     const [selectedIds, setSelectedIds] = useState([]);
     const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -121,7 +122,6 @@ export const SysDemo = ({ theme }) => {
                     console.warn(`File "${activeFilePath}" not found on disk, using cached template.`, err);
                 }
             }
-            // Fallback: graph node data or undefined
             if (!isCancelled) {
                 setCurrentFileContent(graph.nodes[activeNodeId]?.data?.sourceCode);
             }
@@ -205,7 +205,6 @@ export const SysDemo = ({ theme }) => {
             return false;
         }
         if (!projectDirHandle) {
-            // Prompt user to select project folder if not yet chosen
             if ('showDirectoryPicker' in window) {
                 const confirmPicker = confirm(`Project root folder is not linked yet.\nWould you like to select the project root folder to save "${activeFilePath}"?`);
                 if (confirmPicker) {
@@ -240,7 +239,7 @@ export const SysDemo = ({ theme }) => {
             return false;
         }
     };
-    // Config JSON: Save to file
+    // Save Config JSON
     const handleSaveConfigJson = () => {
         const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sourceConfig, null, 2));
         const downloadAnchor = document.createElement('a');
@@ -250,7 +249,7 @@ export const SysDemo = ({ theme }) => {
         downloadAnchor.click();
         downloadAnchor.remove();
     };
-    // Config JSON: Load from file
+    // Load Config JSON
     const handleLoadConfigJson = (e) => {
         const file = e.target.files?.[0];
         if (!file)
@@ -355,85 +354,126 @@ export const SysDemo = ({ theme }) => {
             });
         }
     };
+    // Color tokens based on theme
+    const colors = {
+        bg: isLight ? '#ffffff' : '#090d16',
+        border: isLight ? '#cbd5e1' : '#334155',
+        subBorder: isLight ? '#e2e8f0' : '#1e293b',
+        headerBg: isLight ? '#f8fafc' : '#0b1120',
+        barBg: isLight ? '#f1f5f9' : '#0f172a',
+        text: isLight ? '#0f172a' : '#f8fafc',
+        subtext: isLight ? '#64748b' : '#94a3b8',
+        primary: isLight ? '#0284c7' : '#38bdf8',
+        inputBg: isLight ? '#ffffff' : '#131b2e',
+        inputBorder: isLight ? '#cbd5e1' : '#334155',
+        inputText: isLight ? '#0369a1' : '#38bdf8',
+        tableHeaderBg: isLight ? '#f1f5f9' : '#1e293b',
+        btnBg: isLight ? '#ffffff' : '#1e293b',
+        btnHover: isLight ? '#e2e8f0' : '#334155',
+        shadow: isLight ? '0 16px 48px rgba(0, 0, 0, 0.14)' : '0 16px 48px rgba(0, 0, 0, 0.85)'
+    };
     return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, onAddNode: handleAddNode, onAddContainer: handleAddContainer, onDeleteSelected: () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                 }, onUpdateGraph: setGraphDirect, extraActions: _jsx("button", { style: {
-                        background: showConfigModal ? '#38bdf8' : '#1e293b',
-                        color: showConfigModal ? '#0f172a' : '#f8fafc',
-                        border: '1px solid #334155',
+                        background: showConfigModal ? colors.primary : colors.btnBg,
+                        color: showConfigModal ? '#ffffff' : colors.text,
+                        border: `1px solid ${showConfigModal ? colors.primary : colors.border}`,
                         padding: '6px 12px',
                         borderRadius: 6,
                         cursor: 'pointer',
                         fontSize: '12px',
-                        fontWeight: 700
+                        fontWeight: 700,
+                        transition: 'all 0.15s ease'
                     }, onClick: () => setShowConfigModal(!showConfigModal), title: "Open Module-to-File Source Configuration", children: "\u2699 Source Config" }) }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigModal && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 60,
                     left: 40,
                     right: 40,
                     bottom: 40,
-                    background: '#090d16',
-                    border: '1px solid #334155',
+                    background: colors.bg,
+                    border: `1px solid ${colors.border}`,
                     borderRadius: 8,
                     zIndex: 60,
-                    boxShadow: '0 16px 48px rgba(0,0,0,0.85)',
+                    boxShadow: colors.shadow,
                     display: 'flex',
                     flexDirection: 'column',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    color: colors.text
                 }, children: [_jsxs("div", { style: {
                             padding: '14px 20px',
-                            background: '#0b1120',
-                            borderBottom: '1px solid #1e293b',
+                            background: colors.headerBg,
+                            borderBottom: `1px solid ${colors.subBorder}`,
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
-                        }, children: [_jsxs("div", { children: [_jsx("h3", { style: { margin: 0, color: '#38bdf8', fontSize: 16 }, children: "Source Code Configuration Editor" }), _jsx("span", { style: { fontSize: 12, color: '#94a3b8' }, children: "Map schematic modules to HDL source code file paths on disk." })] }), _jsx("button", { onClick: () => setShowConfigModal(false), style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 20 }, children: "\u2715" })] }), _jsxs("div", { style: {
+                        }, children: [_jsxs("div", { children: [_jsx("h3", { style: { margin: 0, color: colors.primary, fontSize: 16 }, children: "Source Code Configuration Editor" }), _jsx("span", { style: { fontSize: 12, color: colors.subtext }, children: "Map schematic modules to HDL source code file paths on disk." })] }), _jsx("button", { onClick: () => setShowConfigModal(false), style: {
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: colors.subtext,
+                                    cursor: 'pointer',
+                                    fontSize: 20
+                                }, title: "Close", children: "\u2715" })] }), _jsxs("div", { style: {
                             padding: '12px 20px',
-                            background: '#0f172a',
-                            borderBottom: '1px solid #1e293b',
+                            background: colors.barBg,
+                            borderBottom: `1px solid ${colors.subBorder}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             flexWrap: 'wrap',
                             gap: 12
                         }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 12 }, children: [_jsxs("button", { onClick: handleSelectProjectFolder, style: {
-                                            background: projectDirHandle ? '#0284c7' : '#1e293b',
-                                            border: '1px solid #38bdf8',
-                                            color: '#fff',
-                                            padding: '6px 12px',
+                                            background: projectDirHandle ? (isLight ? '#0284c7' : '#0369a1') : colors.btnBg,
+                                            border: `1px solid ${projectDirHandle ? colors.primary : colors.border}`,
+                                            color: projectDirHandle ? '#ffffff' : colors.text,
+                                            padding: '6px 14px',
                                             borderRadius: 6,
                                             cursor: 'pointer',
                                             fontWeight: 600,
-                                            fontSize: 12
-                                        }, children: ["\uD83D\uDCC1 ", projectDirHandle ? `Project: ${projectDirHandle.name}` : 'Select Project Root Folder'] }), projectDirHandle && (_jsx("span", { style: { fontSize: 11, color: '#4ade80' }, children: "Connected to local file system \u2713" }))] }), _jsxs("div", { style: { display: 'flex', gap: 8 }, children: [_jsx("input", { ref: configFileUploadRef, type: "file", accept: ".json", style: { display: 'none' }, onChange: handleLoadConfigJson }), _jsx("button", { onClick: () => configFileUploadRef.current?.click(), style: modalBtnStyle, children: "Load Config JSON" }), _jsx("button", { onClick: handleSaveConfigJson, style: { ...modalBtnStyle, background: '#0284c7', borderColor: '#38bdf8' }, children: "Save Config JSON" })] })] }), _jsx("div", { style: { flex: 1, overflow: 'auto', padding: 20 }, children: _jsxs("table", { style: { width: '100%', borderCollapse: 'collapse', color: '#f8fafc', fontSize: 13 }, children: [_jsx("thead", { children: _jsxs("tr", { style: { background: '#1e293b', textAlign: 'left' }, children: [_jsx("th", { style: thStyle, children: "Module ID" }), _jsx("th", { style: thStyle, children: "Module Name" }), _jsx("th", { style: thStyle, children: "Source File Path (relative to project root)" })] }) }), _jsx("tbody", { children: Object.values(graph.nodes).map((node) => {
+                                            fontSize: 12,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6
+                                        }, children: [_jsx("span", { children: "\uD83D\uDCC1" }), _jsx("span", { children: projectDirHandle ? `Project: ${projectDirHandle.name}` : 'Select Project Root Folder' })] }), projectDirHandle && (_jsx("span", { style: { fontSize: 12, color: isLight ? '#16a34a' : '#4ade80', fontWeight: 500 }, children: "Connected to local file system \u2713" }))] }), _jsxs("div", { style: { display: 'flex', gap: 8 }, children: [_jsx("input", { ref: configFileUploadRef, type: "file", accept: ".json", style: { display: 'none' }, onChange: handleLoadConfigJson }), _jsx("button", { onClick: () => configFileUploadRef.current?.click(), style: {
+                                            background: colors.btnBg,
+                                            border: `1px solid ${colors.border}`,
+                                            color: colors.text,
+                                            padding: '6px 12px',
+                                            borderRadius: 6,
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            fontWeight: 600
+                                        }, children: "Load Config JSON" }), _jsx("button", { onClick: handleSaveConfigJson, style: {
+                                            background: isLight ? '#0284c7' : '#0369a1',
+                                            border: `1px solid ${colors.primary}`,
+                                            color: '#ffffff',
+                                            padding: '6px 12px',
+                                            borderRadius: 6,
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            fontWeight: 600
+                                        }, children: "Save Config JSON" })] })] }), _jsx("div", { style: { flex: 1, overflow: 'auto', padding: 20 }, children: _jsxs("table", { style: { width: '100%', borderCollapse: 'collapse', fontSize: 13 }, children: [_jsx("thead", { children: _jsxs("tr", { style: { background: colors.tableHeaderBg, textAlign: 'left' }, children: [_jsx("th", { style: { ...thStyle, borderBottom: `2px solid ${colors.border}`, color: colors.subtext }, children: "Module ID" }), _jsx("th", { style: { ...thStyle, borderBottom: `2px solid ${colors.border}`, color: colors.subtext }, children: "Module Name" }), _jsx("th", { style: { ...thStyle, borderBottom: `2px solid ${colors.border}`, color: colors.subtext }, children: "Source File Path (relative to project root)" })] }) }), _jsx("tbody", { children: Object.values(graph.nodes).map((node) => {
                                         const currentPath = sourceConfig.mappings[node.id] || '';
-                                        return (_jsxs("tr", { style: { borderBottom: '1px solid #1e293b' }, children: [_jsx("td", { style: tdStyle, children: _jsx("span", { style: { color: '#38bdf8', fontFamily: 'monospace', fontWeight: 600 }, children: node.id }) }), _jsx("td", { style: tdStyle, children: _jsx("span", { style: { fontWeight: 600 }, children: node.label }) }), _jsx("td", { style: tdStyle, children: _jsx("input", { type: "text", value: currentPath, placeholder: `rtl/${node.label.toLowerCase()}.v`, onChange: (e) => handleUpdateMapping(node.id, e.target.value), style: {
+                                        return (_jsxs("tr", { style: {
+                                                borderBottom: `1px solid ${colors.subBorder}`,
+                                                transition: 'background 0.15s ease'
+                                            }, children: [_jsx("td", { style: tdStyle, children: _jsx("span", { style: { color: colors.primary, fontFamily: 'monospace', fontWeight: 600 }, children: node.id }) }), _jsx("td", { style: tdStyle, children: _jsx("span", { style: { fontWeight: 600, color: colors.text }, children: node.label }) }), _jsx("td", { style: tdStyle, children: _jsx("input", { type: "text", value: currentPath, placeholder: `rtl/${node.label.toLowerCase()}.v`, onChange: (e) => handleUpdateMapping(node.id, e.target.value), style: {
                                                             width: '100%',
-                                                            background: '#131b2e',
-                                                            border: '1px solid #334155',
-                                                            color: '#38bdf8',
+                                                            background: colors.inputBg,
+                                                            border: `1px solid ${colors.inputBorder}`,
+                                                            color: colors.inputText,
                                                             fontFamily: 'monospace',
                                                             padding: '6px 10px',
                                                             borderRadius: 4,
-                                                            fontSize: 12
+                                                            fontSize: 12,
+                                                            boxSizing: 'border-box',
+                                                            outline: 'none'
                                                         } }) })] }, node.id));
                                     }) })] }) })] })), inspectorOpen && !showConfigModal && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, boundFilePath: activeFilePath, initialSourceCode: currentFileContent, onSaveSource: handleSaveNodeSource, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));
 };
 const thStyle = {
-    padding: '10px 14px',
-    borderBottom: '2px solid #334155'
+    padding: '10px 14px'
 };
 const tdStyle = {
     padding: '10px 14px'
-};
-const modalBtnStyle = {
-    background: '#1e293b',
-    border: '1px solid #334155',
-    color: '#f8fafc',
-    padding: '6px 12px',
-    borderRadius: 6,
-    cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: 600
 };
