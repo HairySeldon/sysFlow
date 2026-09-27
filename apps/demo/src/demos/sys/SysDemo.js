@@ -5,7 +5,6 @@ import { SysModuleRenderer } from './SysModuleEditor';
 import { Toolbar } from '../../components/Toolbar';
 import { InspectorDrawer } from '../../components/InspectorDrawer';
 import { useGraphHistory } from '../../hooks/useGraphHistory';
-import '@sysflow/core/dist/style.css';
 const INITIAL_VERILOG_GRAPH = {
     version: '2.0.0',
     containers: {
@@ -89,7 +88,7 @@ const INITIAL_VERILOG_GRAPH = {
     }
 };
 const reparentStrategy = new ReparentStrategy();
-export const SysDemo = () => {
+export const SysDemo = ({ theme }) => {
     const { graph, setGraphDirect, applyAction, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection } = useGraphHistory(INITIAL_VERILOG_GRAPH);
     const [selectedIds, setSelectedIds] = useState([]);
     const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -230,7 +229,7 @@ export const SysDemo = () => {
                         cursor: 'pointer',
                         fontSize: '12px',
                         fontWeight: 700
-                    }, onClick: () => setShowConfigTable(!showConfigTable), children: "\uD83D\uDCCB Config Table" }) }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigTable && (_jsxs("div", { style: {
+                    }, onClick: () => setShowConfigTable(!showConfigTable), children: "\uD83D\uDCCB Config Table" }) }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigTable && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 70,
                     left: 20,

@@ -101,12 +101,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         zIndex: 30,
         display: 'flex',
         gap: 8,
-        background: 'rgba(15, 23, 42, 0.92)',
+        background: 'var(--sysflow-panel-bg, rgba(15, 23, 42, 0.92))',
         padding: '8px 12px',
         borderRadius: 8,
-        border: '1px solid #334155',
+        border: '1px solid var(--sysflow-panel-border, #334155)',
         alignItems: 'center',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
+        boxShadow: 'var(--sysflow-shadow, 0 4px 16px rgba(0,0,0,0.4))',
+        backdropFilter: 'blur(8px)'
       }}
     >
       {onToggleDirection && (
@@ -169,12 +170,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 };
 
 const actionBtnStyle: React.CSSProperties = {
-  background: '#1e293b',
-  border: '1px solid #334155',
-  color: '#f8fafc',
+  background: 'var(--sysflow-panel-btn-bg, #1e293b)',
+  border: '1px solid var(--sysflow-panel-border, #334155)',
+  color: 'var(--sysflow-panel-btn-text, #f8fafc)',
   padding: '6px 12px',
   borderRadius: 6,
   cursor: 'pointer',
   fontSize: '12px',
-  fontWeight: 600
+  fontWeight: 600,
+  transition: 'background 0.15s ease'
 };

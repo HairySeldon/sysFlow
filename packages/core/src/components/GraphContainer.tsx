@@ -45,31 +45,13 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
       ) : (
         <div className="sysflow-container-header">
           <span
+            className="sysflow-container-title"
             title={container.label}
-            style={{
-              fontWeight: 600,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-              flex: 1,
-              marginRight: 8
-            }}
           >
             {container.label}
           </span>
           <button
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '4px',
-              color: 'inherit',
-              cursor: 'pointer',
-              fontSize: '11px',
-              padding: '2px 6px',
-              flexShrink: 0,
-              whiteSpace: 'nowrap'
-            }}
+            className="sysflow-collapse-btn"
             onClick={(e) => {
               e.stopPropagation();
               onToggleCollapse(container.id, !container.collapsed);

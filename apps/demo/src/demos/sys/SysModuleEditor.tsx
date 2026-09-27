@@ -9,8 +9,9 @@ export const SysModuleRenderer: React.FC<{ node: NodeEntity; selected: boolean }
     <div
       style={{
         padding: '10px 14px',
-        backgroundColor: node.data?.isClock ? '#1e1b4b' : '#1e293b',
-        border: selected ? '2px solid #60a5fa' : '1px solid #334155',
+        background: 'var(--sysflow-node-bg, #1e293b)',
+        color: 'var(--sysflow-node-text, #f8fafc)',
+        border: '1px solid var(--sysflow-node-border, #334155)',
         borderRadius: '6px',
         minWidth: '150px'
       }}

@@ -11,7 +11,6 @@ import { SysModuleRenderer } from './SysModuleEditor';
 import { Toolbar } from '../../components/Toolbar';
 import { InspectorDrawer } from '../../components/InspectorDrawer';
 import { useGraphHistory } from '../../hooks/useGraphHistory';
-import '@sysflow/core/dist/style.css';
 
 const INITIAL_VERILOG_GRAPH: LogicalGraph = {
   version: '2.0.0',
@@ -98,7 +97,11 @@ const INITIAL_VERILOG_GRAPH: LogicalGraph = {
 
 const reparentStrategy = new ReparentStrategy();
 
-export const SysDemo: React.FC = () => {
+interface SysDemoProps {
+  theme?: 'dark' | 'light';
+}
+
+export const SysDemo: React.FC<SysDemoProps> = ({ theme }) => {
   const {
     graph,
     setGraphDirect,
@@ -273,6 +276,7 @@ export const SysDemo: React.FC = () => {
       />
 
       <SysFlowCanvas
+        theme={theme}
         graph={graph}
         onChange={handleGraphChange}
         interactionStrategy={reparentStrategy}

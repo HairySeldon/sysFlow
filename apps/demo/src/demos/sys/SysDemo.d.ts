@@ -1,4 +1,7 @@
 import React from 'react';
-import '@sysflow/core/dist/style.css';
-export declare const SysDemo: React.FC;
+interface SysDemoProps {
+    theme?: 'dark' | 'light';
+}
+export declare const SysDemo: React.FC<SysDemoProps>;
+export {};
 //# sourceMappingURL=SysDemo.d.ts.map

@@ -1,7 +1,9 @@
 /* packages/core/src/styles/sysflow.css */
 
 /* Dark Mode (Default) */
-.sysflow-canvas,
+:root,
+:root[data-theme='dark'],
+[data-theme='dark'],
 .sysflow-theme-dark {
   --sysflow-bg: #0b1120;
   --sysflow-grid: #1e293b;
@@ -9,16 +11,26 @@
   --sysflow-node-border: #334155;
   --sysflow-node-selected: #38bdf8;
   --sysflow-node-text: #f8fafc;
+  --sysflow-node-subtext: #94a3b8;
   --sysflow-container-bg: rgba(30, 41, 59, 0.45);
+  --sysflow-container-header-bg: rgba(15, 23, 42, 0.85);
   --sysflow-container-border: #475569;
   --sysflow-container-hover: #38bdf8;
   --sysflow-edge-stroke: #64748b;
   --sysflow-edge-selected: #38bdf8;
   --sysflow-port-bg: #94a3b8;
   --sysflow-port-hover: #38bdf8;
+  --sysflow-panel-bg: rgba(15, 23, 42, 0.9);
+  --sysflow-panel-border: #334155;
+  --sysflow-panel-btn-bg: #1e293b;
+  --sysflow-panel-btn-hover: #334155;
+  --sysflow-panel-btn-text: #f8fafc;
+  --sysflow-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
 }
 
 /* Light Mode Override */
+:root[data-theme='light'],
+[data-theme='light'],
 .sysflow-theme-light {
   --sysflow-bg: #f8fafc;
   --sysflow-grid: #cbd5e1;
@@ -26,13 +38,21 @@
   --sysflow-node-border: #cbd5e1;
   --sysflow-node-selected: #0284c7;
   --sysflow-node-text: #0f172a;
-  --sysflow-container-bg: rgba(241, 245, 249, 0.7);
+  --sysflow-node-subtext: #64748b;
+  --sysflow-container-bg: rgba(241, 245, 249, 0.65);
+  --sysflow-container-header-bg: rgba(226, 232, 240, 0.9);
   --sysflow-container-border: #94a3b8;
   --sysflow-container-hover: #0284c7;
   --sysflow-edge-stroke: #94a3b8;
   --sysflow-edge-selected: #0284c7;
-  --sysflow-port-bg: #64748b;
+  --sysflow-port-bg: #94a3b8;
   --sysflow-port-hover: #0284c7;
+  --sysflow-panel-bg: rgba(255, 255, 255, 0.95);
+  --sysflow-panel-border: #cbd5e1;
+  --sysflow-panel-btn-bg: #f1f5f9;
+  --sysflow-panel-btn-hover: #e2e8f0;
+  --sysflow-panel-btn-text: #0f172a;
+  --sysflow-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
 }
 
 .sysflow-canvas {
@@ -45,6 +65,7 @@
   background-size: 24px 24px;
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--sysflow-node-text);
 }
 
 .sysflow-viewport {
@@ -90,18 +111,18 @@
   border: 1px solid var(--sysflow-node-border);
   border-radius: 8px;
   color: var(--sysflow-node-text);
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: var(--sysflow-shadow);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
   z-index: 15;
 }
 
 .sysflow-node:hover {
-  border-color: #64748b;
+  border-color: var(--sysflow-node-selected);
 }
 
 .sysflow-node.sysflow-selected {
   border-color: var(--sysflow-node-selected);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4);
 }
 
 .sysflow-container {
@@ -124,7 +145,6 @@
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
 }
 
-/* Container Header with Text Truncation & Non-Squishable Button */
 .sysflow-container-header {
   height: 38px;
   display: flex;
@@ -132,7 +152,7 @@
   justify-content: space-between;
   padding: 0 12px;
   gap: 8px;
-  background-color: rgba(15, 23, 42, 0.9);
+  background-color: var(--sysflow-container-header-bg);
   border-bottom: 1px solid var(--sysflow-node-border);
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -153,10 +173,10 @@
 .sysflow-collapse-btn {
   flex: 0 0 auto;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--sysflow-panel-btn-bg);
+  border: 1px solid var(--sysflow-node-border);
   border-radius: 4px;
-  color: #f8fafc;
+  color: var(--sysflow-node-text);
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
@@ -165,7 +185,7 @@
 }
 
 .sysflow-collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--sysflow-panel-btn-hover);
 }
 
 .sysflow-port-anchor {
@@ -174,7 +194,7 @@
   height: 14px;
   border-radius: 50%;
   background-color: var(--sysflow-port-bg);
-  border: 2px solid var(--sysflow-bg);
+  border: 2px solid var(--sysflow-node-bg);
   transform: translate(-50%, -50%);
   pointer-events: auto;
   cursor: crosshair;
@@ -193,5 +213,37 @@
   z-index: 1000;
   opacity: 0.75;
   border: 2px dashed var(--sysflow-node-selected);
-  background-color: rgba(30, 41, 59, 0.85);
+  background-color: var(--sysflow-node-bg);
+}
+
+/* Floating Controls */
+.sysflow-controls-panel {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  gap: 6px;
+  background: var(--sysflow-panel-bg);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--sysflow-panel-border);
+  box-shadow: var(--sysflow-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.sysflow-control-btn {
+  background: var(--sysflow-panel-btn-bg);
+  border: 1px solid var(--sysflow-panel-border);
+  color: var(--sysflow-panel-btn-text);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.sysflow-control-btn:hover {
+  background: var(--sysflow-panel-btn-hover);
 }

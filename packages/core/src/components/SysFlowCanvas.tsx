@@ -35,6 +35,7 @@ export interface SysFlowCanvasProps {
   selectedIds?: ID[];
   portPlacementMode?: 'strict-flow' | 'perimeter-optimized';
   routing?: 'bezier' | 'step' | 'auto';
+  theme?: 'dark' | 'light'; // <-- Added
 }
 
 const DEFAULT_STRATEGY = new ReparentStrategy();
@@ -53,7 +54,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   containerTypes,
   zoomBounds,
   className = '',
-  selectedIds = []
+  selectedIds = [],
+  theme = 'dark' 
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const internalEngineRef = useRef<LayoutEngine | null>(null);
@@ -409,11 +411,13 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   };
 
   const containersList = Object.values(graph.containers) as ContainerEntity[];
+  const themeClass = theme === 'light' ? 'sysflow-theme-light' : 'sysflow-theme-dark';
 
   return (
     <div
       ref={containerRef}
-      className={`sysflow-canvas ${className}`}
+      className={`sysflow-canvas ${themeClass} ${className}`}
+      data-theme={theme}
       onWheel={onWheel}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handleCanvasPointerMove}
@@ -429,27 +433,14 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       />
 
       {/* Floating Canvas Controls */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 16,
-          right: 16,
-          zIndex: 50,
-          display: 'flex',
-          gap: 6,
-          background: 'rgba(15, 23, 42, 0.85)',
-          padding: '6px 10px',
-          borderRadius: 8,
-          border: '1px solid #334155'
-        }}
-      >
-        <button onClick={zoomIn} style={btnStyle} title="Zoom In (+)">
+      <div className="sysflow-controls-panel">
+        <button onClick={zoomIn} className="sysflow-control-btn" title="Zoom In (+)">
           +
         </button>
-        <button onClick={zoomOut} style={btnStyle} title="Zoom Out (-)">
+        <button onClick={zoomOut} className="sysflow-control-btn" title="Zoom Out (-)">
           −
         </button>
-        <button onClick={resetTransform} style={btnStyle} title="Reset Zoom (0)">
+        <button onClick={resetTransform} className="sysflow-control-btn" title="Reset Zoom (0)">
           {Math.round(transform.zoom * 100)}%
         </button>
       </div>

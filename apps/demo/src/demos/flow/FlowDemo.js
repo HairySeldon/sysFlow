@@ -64,7 +64,7 @@ const INITIAL_PIPELINE_GRAPH = {
     }
 };
 const rewireStrategy = new EdgeRewireStrategy();
-export const FlowDemo = () => {
+export const FlowDemo = ({ theme }) => {
     const { graph, setGraphDirect, applyAction, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection } = useGraphHistory(INITIAL_PIPELINE_GRAPH);
     const [selectedIds, setSelectedIds] = useState([]);
     const [editorNodeId, setEditorNodeId] = useState(null);
@@ -172,7 +172,7 @@ export const FlowDemo = () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                     setEditorNodeId(null);
-                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: "TB", routing: "bezier", portPlacementMode: "strict-flow", layoutOptions: { mode: 'flow', channelSpacing: 30 }, showEdgeArrows: false, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
+                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: "TB", routing: "bezier", portPlacementMode: "strict-flow", layoutOptions: { mode: 'flow', channelSpacing: 30 }, showEdgeArrows: false, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 0,
                     right: 0,

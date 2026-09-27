@@ -68,12 +68,13 @@ export const Toolbar = ({ graph, selectedIds, direction = 'LR', onToggleDirectio
             zIndex: 30,
             display: 'flex',
             gap: 8,
-            background: 'rgba(15, 23, 42, 0.92)',
+            background: 'var(--sysflow-panel-bg, rgba(15, 23, 42, 0.92))',
             padding: '8px 12px',
             borderRadius: 8,
-            border: '1px solid #334155',
+            border: '1px solid var(--sysflow-panel-border, #334155)',
             alignItems: 'center',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
+            boxShadow: 'var(--sysflow-shadow, 0 4px 16px rgba(0,0,0,0.4))',
+            backdropFilter: 'blur(8px)'
         }, children: [onToggleDirection && (_jsx("button", { style: { ...actionBtnStyle, background: '#0369a1', borderColor: '#38bdf8' }, onClick: onToggleDirection, title: "Toggle Layout Direction", children: direction === 'LR' ? '⇄ Left to Right' : '⇅ Top to Bottom' })), _jsx("button", { style: actionBtnStyle, onClick: () => {
                     const name = prompt('Enter node label:', 'New_Node');
                     if (name)
@@ -85,12 +86,13 @@ export const Toolbar = ({ graph, selectedIds, direction = 'LR', onToggleDirectio
                 }, children: "+ Add Container" }), selectedIds.length > 0 && (_jsxs("button", { style: { ...actionBtnStyle, backgroundColor: '#7f1d1d', borderColor: '#ef4444' }, onClick: onDeleteSelected, children: ["Delete Selected (", selectedIds.length, ")"] })), extraActions, _jsx("button", { style: actionBtnStyle, onClick: handleSaveJson, children: "Save JSON" }), _jsx("input", { ref: fileInputRef, type: "file", accept: ".json", style: { display: 'none' }, onChange: handleUploadJson }), _jsx("button", { style: actionBtnStyle, onClick: () => fileInputRef.current?.click(), children: "Upload JSON" })] }));
 };
 const actionBtnStyle = {
-    background: '#1e293b',
-    border: '1px solid #334155',
-    color: '#f8fafc',
+    background: 'var(--sysflow-panel-btn-bg, #1e293b)',
+    border: '1px solid var(--sysflow-panel-border, #334155)',
+    color: 'var(--sysflow-panel-btn-text, #f8fafc)',
     padding: '6px 12px',
     borderRadius: 6,
     cursor: 'pointer',
     fontSize: '12px',
-    fontWeight: 600
+    fontWeight: 600,
+    transition: 'background 0.15s ease'
 };

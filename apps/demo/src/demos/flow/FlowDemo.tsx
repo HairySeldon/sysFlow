@@ -74,7 +74,11 @@ const INITIAL_PIPELINE_GRAPH: LogicalGraph = {
 
 const rewireStrategy = new EdgeRewireStrategy();
 
-export const FlowDemo: React.FC = () => {
+interface FlowDemoProps {
+  theme?: 'dark' | 'light';
+}
+
+export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
   const {
     graph,
     setGraphDirect,
@@ -200,6 +204,7 @@ export const FlowDemo: React.FC = () => {
       />
 
       <SysFlowCanvas
+        theme={theme}
         graph={graph}
         onChange={handleGraphChange}
         interactionStrategy={rewireStrategy}
