@@ -1,8 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { SysFlowCanvas, EdgeRewireStrategy } from '@sysflow/core';
 import { Toolbar } from '../../components/Toolbar';
 import { useGraphHistory } from '../../hooks/useGraphHistory';
+import { FlowNodeRenderer } from './FlowNodeRenderer';
 import '@sysflow/core/dist/style.css';
 const INITIAL_PIPELINE_GRAPH = {
     version: '2.0.0',
@@ -70,6 +71,69 @@ export const FlowDemo = ({ theme }) => {
     const [editorNodeId, setEditorNodeId] = useState(null);
     const direction = 'TB';
     const selectedNode = editorNodeId ? graph.nodes[editorNodeId] : null;
+    // Handler for Top (+) and Bottom (+) shadow buttons
+    const handleAddConnectedNode = useCallback((currentNode, position) => {
+        const newId = `task_${Date.now()}`;
+        const inPortId = `p_in_${Date.now()}`;
+        const outPortId = `p_out_${Date.now()}`;
+        const newNode = {
+            id: newId,
+            label: `Task: Sub-Process ${Object.keys(graph.nodes).length + 1}`,
+            type: 'FlowTask',
+            ports: [
+                { id: inPortId, label: 'in', side: 'bottom' },
+                { id: outPortId, label: 'out', side: 'top' }
+            ],
+            data: { priority: 'P1', duration: '15ms' }
+        };
+        const edgeId = `edge_${Date.now()}`;
+        let currentInPort = currentNode.ports.find((p) => p.side === 'bottom' || p.label === 'in');
+        let currentOutPort = currentNode.ports.find((p) => p.side === 'top' || p.label === 'out');
+        // Guarantee fallback ports if node lacks them
+        if (!currentInPort)
+            currentInPort = currentNode.ports[0];
+        if (!currentOutPort)
+            currentOutPort = currentNode.ports[0];
+        let newEdge;
+        if (position === 'top') {
+            // Placing a node ABOVE: New Node (source) -> Current Node (target)
+            newEdge = {
+                id: edgeId,
+                sourceId: newId,
+                sourcePortId: outPortId, // from new node's output
+                targetId: currentNode.id,
+                targetPortId: currentInPort.id // into current node's input
+            };
+        }
+        else {
+            // Placing a node BELOW: Current Node (source) -> New Node (target)
+            newEdge = {
+                id: edgeId,
+                sourceId: currentNode.id,
+                sourcePortId: currentOutPort.id, // from current node's output
+                targetId: newId,
+                targetPortId: inPortId // into new node's input
+            };
+        }
+        // Requirement 3: Preserves existing edges and adds parallel branch
+        setGraphDirect({
+            ...graph,
+            nodes: {
+                ...graph.nodes,
+                [newId]: newNode
+            },
+            edges: {
+                ...graph.edges,
+                [edgeId]: newEdge
+            }
+        });
+        setSelectedIds([newId]);
+        setEditorNodeId(newId);
+    }, [graph, setGraphDirect]);
+    // Memoize custom node renderer mapping to supply the handler
+    const nodeTypes = useMemo(() => ({
+        FlowTask: (props) => (_jsx(FlowNodeRenderer, { ...props, onAddConnectedNode: handleAddConnectedNode }))
+    }), [handleAddConnectedNode]);
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
@@ -134,6 +198,7 @@ export const FlowDemo = ({ theme }) => {
         const newTask = {
             id,
             label,
+            type: 'FlowTask',
             ports: [
                 { id: `p_in_${Date.now()}`, label: 'in', side: 'bottom' },
                 { id: `p_out_${Date.now()}`, label: 'out', side: 'top' }
@@ -172,7 +237,7 @@ export const FlowDemo = ({ theme }) => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                     setEditorNodeId(null);
-                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: "TB", routing: "bezier", portPlacementMode: "strict-flow", layoutOptions: { mode: 'flow', channelSpacing: 30 }, showEdgeArrows: false, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
+                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: rewireStrategy, direction: "TB", routing: "bezier", portPlacementMode: "strict-flow", layoutOptions: { mode: 'flow', channelSpacing: 30 }, showEdgeArrows: false, nodeTypes: nodeTypes, selectedIds: selectedIds }), selectedNode && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 0,
                     right: 0,

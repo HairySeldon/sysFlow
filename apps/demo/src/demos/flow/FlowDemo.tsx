@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   LogicalGraph,
   GraphAction,
@@ -10,6 +10,7 @@ import {
 } from '@sysflow/core';
 import { Toolbar } from '../../components/Toolbar';
 import { useGraphHistory } from '../../hooks/useGraphHistory';
+import { FlowNodeRenderer } from './FlowNodeRenderer';
 import '@sysflow/core/dist/style.css';
 
 const INITIAL_PIPELINE_GRAPH: LogicalGraph = {
@@ -78,6 +79,7 @@ interface FlowDemoProps {
   theme?: 'dark' | 'light';
 }
 
+
 export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
   const {
     graph,
@@ -96,6 +98,83 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
   const direction = 'TB' as const;
 
   const selectedNode = editorNodeId ? graph.nodes[editorNodeId] : null;
+
+  // Handler for Top (+) and Bottom (+) shadow buttons
+  const handleAddConnectedNode = useCallback(
+    (currentNode: NodeEntity, position: 'top' | 'bottom') => {
+      const newId = `task_${Date.now()}`;
+      const inPortId = `p_in_${Date.now()}`;
+      const outPortId = `p_out_${Date.now()}`;
+
+      const newNode: NodeEntity = {
+        id: newId,
+        label: `Task: Sub-Process ${Object.keys(graph.nodes).length + 1}`,
+        type: 'FlowTask',
+        ports: [
+          { id: inPortId, label: 'in', side: 'bottom' },
+          { id: outPortId, label: 'out', side: 'top' }
+        ],
+        data: { priority: 'P1', duration: '15ms' }
+      };
+
+      const edgeId = `edge_${Date.now()}`;
+
+      let currentInPort = currentNode.ports.find((p) => p.side === 'bottom' || p.label === 'in');
+      let currentOutPort = currentNode.ports.find((p) => p.side === 'top' || p.label === 'out');
+
+      // Guarantee fallback ports if node lacks them
+      if (!currentInPort) currentInPort = currentNode.ports[0];
+      if (!currentOutPort) currentOutPort = currentNode.ports[0];
+
+      let newEdge;
+      if (position === 'top') {
+        // Placing a node ABOVE: New Node (source) -> Current Node (target)
+        newEdge = {
+          id: edgeId,
+          sourceId: newId,
+          sourcePortId: outPortId,     // from new node's output
+          targetId: currentNode.id,
+          targetPortId: currentInPort.id // into current node's input
+        };
+      } else {
+        // Placing a node BELOW: Current Node (source) -> New Node (target)
+        newEdge = {
+          id: edgeId,
+          sourceId: currentNode.id,
+          sourcePortId: currentOutPort.id, // from current node's output
+          targetId: newId,
+          targetPortId: inPortId           // into new node's input
+        };
+      }
+
+      // Requirement 3: Preserves existing edges and adds parallel branch
+      setGraphDirect({
+        ...graph,
+        nodes: {
+          ...graph.nodes,
+          [newId]: newNode
+        },
+        edges: {
+          ...graph.edges,
+          [edgeId]: newEdge
+        }
+      });
+
+      setSelectedIds([newId]);
+      setEditorNodeId(newId);
+    },
+    [graph, setGraphDirect]
+  );
+
+  // Memoize custom node renderer mapping to supply the handler
+  const nodeTypes = useMemo(
+    () => ({
+      FlowTask: (props: any) => (
+        <FlowNodeRenderer {...props} onAddConnectedNode={handleAddConnectedNode} />
+      )
+    }),
+    [handleAddConnectedNode]
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,6 +229,7 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
     const newTask: NodeEntity = {
       id,
       label,
+      type: 'FlowTask',
       ports: [
         { id: `p_in_${Date.now()}`, label: 'in', side: 'bottom' },
         { id: `p_out_${Date.now()}`, label: 'out', side: 'top' }
@@ -187,8 +267,7 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
   };
 
   return (
-    <div style={{ width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }}>
-
+   <div style={{ width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }}>
       <Toolbar
         graph={graph}
         selectedIds={selectedIds}
@@ -213,6 +292,7 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
         portPlacementMode="strict-flow"
         layoutOptions={{ mode: 'flow', channelSpacing: 30 }}
         showEdgeArrows={false}
+        nodeTypes={nodeTypes}
         selectedIds={selectedIds}
       />
 
