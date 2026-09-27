@@ -1,14 +1,14 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { pruneDanglingEdges } from '@sysflow/core';
-export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity }) => {
+export const InspectorDrawer = ({ graph, selectedIds, boundFilePath, initialSourceCode, onSaveSource, onClose, onUpdateEntity }) => {
     const [activeTab, setActiveTab] = useState('source');
-    const fileInputRef = useRef(null);
+    const [sourceCode, setSourceCode] = useState('');
+    const [isDirty, setIsDirty] = useState(false);
+    const [saveStatus, setSaveStatus] = useState('');
     const selectedId = selectedIds[0];
     const selectedNode = selectedId ? graph.nodes[selectedId] : null;
     const selectedContainer = selectedId ? graph.containers[selectedId] : null;
-    if (!selectedNode && !selectedContainer)
-        return null;
     const entity = (selectedNode || selectedContainer);
     const isNode = Boolean(selectedNode);
     const defaultTemplate = isNode && selectedNode
@@ -24,30 +24,49 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
             `  end\n\n` +
             `endmodule\n`
         : `// Container: ${entity.label}\n`;
-    const sourceCode = entity.data?.sourceCode || defaultTemplate;
-    const handleOpenFile = (e) => {
-        const file = e.target.files?.[0];
-        if (!file)
-            return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const content = event.target?.result;
+    // Sync initial code whenever selected entity or loaded initialSourceCode changes
+    useEffect(() => {
+        const code = initialSourceCode ?? entity?.data?.sourceCode ?? defaultTemplate;
+        setSourceCode(code);
+        setIsDirty(false);
+        setSaveStatus('');
+    }, [selectedId, initialSourceCode]);
+    if (!selectedNode && !selectedContainer)
+        return null;
+    const handleSave = async () => {
+        if (onSaveSource) {
+            setSaveStatus('Saving...');
+            const success = await onSaveSource(sourceCode);
+            if (success) {
+                setIsDirty(false);
+                setSaveStatus('Saved to disk ✓');
+                setTimeout(() => setSaveStatus(''), 3000);
+            }
+            else {
+                setSaveStatus('Save failed ✕');
+            }
+        }
+        else {
+            // In-memory fallback
             onUpdateEntity(entity.id, {
-                data: { ...entity.data, sourceCode: content, boundFile: file.name }
+                data: { ...entity.data, sourceCode }
             });
-        };
-        reader.readAsText(file);
-        e.target.value = '';
+            setIsDirty(false);
+            setSaveStatus('Saved in-memory ✓');
+            setTimeout(() => setSaveStatus(''), 3000);
+        }
     };
-    const handleSaveFile = () => {
-        const blob = new Blob([sourceCode], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')}.v`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+    const handleClose = async () => {
+        if (isDirty) {
+            await handleSave();
+        }
+        onClose();
+    };
+    const handleKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            handleSave();
+        }
     };
     const handleUpdatePorts = (updatedPorts) => {
         if (!selectedNode)
@@ -66,7 +85,7 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
             position: 'absolute',
             top: 0,
             right: 0,
-            width: 620,
+            width: 640,
             height: '100%',
             backgroundColor: '#090d16',
             borderLeft: '1px solid #1e293b',
@@ -83,17 +102,29 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
                     justifyContent: 'space-between',
                     padding: '0 20px',
                     background: '#0b1120'
-                }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 10 }, children: [_jsx("span", { style: { fontWeight: 700, fontSize: 14, color: '#38bdf8' }, children: isNode ? 'Module Inspector' : 'Container Inspector' }), _jsx("span", { style: { fontSize: 11, background: '#1e293b', padding: '2px 8px', borderRadius: 4, color: '#94a3b8' }, children: entity.id })] }), _jsx("button", { onClick: onClose, style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }, children: "\u2715" })] }), _jsxs("div", { style: { display: 'flex', borderBottom: '1px solid #1e293b', backgroundColor: '#0f172a' }, children: [_jsx("button", { onClick: () => setActiveTab('source'), style: {
+                }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 10 }, children: [_jsx("span", { style: { fontWeight: 700, fontSize: 14, color: '#38bdf8' }, children: isNode ? 'Module Inspector' : 'Container Inspector' }), _jsx("span", { style: { fontSize: 11, background: '#1e293b', padding: '2px 8px', borderRadius: 4, color: '#94a3b8' }, children: entity.id }), isDirty && (_jsx("span", { style: { fontSize: 10, color: '#f59e0b', background: '#451a03', padding: '2px 6px', borderRadius: 4 }, children: "Unsaved changes" }))] }), _jsx("button", { onClick: handleClose, style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }, title: "Save & Close", children: "\u2715" })] }), _jsxs("div", { style: { display: 'flex', borderBottom: '1px solid #1e293b', backgroundColor: '#0f172a' }, children: [_jsx("button", { onClick: () => setActiveTab('source'), style: {
                             ...tabBtnStyle,
                             borderBottom: activeTab === 'source' ? '2px solid #38bdf8' : 'none',
                             color: activeTab === 'source' ? '#38bdf8' : '#94a3b8'
-                        }, children: "Source Binding (HDL)" }), _jsx("button", { onClick: () => setActiveTab('properties'), style: {
+                        }, children: "Source Code (HDL)" }), _jsx("button", { onClick: () => setActiveTab('properties'), style: {
                             ...tabBtnStyle,
                             borderBottom: activeTab === 'properties' ? '2px solid #38bdf8' : 'none',
                             color: activeTab === 'properties' ? '#38bdf8' : '#94a3b8'
-                        }, children: "Ports" })] }), _jsx("div", { style: { flex: 1, overflowY: 'auto', padding: 20 }, children: activeTab === 'source' ? (_jsxs("div", { style: { display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("span", { style: { fontSize: 12, color: '#94a3b8' }, children: ["Bound Source: ", _jsx("strong", { children: String(entity.data?.boundFile || `${entity.label}.v`) })] }), _jsxs("div", { style: { display: 'flex', gap: 8 }, children: [_jsx("input", { ref: fileInputRef, type: "file", accept: ".v,.sv,.vhd,.txt", style: { display: 'none' }, onChange: handleOpenFile }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: () => fileInputRef.current?.click(), children: "Open File..." }), _jsx("button", { style: { ...btnStyle, fontSize: 11 }, onClick: handleSaveFile, children: "Export File" })] })] }), _jsx("textarea", { value: sourceCode, onChange: (e) => onUpdateEntity(entity.id, {
-                                data: { ...entity.data, sourceCode: e.target.value }
-                            }), spellCheck: false, style: {
+                        }, children: "Ports & Meta" })] }), _jsx("div", { style: { flex: 1, overflowY: 'auto', padding: 20 }, children: activeTab === 'source' ? (_jsxs("div", { style: { display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }, children: [_jsx("span", { style: { fontSize: 12, color: '#94a3b8' }, children: "Path:" }), _jsx("span", { style: {
+                                                fontSize: 12,
+                                                color: boundFilePath ? '#38bdf8' : '#f59e0b',
+                                                fontWeight: 600,
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden'
+                                            }, title: boundFilePath || 'No file bound in Config', children: boundFilePath || '(Not bound in config)' })] }), _jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8 }, children: [saveStatus && (_jsx("span", { style: { fontSize: 11, color: saveStatus.includes('✓') ? '#4ade80' : '#f87171' }, children: saveStatus })), _jsx("button", { style: {
+                                                ...btnStyle,
+                                                background: isDirty ? '#0284c7' : '#1e293b',
+                                                borderColor: isDirty ? '#38bdf8' : '#334155'
+                                            }, onClick: handleSave, children: "Save (Ctrl+S)" })] })] }), _jsx("textarea", { value: sourceCode, onChange: (e) => {
+                                setSourceCode(e.target.value);
+                                setIsDirty(true);
+                            }, onKeyDown: handleKeyDown, spellCheck: false, style: {
                                 flex: 1,
                                 minHeight: 480,
                                 backgroundColor: '#030712',
@@ -111,7 +142,7 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
                                                 if (name) {
                                                     handleUpdatePorts([
                                                         ...selectedNode.ports,
-                                                        { id: `p_${Date.now()}`, label: name, side: 'auto', data: { busWidth: '32b' } }
+                                                        { id: `p_${Date.now()}`, label: name, data: { busWidth: '32b' } }
                                                     ]);
                                                 }
                                             }, children: "+ Add Port" })] }), _jsx("div", { style: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }, children: selectedNode.ports.map((port, idx) => (_jsxs("div", { style: {
@@ -129,7 +160,7 @@ export const InspectorDrawer = ({ graph, selectedIds, onClose, onUpdateEntity })
                                                 }, style: { ...inputStyle, marginTop: 0, flex: 2 } }), _jsx("button", { onClick: () => {
                                                     const updated = selectedNode.ports.filter((_, i) => i !== idx);
                                                     handleUpdatePorts(updated);
-                                                }, style: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }, title: "Delete Port and Connected Edges", children: "\u2715" })] }, port.id))) })] }))] })) })] }));
+                                                }, style: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }, title: "Delete Port", children: "\u2715" })] }, port.id))) })] }))] })) })] }));
 };
 const tabBtnStyle = {
     flex: 1,
@@ -161,8 +192,9 @@ const btnStyle = {
     background: '#1e293b',
     border: '1px solid #334155',
     color: '#f8fafc',
-    padding: '6px 10px',
+    padding: '6px 12px',
     borderRadius: 4,
     cursor: 'pointer',
-    fontWeight: 600
+    fontWeight: 600,
+    fontSize: 12
 };

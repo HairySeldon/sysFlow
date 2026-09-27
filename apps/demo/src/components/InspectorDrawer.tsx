@@ -1,9 +1,12 @@
-import React, { useState, useRef } from 'react';
-import { LogicalGraph, NodeEntity, ContainerEntity, Port, PortSide, pruneDanglingEdges } from '@sysflow/core';
+import React, { useState, useEffect } from 'react';
+import { LogicalGraph, NodeEntity, ContainerEntity, Port, pruneDanglingEdges } from '@sysflow/core';
 
 interface InspectorDrawerProps {
   graph: LogicalGraph;
   selectedIds: string[];
+  boundFilePath?: string | null;
+  initialSourceCode?: string;
+  onSaveSource?: (code: string) => Promise<boolean>;
   onClose: () => void;
   onUpdateEntity: (id: string, updates: Partial<NodeEntity | ContainerEntity>, prunedGraph?: LogicalGraph) => void;
 }
@@ -11,17 +14,20 @@ interface InspectorDrawerProps {
 export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   graph,
   selectedIds,
+  boundFilePath,
+  initialSourceCode,
+  onSaveSource,
   onClose,
   onUpdateEntity
 }) => {
   const [activeTab, setActiveTab] = useState<'source' | 'properties'>('source');
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [sourceCode, setSourceCode] = useState<string>('');
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+  const [saveStatus, setSaveStatus] = useState<string>('');
 
   const selectedId = selectedIds[0];
   const selectedNode = selectedId ? graph.nodes[selectedId] : null;
   const selectedContainer = selectedId ? graph.containers[selectedId] : null;
-
-  if (!selectedNode && !selectedContainer) return null;
 
   const entity = (selectedNode || selectedContainer)!;
   const isNode = Boolean(selectedNode);
@@ -40,37 +46,54 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
       `endmodule\n`
     : `// Container: ${entity.label}\n`;
 
-  const sourceCode = (entity.data?.sourceCode as string) || defaultTemplate;
+  // Sync initial code whenever selected entity or loaded initialSourceCode changes
+  useEffect(() => {
+    const code = initialSourceCode ?? (entity?.data?.sourceCode as string) ?? defaultTemplate;
+    setSourceCode(code);
+    setIsDirty(false);
+    setSaveStatus('');
+  }, [selectedId, initialSourceCode]);
 
-  const handleOpenFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  if (!selectedNode && !selectedContainer) return null;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result;
+  const handleSave = async () => {
+    if (onSaveSource) {
+      setSaveStatus('Saving...');
+      const success = await onSaveSource(sourceCode);
+      if (success) {
+        setIsDirty(false);
+        setSaveStatus('Saved to disk ✓');
+        setTimeout(() => setSaveStatus(''), 3000);
+      } else {
+        setSaveStatus('Save failed ✕');
+      }
+    } else {
+      // In-memory fallback
       onUpdateEntity(entity.id, {
-        data: { ...entity.data, sourceCode: content, boundFile: file.name }
+        data: { ...entity.data, sourceCode }
       });
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+      setIsDirty(false);
+      setSaveStatus('Saved in-memory ✓');
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
   };
 
-  const handleSaveFile = () => {
-    const blob = new Blob([sourceCode], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')}.v`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+  const handleClose = async () => {
+    if (isDirty) {
+      await handleSave();
+    }
+    onClose();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      handleSave();
+    }
   };
 
   const handleUpdatePorts = (updatedPorts: Port[]) => {
     if (!selectedNode) return;
-
     const nextGraph: LogicalGraph = {
       ...graph,
       nodes: {
@@ -78,7 +101,6 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         [selectedNode.id]: { ...selectedNode, ports: updatedPorts }
       }
     };
-
     const cleanGraph = pruneDanglingEdges(nextGraph);
     onUpdateEntity(selectedNode.id, { ports: updatedPorts }, cleanGraph);
   };
@@ -89,7 +111,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         position: 'absolute',
         top: 0,
         right: 0,
-        width: 620,
+        width: 640,
         height: '100%',
         backgroundColor: '#090d16',
         borderLeft: '1px solid #1e293b',
@@ -119,8 +141,17 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
           <span style={{ fontSize: 11, background: '#1e293b', padding: '2px 8px', borderRadius: 4, color: '#94a3b8' }}>
             {entity.id}
           </span>
+          {isDirty && (
+            <span style={{ fontSize: 10, color: '#f59e0b', background: '#451a03', padding: '2px 6px', borderRadius: 4 }}>
+              Unsaved changes
+            </span>
+          )}
         </div>
-        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}>
+        <button
+          onClick={handleClose}
+          style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}
+          title="Save & Close"
+        >
           ✕
         </button>
       </div>
@@ -135,7 +166,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             color: activeTab === 'source' ? '#38bdf8' : '#94a3b8'
           }}
         >
-          Source Binding (HDL)
+          Source Code (HDL)
         </button>
         <button
           onClick={() => setActiveTab('properties')}
@@ -145,7 +176,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             color: activeTab === 'properties' ? '#38bdf8' : '#94a3b8'
           }}
         >
-          Ports
+          Ports & Meta
         </button>
       </div>
 
@@ -154,26 +185,48 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         {activeTab === 'source' ? (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                Bound Source: <strong>{String(entity.data?.boundFile || `${entity.label}.v`)}</strong>
-              </span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input ref={fileInputRef} type="file" accept=".v,.sv,.vhd,.txt" style={{ display: 'none' }} onChange={handleOpenFile} />
-                <button style={{ ...btnStyle, fontSize: 11 }} onClick={() => fileInputRef.current?.click()}>
-                  Open File...
-                </button>
-                <button style={{ ...btnStyle, fontSize: 11 }} onClick={handleSaveFile}>
-                  Export File
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>Path:</span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: boundFilePath ? '#38bdf8' : '#f59e0b',
+                    fontWeight: 600,
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden'
+                  }}
+                  title={boundFilePath || 'No file bound in Config'}
+                >
+                  {boundFilePath || '(Not bound in config)'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {saveStatus && (
+                  <span style={{ fontSize: 11, color: saveStatus.includes('✓') ? '#4ade80' : '#f87171' }}>
+                    {saveStatus}
+                  </span>
+                )}
+                <button
+                  style={{
+                    ...btnStyle,
+                    background: isDirty ? '#0284c7' : '#1e293b',
+                    borderColor: isDirty ? '#38bdf8' : '#334155'
+                  }}
+                  onClick={handleSave}
+                >
+                  Save (Ctrl+S)
                 </button>
               </div>
             </div>
+
             <textarea
               value={sourceCode}
-              onChange={(e) =>
-                onUpdateEntity(entity.id, {
-                  data: { ...entity.data, sourceCode: e.target.value }
-                })
-              }
+              onChange={(e) => {
+                setSourceCode(e.target.value);
+                setIsDirty(true);
+              }}
+              onKeyDown={handleKeyDown}
               spellCheck={false}
               style={{
                 flex: 1,
@@ -219,7 +272,6 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
               </select>
             </div>
 
-            {/* Ports Section: Only displayed for Nodes */}
             {selectedNode && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -231,7 +283,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                       if (name) {
                         handleUpdatePorts([
                           ...selectedNode.ports,
-                          { id: `p_${Date.now()}`, label: name, side: 'auto', data: { busWidth: '32b' } }
+                          { id: `p_${Date.now()}`, label: name, data: { busWidth: '32b' } }
                         ]);
                       }
                     }}
@@ -272,7 +324,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
                           handleUpdatePorts(updated);
                         }}
                         style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                        title="Delete Port and Connected Edges"
+                        title="Delete Port"
                       >
                         ✕
                       </button>
@@ -321,8 +373,9 @@ const btnStyle: React.CSSProperties = {
   background: '#1e293b',
   border: '1px solid #334155',
   color: '#f8fafc',
-  padding: '6px 10px',
+  padding: '6px 12px',
   borderRadius: 4,
   cursor: 'pointer',
-  fontWeight: 600
+  fontWeight: 600,
+  fontSize: 12
 };

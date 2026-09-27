@@ -1,10 +1,11 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SysFlowCanvas, ReparentStrategy } from '@sysflow/core';
 import { SysModuleRenderer } from './SysModuleEditor';
 import { Toolbar } from '../../components/Toolbar';
 import { InspectorDrawer } from '../../components/InspectorDrawer';
 import { useGraphHistory } from '../../hooks/useGraphHistory';
+import { DEFAULT_SOURCE_CONFIG, readTextFile, writeTextFile } from '../../utils/fileSystem';
 const INITIAL_VERILOG_GRAPH = {
     version: '2.0.0',
     containers: {
@@ -92,8 +93,45 @@ export const SysDemo = ({ theme }) => {
     const { graph, setGraphDirect, applyAction, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection } = useGraphHistory(INITIAL_VERILOG_GRAPH);
     const [selectedIds, setSelectedIds] = useState([]);
     const [inspectorOpen, setInspectorOpen] = useState(false);
-    const [showConfigTable, setShowConfigTable] = useState(false);
+    const [showConfigModal, setShowConfigModal] = useState(false);
+    // File System & Configuration State
+    const [sourceConfig, setSourceConfig] = useState(DEFAULT_SOURCE_CONFIG);
+    const [projectDirHandle, setProjectDirHandle] = useState(null);
+    const [currentFileContent, setCurrentFileContent] = useState(undefined);
+    const configFileUploadRef = useRef(null);
     const direction = 'LR';
+    const activeNodeId = selectedIds[0] && graph.nodes[selectedIds[0]] ? selectedIds[0] : null;
+    const activeFilePath = activeNodeId ? sourceConfig.mappings[activeNodeId] : null;
+    // Whenever a node is opened, read its bound source code from disk
+    useEffect(() => {
+        let isCancelled = false;
+        const loadSource = async () => {
+            if (!activeNodeId) {
+                setCurrentFileContent(undefined);
+                return;
+            }
+            if (projectDirHandle && activeFilePath) {
+                try {
+                    const content = await readTextFile(projectDirHandle, activeFilePath);
+                    if (!isCancelled)
+                        setCurrentFileContent(content);
+                    return;
+                }
+                catch (err) {
+                    console.warn(`File "${activeFilePath}" not found on disk, using cached template.`, err);
+                }
+            }
+            // Fallback: graph node data or undefined
+            if (!isCancelled) {
+                setCurrentFileContent(graph.nodes[activeNodeId]?.data?.sourceCode);
+            }
+        };
+        loadSource();
+        return () => {
+            isCancelled = true;
+        };
+    }, [activeNodeId, activeFilePath, projectDirHandle]);
+    // Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
@@ -108,7 +146,7 @@ export const SysDemo = ({ theme }) => {
             else if (e.key === 'Escape') {
                 setSelectedIds([]);
                 setInspectorOpen(false);
-                setShowConfigTable(false);
+                setShowConfigModal(false);
             }
             else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
                 e.preventDefault();
@@ -119,7 +157,6 @@ export const SysDemo = ({ theme }) => {
                     copyEntity(selectedIds[0]);
             }
             else if (!e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'c') {
-                // 'C' shortcut: create container around selection
                 e.preventDefault();
                 handleCreateContainerForSelection();
             }
@@ -143,6 +180,106 @@ export const SysDemo = ({ theme }) => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedIds, undo, redo, copyEntity, cutEntity, pasteEntity, deleteSelection, graph]);
+    // Select project directory on disk
+    const handleSelectProjectFolder = async () => {
+        if (!('showDirectoryPicker' in window)) {
+            alert('Your browser does not support the File System Access API. Please use Chrome, Edge, or Opera.');
+            return;
+        }
+        try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            setProjectDirHandle(dirHandle);
+        }
+        catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('Directory picker error:', err);
+            }
+        }
+    };
+    // Save source code back to disk
+    const handleSaveNodeSource = async (newContent) => {
+        if (!activeNodeId)
+            return false;
+        if (!activeFilePath) {
+            alert('This module has no source file path assigned in Configuration.');
+            return false;
+        }
+        if (!projectDirHandle) {
+            // Prompt user to select project folder if not yet chosen
+            if ('showDirectoryPicker' in window) {
+                const confirmPicker = confirm(`Project root folder is not linked yet.\nWould you like to select the project root folder to save "${activeFilePath}"?`);
+                if (confirmPicker) {
+                    try {
+                        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                        setProjectDirHandle(dirHandle);
+                        await writeTextFile(dirHandle, activeFilePath, newContent);
+                        setCurrentFileContent(newContent);
+                        handleUpdateEntity(activeNodeId, {
+                            data: { ...graph.nodes[activeNodeId]?.data, sourceCode: newContent }
+                        });
+                        return true;
+                    }
+                    catch (e) {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+        try {
+            await writeTextFile(projectDirHandle, activeFilePath, newContent);
+            setCurrentFileContent(newContent);
+            handleUpdateEntity(activeNodeId, {
+                data: { ...graph.nodes[activeNodeId]?.data, sourceCode: newContent }
+            });
+            return true;
+        }
+        catch (err) {
+            console.error('Failed to write file to disk:', err);
+            alert(`Failed to write file: ${err.message}`);
+            return false;
+        }
+    };
+    // Config JSON: Save to file
+    const handleSaveConfigJson = () => {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sourceConfig, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', dataStr);
+        downloadAnchor.setAttribute('download', 'sysflow.config.json');
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    };
+    // Config JSON: Load from file
+    const handleLoadConfigJson = (e) => {
+        const file = e.target.files?.[0];
+        if (!file)
+            return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const parsed = JSON.parse(event.target?.result);
+                if (!parsed || typeof parsed !== 'object' || typeof parsed.mappings !== 'object') {
+                    throw new Error('Config file must contain a "mappings" object map.');
+                }
+                setSourceConfig(parsed);
+            }
+            catch (err) {
+                alert(`Failed to load config JSON:\n${err.message}`);
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+    const handleUpdateMapping = (nodeId, path) => {
+        setSourceConfig((prev) => ({
+            ...prev,
+            mappings: {
+                ...prev.mappings,
+                [nodeId]: path
+            }
+        }));
+    };
     const handleCreateContainerForSelection = () => {
         const containerId = `cnt_${Date.now()}`;
         const label = prompt('Container Name:', 'Subsystem_Block');
@@ -189,6 +326,7 @@ export const SysDemo = ({ theme }) => {
             data: { logicGate: 'CUSTOM_LOGIC' }
         };
         setGraphDirect({ ...graph, nodes: { ...graph.nodes, [id]: newNode } });
+        handleUpdateMapping(id, `rtl/${label.toLowerCase()}.v`);
     };
     const handleAddContainer = (label) => {
         const id = `cnt_${Date.now()}`;
@@ -221,65 +359,81 @@ export const SysDemo = ({ theme }) => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                 }, onUpdateGraph: setGraphDirect, extraActions: _jsx("button", { style: {
-                        background: showConfigTable ? '#38bdf8' : '#1e293b',
-                        color: showConfigTable ? '#0f172a' : '#f8fafc',
+                        background: showConfigModal ? '#38bdf8' : '#1e293b',
+                        color: showConfigModal ? '#0f172a' : '#f8fafc',
                         border: '1px solid #334155',
                         padding: '6px 12px',
                         borderRadius: 6,
                         cursor: 'pointer',
                         fontSize: '12px',
                         fontWeight: 700
-                    }, onClick: () => setShowConfigTable(!showConfigTable), children: "\uD83D\uDCCB Config Table" }) }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigTable && (_jsxs("div", { style: {
+                    }, onClick: () => setShowConfigModal(!showConfigModal), title: "Open Module-to-File Source Configuration", children: "\u2699 Source Config" }) }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigModal && (_jsxs("div", { style: {
                     position: 'absolute',
-                    top: 70,
-                    left: 20,
-                    right: 20,
-                    bottom: 20,
+                    top: 60,
+                    left: 40,
+                    right: 40,
+                    bottom: 40,
                     background: '#090d16',
                     border: '1px solid #334155',
                     borderRadius: 8,
                     zIndex: 60,
-                    boxShadow: '0 12px 48px rgba(0,0,0,0.8)',
+                    boxShadow: '0 16px 48px rgba(0,0,0,0.85)',
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden'
                 }, children: [_jsxs("div", { style: {
-                            padding: '12px 20px',
+                            padding: '14px 20px',
                             background: '#0b1120',
                             borderBottom: '1px solid #1e293b',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
-                        }, children: [_jsx("h3", { style: { margin: 0, color: '#38bdf8', fontSize: 16 }, children: "System Configuration Table: Modules & Ports" }), _jsx("button", { onClick: () => setShowConfigTable(false), style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }, children: "\u2715" })] }), _jsx("div", { style: { flex: 1, overflow: 'auto', padding: 16 }, children: _jsxs("table", { style: { width: '100%', borderCollapse: 'collapse', color: '#f8fafc', fontSize: 12 }, children: [_jsx("thead", { children: _jsxs("tr", { style: { background: '#1e293b', textAlign: 'left' }, children: [_jsx("th", { style: thStyle, children: "Type" }), _jsx("th", { style: thStyle, children: "ID / Label" }), _jsx("th", { style: thStyle, children: "Parent" }), _jsxs("th", { style: thStyle, children: ["Ports (", Object.values(graph.nodes).reduce((acc, n) => acc + n.ports.length, 0), " total)"] }), _jsx("th", { style: thStyle, children: "Actions" })] }) }), _jsxs("tbody", { children: [Object.values(graph.nodes).map((node) => (_jsxs("tr", { style: { borderBottom: '1px solid #1e293b' }, children: [_jsx("td", { style: tdStyle, children: _jsx("span", { style: { color: '#38bdf8', fontWeight: 600 }, children: "Module" }) }), _jsx("td", { style: tdStyle, children: _jsx("input", { type: "text", value: node.label, onChange: (e) => handleUpdateEntity(node.id, { label: e.target.value }), style: tableInputStyle }) }), _jsx("td", { style: tdStyle, children: _jsxs("select", { value: node.parentId || '', onChange: (e) => handleUpdateEntity(node.id, { parentId: e.target.value || null }), style: tableInputStyle, children: [_jsx("option", { value: "", children: "(Root)" }), Object.values(graph.containers).map((c) => (_jsx("option", { value: c.id, children: c.label }, c.id)))] }) }), _jsx("td", { style: tdStyle, children: _jsxs("div", { style: { display: 'flex', flexWrap: 'wrap', gap: 6 }, children: [node.ports.map((p, pIdx) => (_jsxs("span", { style: {
-                                                                    background: '#131b2e',
-                                                                    border: '1px solid #334155',
-                                                                    padding: '2px 6px',
-                                                                    borderRadius: 4,
-                                                                    fontSize: 11
-                                                                }, children: [p.label, _jsx("button", { onClick: () => {
-                                                                            const nextPorts = node.ports.filter((_, i) => i !== pIdx);
-                                                                            handleUpdateEntity(node.id, { ports: nextPorts });
-                                                                        }, style: { background: 'transparent', border: 'none', color: '#ef4444', marginLeft: 4, cursor: 'pointer' }, children: "\u2715" })] }, p.id))), _jsx("button", { onClick: () => {
-                                                                    const name = prompt('Port name:');
-                                                                    if (name) {
-                                                                        handleUpdateEntity(node.id, {
-                                                                            ports: [...node.ports, { id: `p_${Date.now()}`, label: name }]
-                                                                        });
-                                                                    }
-                                                                }, style: { ...tableInputStyle, width: 'auto', cursor: 'pointer' }, children: "+ Port" })] }) }), _jsx("td", { style: tdStyle, children: _jsx("button", { onClick: () => deleteSelection([node.id]), style: { background: '#7f1d1d', border: 'none', color: '#fff', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }, children: "Delete" }) })] }, node.id))), Object.values(graph.containers).map((c) => (_jsxs("tr", { style: { borderBottom: '1px solid #1e293b', background: 'rgba(30, 41, 59, 0.3)' }, children: [_jsx("td", { style: tdStyle, children: _jsx("span", { style: { color: '#a855f7', fontWeight: 600 }, children: "Container" }) }), _jsx("td", { style: tdStyle, children: _jsx("input", { type: "text", value: c.label, onChange: (e) => handleUpdateEntity(c.id, { label: e.target.value }), style: tableInputStyle }) }), _jsx("td", { style: tdStyle, children: _jsx("span", { style: { opacity: 0.5 }, children: "-" }) }), _jsx("td", { style: tdStyle, children: _jsx("span", { style: { opacity: 0.4 }, children: "N/A (Group Container)" }) }), _jsx("td", { style: tdStyle, children: _jsx("button", { onClick: () => deleteSelection([c.id]), style: { background: '#7f1d1d', border: 'none', color: '#fff', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }, children: "Delete" }) })] }, c.id)))] })] }) })] })), inspectorOpen && !showConfigTable && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));
+                        }, children: [_jsxs("div", { children: [_jsx("h3", { style: { margin: 0, color: '#38bdf8', fontSize: 16 }, children: "Source Code Configuration Editor" }), _jsx("span", { style: { fontSize: 12, color: '#94a3b8' }, children: "Map schematic modules to HDL source code file paths on disk." })] }), _jsx("button", { onClick: () => setShowConfigModal(false), style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 20 }, children: "\u2715" })] }), _jsxs("div", { style: {
+                            padding: '12px 20px',
+                            background: '#0f172a',
+                            borderBottom: '1px solid #1e293b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 12
+                        }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 12 }, children: [_jsxs("button", { onClick: handleSelectProjectFolder, style: {
+                                            background: projectDirHandle ? '#0284c7' : '#1e293b',
+                                            border: '1px solid #38bdf8',
+                                            color: '#fff',
+                                            padding: '6px 12px',
+                                            borderRadius: 6,
+                                            cursor: 'pointer',
+                                            fontWeight: 600,
+                                            fontSize: 12
+                                        }, children: ["\uD83D\uDCC1 ", projectDirHandle ? `Project: ${projectDirHandle.name}` : 'Select Project Root Folder'] }), projectDirHandle && (_jsx("span", { style: { fontSize: 11, color: '#4ade80' }, children: "Connected to local file system \u2713" }))] }), _jsxs("div", { style: { display: 'flex', gap: 8 }, children: [_jsx("input", { ref: configFileUploadRef, type: "file", accept: ".json", style: { display: 'none' }, onChange: handleLoadConfigJson }), _jsx("button", { onClick: () => configFileUploadRef.current?.click(), style: modalBtnStyle, children: "Load Config JSON" }), _jsx("button", { onClick: handleSaveConfigJson, style: { ...modalBtnStyle, background: '#0284c7', borderColor: '#38bdf8' }, children: "Save Config JSON" })] })] }), _jsx("div", { style: { flex: 1, overflow: 'auto', padding: 20 }, children: _jsxs("table", { style: { width: '100%', borderCollapse: 'collapse', color: '#f8fafc', fontSize: 13 }, children: [_jsx("thead", { children: _jsxs("tr", { style: { background: '#1e293b', textAlign: 'left' }, children: [_jsx("th", { style: thStyle, children: "Module ID" }), _jsx("th", { style: thStyle, children: "Module Name" }), _jsx("th", { style: thStyle, children: "Source File Path (relative to project root)" })] }) }), _jsx("tbody", { children: Object.values(graph.nodes).map((node) => {
+                                        const currentPath = sourceConfig.mappings[node.id] || '';
+                                        return (_jsxs("tr", { style: { borderBottom: '1px solid #1e293b' }, children: [_jsx("td", { style: tdStyle, children: _jsx("span", { style: { color: '#38bdf8', fontFamily: 'monospace', fontWeight: 600 }, children: node.id }) }), _jsx("td", { style: tdStyle, children: _jsx("span", { style: { fontWeight: 600 }, children: node.label }) }), _jsx("td", { style: tdStyle, children: _jsx("input", { type: "text", value: currentPath, placeholder: `rtl/${node.label.toLowerCase()}.v`, onChange: (e) => handleUpdateMapping(node.id, e.target.value), style: {
+                                                            width: '100%',
+                                                            background: '#131b2e',
+                                                            border: '1px solid #334155',
+                                                            color: '#38bdf8',
+                                                            fontFamily: 'monospace',
+                                                            padding: '6px 10px',
+                                                            borderRadius: 4,
+                                                            fontSize: 12
+                                                        } }) })] }, node.id));
+                                    }) })] }) })] })), inspectorOpen && !showConfigModal && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, boundFilePath: activeFilePath, initialSourceCode: currentFileContent, onSaveSource: handleSaveNodeSource, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));
 };
 const thStyle = {
-    padding: '10px 12px',
+    padding: '10px 14px',
     borderBottom: '2px solid #334155'
 };
 const tdStyle = {
-    padding: '8px 12px'
+    padding: '10px 14px'
 };
-const tableInputStyle = {
-    background: '#131b2e',
+const modalBtnStyle = {
+    background: '#1e293b',
     border: '1px solid #334155',
     color: '#f8fafc',
-    padding: '4px 8px',
-    borderRadius: 4,
-    fontSize: 12
+    padding: '6px 12px',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 600
 };
