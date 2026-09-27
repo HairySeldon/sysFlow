@@ -252,36 +252,7 @@ export const FlowDemo = ({ theme }) => {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 16
-                }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsx("h3", { style: { margin: 0, fontSize: 16, color: '#38bdf8' }, children: "Task Node Editor" }), _jsx("button", { onClick: () => setEditorNodeId(null), style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }, children: "\u2715" })] }), _jsxs("div", { children: [_jsx("label", { style: labelStyle, children: "Task Name" }), _jsx("input", { type: "text", value: selectedNode.label, onChange: (e) => updateSelectedNode({ label: e.target.value }), style: inputStyle })] }), _jsxs("div", { style: { display: 'flex', gap: 10 }, children: [_jsxs("div", { style: { flex: 1 }, children: [_jsx("label", { style: labelStyle, children: "Priority" }), _jsxs("select", { value: String(selectedNode.data?.priority || 'P1'), onChange: (e) => updateSelectedNode({ data: { ...selectedNode.data, priority: e.target.value } }), style: inputStyle, children: [_jsx("option", { value: "P0", children: "P0 (Critical)" }), _jsx("option", { value: "P1", children: "P1 (High)" }), _jsx("option", { value: "P2", children: "P2 (Normal)" })] })] }), _jsxs("div", { style: { flex: 1 }, children: [_jsx("label", { style: labelStyle, children: "Duration" }), _jsx("input", { type: "text", value: String(selectedNode.data?.duration || '10ms'), onChange: (e) => updateSelectedNode({ data: { ...selectedNode.data, duration: e.target.value } }), style: inputStyle })] })] }), _jsxs("div", { children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("label", { style: labelStyle, children: ["Ports (", selectedNode.ports.length, ")"] }), _jsx("button", { style: smallBtnStyle, onClick: () => {
-                                            const name = prompt('Port name (in/out):', 'in');
-                                            if (name) {
-                                                const isBottom = name.toLowerCase().includes('in');
-                                                updateSelectedNode({
-                                                    ports: [
-                                                        ...selectedNode.ports,
-                                                        {
-                                                            id: `p_${Date.now()}`,
-                                                            label: name,
-                                                            side: isBottom ? 'bottom' : 'top'
-                                                        }
-                                                    ]
-                                                });
-                                            }
-                                        }, children: "+ Add Port" })] }), _jsx("div", { style: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }, children: selectedNode.ports.map((port, idx) => (_jsxs("div", { style: {
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                        background: '#131b2e',
-                                        padding: '6px 10px',
-                                        borderRadius: 4
-                                    }, children: [_jsx("input", { type: "text", value: port.label, onChange: (e) => {
-                                                const updated = [...selectedNode.ports];
-                                                updated[idx] = { ...port, label: e.target.value };
-                                                updateSelectedNode({ ports: updated });
-                                            }, style: { ...inputStyle, marginTop: 0, flex: 2 } }), _jsx("button", { onClick: () => {
-                                                const updated = selectedNode.ports.filter((_, i) => i !== idx);
-                                                updateSelectedNode({ ports: updated });
-                                            }, style: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }, children: "\u2715" })] }, port.id))) })] })] }))] }));
+                }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsx("h3", { style: { margin: 0, fontSize: 16, color: '#38bdf8' }, children: "Task Node Editor" }), _jsx("button", { onClick: () => setEditorNodeId(null), style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }, children: "\u2715" })] }), _jsxs("div", { children: [_jsx("label", { style: labelStyle, children: "Task Name" }), _jsx("input", { type: "text", value: selectedNode.label, onChange: (e) => updateSelectedNode({ label: e.target.value }), style: inputStyle })] }), _jsxs("div", { style: { display: 'flex', gap: 10 }, children: [_jsx("div", { style: { flex: 1 } }), _jsx("div", { style: { flex: 1 } })] })] }))] }));
 };
 const labelStyle = {
     fontSize: 11,

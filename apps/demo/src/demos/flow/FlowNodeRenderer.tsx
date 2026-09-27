@@ -103,21 +103,6 @@ export const FlowNodeRenderer: React.FC<FlowNodeRendererProps> = ({
             marginTop: '6px'
           }}
         >
-          <span
-            style={{
-              fontSize: '10px',
-              padding: '1px 5px',
-              borderRadius: '3px',
-              background: node.data?.priority === 'P0' ? '#ef4444' : '#0284c7',
-              color: '#fff',
-              fontWeight: 700
-            }}
-          >
-            {String(node.data?.priority || 'P1')}
-          </span>
-          <span style={{ fontSize: '11px', opacity: 0.65 }}>
-            {String(node.data?.duration || '10ms')}
-          </span>
         </div>
       </div>
 

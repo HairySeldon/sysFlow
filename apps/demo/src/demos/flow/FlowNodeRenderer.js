@@ -44,19 +44,12 @@ export const FlowNodeRenderer = ({ node, selected, onAddConnectedNode }) => {
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center'
-                }, children: [_jsx("div", { style: { fontWeight: 600, fontSize: '13px' }, children: node.label }), _jsxs("div", { style: {
+                }, children: [_jsx("div", { style: { fontWeight: 600, fontSize: '13px' }, children: node.label }), _jsx("div", { style: {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             marginTop: '6px'
-                        }, children: [_jsx("span", { style: {
-                                    fontSize: '10px',
-                                    padding: '1px 5px',
-                                    borderRadius: '3px',
-                                    background: node.data?.priority === 'P0' ? '#ef4444' : '#0284c7',
-                                    color: '#fff',
-                                    fontWeight: 700
-                                }, children: String(node.data?.priority || 'P1') }), _jsx("span", { style: { fontSize: '11px', opacity: 0.65 }, children: String(node.data?.duration || '10ms') })] })] }), isHovered && onAddConnectedNode && (_jsx("button", { className: "sysflow-shadow-btn", style: {
+                        } })] }), isHovered && onAddConnectedNode && (_jsx("button", { className: "sysflow-shadow-btn", style: {
                     ...shadowBtnStyle,
                     bottom: -26,
                     left: '50%',
