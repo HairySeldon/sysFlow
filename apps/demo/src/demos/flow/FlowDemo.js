@@ -81,6 +81,10 @@ export const FlowDemo = () => {
                 else
                     undo();
             }
+            else if (e.key === 'Escape') {
+                setSelectedIds([]);
+                setEditorNodeId(null);
+            }
             else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
                 e.preventDefault();
                 redo();

@@ -4,6 +4,7 @@ import { SysDemo } from './demos/sys/SysDemo';
 import { FlowDemo } from './demos/flow/FlowDemo';
 export const App = () => {
     const [currentDemo, setCurrentDemo] = useState('system');
+    const [theme, setTheme] = useState('dark');
     return (_jsxs("div", { style: { display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }, children: [_jsxs("header", { style: {
                     height: '50px',
                     backgroundColor: '#0b0f19',
@@ -32,5 +33,15 @@ export const App = () => {
                             cursor: 'pointer',
                             fontSize: '12px',
                             fontWeight: 600
-                        }, children: "Demo 2: Flow (Rewiring)" })] }), _jsx("main", { style: { flex: 1, position: 'relative' }, children: currentDemo === 'system' ? _jsx(SysDemo, {}) : _jsx(FlowDemo, {}) })] }));
+                        }, children: "Demo 2: Flow (Rewiring)" }), _jsx("button", { onClick: () => setTheme(theme === 'dark' ? 'light' : 'dark'), style: {
+                            marginLeft: 'auto',
+                            background: 'transparent',
+                            border: `1px solid ${theme === 'dark' ? '#334155' : '#cbd5e1'}`,
+                            color: theme === 'dark' ? '#f8fafc' : '#0f172a',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }, children: theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode' })] }), _jsx("main", { style: { flex: 1, position: 'relative' }, children: currentDemo === 'system' ? _jsx(SysDemo, {}) : _jsx(FlowDemo, {}) })] }));
 };

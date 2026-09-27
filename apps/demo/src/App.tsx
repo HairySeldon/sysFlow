@@ -4,6 +4,7 @@ import { FlowDemo } from './demos/flow/FlowDemo';
 
 export const App: React.FC = () => {
   const [currentDemo, setCurrentDemo] = useState<'system' | 'flow'>('system');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh' }}>
@@ -52,6 +53,24 @@ export const App: React.FC = () => {
           }}
         >
           Demo 2: Flow (Rewiring)
+        </button>
+
+        {/* Theme Toggle Button */}
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          style={{
+            marginLeft: 'auto',
+            background: 'transparent',
+            border: `1px solid ${theme === 'dark' ? '#334155' : '#cbd5e1'}`,
+            color: theme === 'dark' ? '#f8fafc' : '#0f172a',
+            padding: '6px 12px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 600
+          }}
+        >
+          {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
         </button>
       </header>
 

@@ -1,4 +1,8 @@
-.sysflow-canvas {
+/* packages/core/src/styles/sysflow.css */
+
+/* Dark Mode (Default) */
+.sysflow-canvas,
+.sysflow-theme-dark {
   --sysflow-bg: #0b1120;
   --sysflow-grid: #1e293b;
   --sysflow-node-bg: #1e293b;
@@ -12,7 +16,26 @@
   --sysflow-edge-selected: #38bdf8;
   --sysflow-port-bg: #94a3b8;
   --sysflow-port-hover: #38bdf8;
+}
 
+/* Light Mode Override */
+.sysflow-theme-light {
+  --sysflow-bg: #f8fafc;
+  --sysflow-grid: #cbd5e1;
+  --sysflow-node-bg: #ffffff;
+  --sysflow-node-border: #cbd5e1;
+  --sysflow-node-selected: #0284c7;
+  --sysflow-node-text: #0f172a;
+  --sysflow-container-bg: rgba(241, 245, 249, 0.7);
+  --sysflow-container-border: #94a3b8;
+  --sysflow-container-hover: #0284c7;
+  --sysflow-edge-stroke: #94a3b8;
+  --sysflow-edge-selected: #0284c7;
+  --sysflow-port-bg: #64748b;
+  --sysflow-port-hover: #0284c7;
+}
+
+.sysflow-canvas {
   position: relative;
   overflow: hidden;
   width: 100%;

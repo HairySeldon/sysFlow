@@ -120,6 +120,14 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         return;
       }
 
+      // Escape Key: Deselect all and cancel active marquee
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMarqueeBox(null);
+        onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
+        return;
+      }
+
       if (e.code === 'Space') {
         isSpacePressedRef.current = true;
       }
@@ -308,7 +316,18 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       return;
     }
 
-    if (e.button === 0 && (e.target === containerRef.current || (e.target as HTMLElement).tagName === 'svg')) {
+    // Allow clicking on container, viewport, svg layers, or the canvas itself
+    const target = e.target as HTMLElement;
+    const isBackgroundClick =
+      target === containerRef.current ||
+      target.classList.contains('sysflow-viewport') ||
+      target.classList.contains('sysflow-dom-layer') ||
+      target.tagName.toLowerCase() === 'svg';
+
+    if (e.button === 0 && isBackgroundClick) {
+      // Prevent browser native drag/selection
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
       const worldPos = screenToWorld(e.clientX, e.clientY);
       setMarqueeBox({
         startX: worldPos.x,
@@ -336,6 +355,10 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   };
 
   const handleCanvasPointerUp = (e: React.PointerEvent) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+
     if (isPanning.current) {
       endPan();
     }

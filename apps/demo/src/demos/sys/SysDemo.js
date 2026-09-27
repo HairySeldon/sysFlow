@@ -106,6 +106,11 @@ export const SysDemo = () => {
                 else
                     undo();
             }
+            else if (e.key === 'Escape') {
+                setSelectedIds([]);
+                setInspectorOpen(false);
+                setShowConfigTable(false);
+            }
             else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
                 e.preventDefault();
                 redo();

@@ -101,6 +101,9 @@ export const FlowDemo: React.FC = () => {
         e.preventDefault();
         if (e.shiftKey) redo();
         else undo();
+      } else if (e.key === 'Escape') {
+        setSelectedIds([]);
+        setEditorNodeId(null);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         redo();
