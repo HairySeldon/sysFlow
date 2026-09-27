@@ -190,11 +190,11 @@
 
 .sysflow-port-anchor {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background-color: var(--sysflow-port-bg);
-  border: 2px solid var(--sysflow-node-bg);
+  border: 1px solid var(--sysflow-node-bg);
   transform: translate(-50%, -50%);
   pointer-events: auto;
   cursor: crosshair;
