@@ -197,6 +197,7 @@ export const SysDemo: React.FC<SysDemoProps> = ({ theme = 'dark' }) => {
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         deleteSelection(selectedIds);
         setSelectedIds([]);
+        setInspectorOpen(false); 
       } else if (e.key.toLowerCase() === 'n') {
         const name = prompt('New module label:', 'Module_Instance');
         if (name) handleAddNode(name, null);
@@ -662,7 +663,7 @@ export const SysDemo: React.FC<SysDemoProps> = ({ theme = 'dark' }) => {
       )}
 
       {/* Module Inspector Drawer */}
-      {inspectorOpen && !showConfigModal && (
+      {inspectorOpen && !showConfigModal && Boolean(graph.nodes[selectedIds[0]] || graph.containers[selectedIds[0]]) && (
         <InspectorDrawer
           graph={graph}
           selectedIds={selectedIds}

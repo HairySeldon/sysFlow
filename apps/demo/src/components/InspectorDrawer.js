@@ -9,11 +9,12 @@ export const InspectorDrawer = ({ graph, selectedIds, boundFilePath, initialSour
     const selectedId = selectedIds[0];
     const selectedNode = selectedId ? graph.nodes[selectedId] : null;
     const selectedContainer = selectedId ? graph.containers[selectedId] : null;
-    const entity = (selectedNode || selectedContainer);
+    const entity = selectedNode || selectedContainer;
     const isNode = Boolean(selectedNode);
-    const defaultTemplate = isNode && selectedNode
-        ? `// Module: ${entity.label}\n` +
-            `module ${entity.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
+    // Safe default template with null checks
+    const defaultTemplate = selectedNode
+        ? `// Module: ${selectedNode.label}\n` +
+            `module ${selectedNode.label.replace(/[^a-zA-Z0-9_]/g, '_')} (\n` +
             selectedNode.ports.map((p) => `  input wire [31:0] ${p.label}`).join(',\n') +
             `\n);\n\n` +
             `  // Internal signals & registers\n` +
@@ -23,15 +24,18 @@ export const InspectorDrawer = ({ graph, selectedIds, boundFilePath, initialSour
             `    internal_reg <= 32'h0;\n` +
             `  end\n\n` +
             `endmodule\n`
-        : `// Container: ${entity.label}\n`;
-    // Sync initial code whenever selected entity or loaded initialSourceCode changes
+        : `// Container: ${selectedContainer?.label || ''}\n`;
+    // Sync initial code safely
     useEffect(() => {
-        const code = initialSourceCode ?? entity?.data?.sourceCode ?? defaultTemplate;
+        if (!entity)
+            return;
+        const code = initialSourceCode ?? entity.data?.sourceCode ?? defaultTemplate;
         setSourceCode(code);
         setIsDirty(false);
         setSaveStatus('');
-    }, [selectedId, initialSourceCode]);
-    if (!selectedNode && !selectedContainer)
+    }, [selectedId, initialSourceCode, entity]);
+    // Guard: if entity was deleted or not found, do not render
+    if (!entity)
         return null;
     const handleSave = async () => {
         if (onSaveSource) {
@@ -47,7 +51,6 @@ export const InspectorDrawer = ({ graph, selectedIds, boundFilePath, initialSour
             }
         }
         else {
-            // In-memory fallback
             onUpdateEntity(entity.id, {
                 data: { ...entity.data, sourceCode }
             });

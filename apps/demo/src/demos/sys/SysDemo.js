@@ -170,6 +170,7 @@ export const SysDemo = ({ theme = 'dark' }) => {
             else if (e.key === 'Delete' || e.key === 'Backspace') {
                 deleteSelection(selectedIds);
                 setSelectedIds([]);
+                setInspectorOpen(false);
             }
             else if (e.key.toLowerCase() === 'n') {
                 const name = prompt('New module label:', 'Module_Instance');
@@ -469,7 +470,7 @@ export const SysDemo = ({ theme = 'dark' }) => {
                                                             boxSizing: 'border-box',
                                                             outline: 'none'
                                                         } }) })] }, node.id));
-                                    }) })] }) })] })), inspectorOpen && !showConfigModal && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, boundFilePath: activeFilePath, initialSourceCode: currentFileContent, onSaveSource: handleSaveNodeSource, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));
+                                    }) })] }) })] })), inspectorOpen && !showConfigModal && Boolean(graph.nodes[selectedIds[0]] || graph.containers[selectedIds[0]]) && (_jsx(InspectorDrawer, { graph: graph, selectedIds: selectedIds, boundFilePath: activeFilePath, initialSourceCode: currentFileContent, onSaveSource: handleSaveNodeSource, onClose: () => setInspectorOpen(false), onUpdateEntity: handleUpdateEntity }))] }));
 };
 const thStyle = {
     padding: '10px 14px'
