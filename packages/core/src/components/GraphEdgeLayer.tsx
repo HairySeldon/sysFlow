@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   LogicalGraph,
   ID,
@@ -8,6 +8,7 @@ import {
   ComputePortOptions
 } from '../models';
 import { LayoutResult } from '../layout/LayoutEngine';
+import { routeOrthogonal, pointsToSvgPath, Rect } from './orthogonalRouter';
 
 interface GraphEdgeLayerProps {
   graph: LogicalGraph;
@@ -39,6 +40,22 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   onEdgeClick
 }) => {
   const isOrthogonal = routing === 'step' || (routing === 'auto' && direction === 'LR');
+
+  // Pre-calculate all node and container obstacle rects
+  const obstacles = useMemo<Record<ID, Rect>>(() => {
+    const map: Record<ID, Rect> = {};
+    if (!layout) return map;
+
+    Object.entries(layout.nodes).forEach(([id, n]) => {
+      map[id] = { left: n.x, top: n.y, right: n.x + n.width, bottom: n.y + n.height };
+    });
+
+    Object.entries(layout.containers).forEach(([id, c]) => {
+      map[id] = { left: c.x, top: c.y, right: c.x + c.width, bottom: c.y + c.height };
+    });
+
+    return map;
+  }, [layout]);
 
   const resolveEffectiveEndpoint = (
     entityId: ID,
@@ -128,29 +145,27 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
     return { x: fallbackX, y: fallbackY, side: fallbackSide, valid: true, entityId };
   };
 
-  const calculateStepPath = (p0: EndpointResult, p1: EndpointResult): string => {
-    const midX = (p0.x + p1.x) / 2;
-    const midY = (p0.y + p1.y) / 2;
+  const calculateStepPath = (
+    p0: EndpointResult,
+    p1: EndpointResult,
+    sourceId: ID,
+    targetId: ID
+  ): string => {
+    // Exclude the source and target entities (and their direct parent containers) from being treated as obstacles
+    const activeObstacles: Rect[] = Object.keys(obstacles)
+      .filter((id) => id !== sourceId && id !== targetId && id !== p0.entityId && id !== p1.entityId)
+      .map((id) => obstacles[id]);
 
-    if (p0.side === 'right' && p1.side === 'left') {
-      if (p1.x >= p0.x + 20) {
-        return `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`;
-      } else {
-        const yOffset = p1.y >= p0.y ? p0.y - 40 : p0.y + 40;
-        return `M ${p0.x} ${p0.y} L ${p0.x + 20} ${p0.y} L ${p0.x + 20} ${yOffset} L ${p1.x - 20} ${yOffset} L ${p1.x - 20} ${p1.y} L ${p1.x} ${p1.y}`;
-      }
-    }
+    const points = routeOrthogonal(
+      { x: p0.x, y: p0.y },
+      p0.side,
+      { x: p1.x, y: p1.y },
+      p1.side,
+      activeObstacles,
+      16 // 16px clearance around obstacles
+    );
 
-    if (p0.side === 'bottom' && p1.side === 'top') {
-      if (p1.y >= p0.y + 16) {
-        return `M ${p0.x} ${p0.y} L ${p0.x} ${midY} L ${p1.x} ${midY} L ${p1.x} ${p1.y}`;
-      } else {
-        const xOffset = p1.x >= p0.x ? p0.x + 50 : p0.x - 50;
-        return `M ${p0.x} ${p0.y} L ${p0.x} ${p0.y + 20} L ${xOffset} ${p0.y + 20} L ${xOffset} ${p1.y - 20} L ${p1.x} ${p1.y - 20} L ${p1.x} ${p1.y}`;
-      }
-    }
-
-    return `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`;
+    return pointsToSvgPath(points, 6); // 6px rounded bend radius
   };
 
   const calculateBezierPath = (p0: EndpointResult, p1: EndpointResult): string => {
@@ -228,7 +243,9 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
         if (p0.entityId === p1.entityId) return null;
 
         const isSelected = selectedIds.includes(edge.id);
-        const pathStr = isOrthogonal ? calculateStepPath(p0, p1) : calculateBezierPath(p0, p1);
+        const pathStr = isOrthogonal
+          ? calculateStepPath(p0, p1, edge.sourceId, edge.targetId)
+          : calculateBezierPath(p0, p1);
 
         return (
           <g key={edge.id} style={{ pointerEvents: 'stroke' }}>
