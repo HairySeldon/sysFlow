@@ -123,7 +123,8 @@ export function computeEntityPortLocations(
     return result;
   }
 
-  const mode = options?.mode || (defaultLayoutDirection === 'TB' ? 'strict-flow' : 'perimeter-optimized');
+  const direction = options?.direction || defaultLayoutDirection;
+  const mode = options?.mode || (direction === 'TB' ? 'strict-flow' : 'perimeter-optimized');
   const edgeList: EdgeEntity[] = edges
     ? Array.isArray(edges) ? edges : Object.values(edges)
     : [];
@@ -145,32 +146,38 @@ export function computeEntityPortLocations(
   entity.ports.forEach((port: Port) => {
     let side: PortSide = port.side || 'auto';
 
-    if (side === 'auto') {
-      if (mode === 'strict-flow') {
-        // Flow Requirement: Top = target (in), Bottom = source (out)
-        if (defaultLayoutDirection === 'TB') {
-          side = incomingPorts.has(port.id) ? 'top' : 'bottom';
-        } else {
-          side = incomingPorts.has(port.id) ? 'left' : 'right';
-        }
+    // If explicit side is given ('top' | 'bottom' | 'left' | 'right'), honour it directly
+    if (side !== 'auto') {
+      sides[side].push(port);
+      return;
+    }
+
+    // Inferred logic when side === 'auto'
+    if (mode === 'strict-flow') {
+      const isInput = incomingPorts.has(port.id) || port.label.toLowerCase().includes('in');
+
+      if (direction === 'TB') {
+        // User requirement: 'in' ports on bottom, 'out' ports on top
+        side = isInput ? 'bottom' : 'top';
       } else {
-        // Sys Requirement: Dynamically choose the side facing connected nodes
-        // to reduce wire crossings and route length
-        side = resolveOptimalPerimeterSide(
-          entity.id,
-          port.id,
-          incomingPorts.has(port.id),
-          edgeList,
-          options?.nodeLayouts,
-          layout
-        );
+        side = isInput ? 'left' : 'right';
       }
+    } else {
+      // Sys requirement: Dynamically choose the side facing connected nodes
+      side = resolveOptimalPerimeterSide(
+        entity.id,
+        port.id,
+        incomingPorts.has(port.id),
+        edgeList,
+        options?.nodeLayouts,
+        layout
+      );
     }
 
     sides[side as 'left' | 'right' | 'top' | 'bottom'].push(port);
   });
 
-  // Optimize ordering of ports on each face according to target positions
+  // Optimize ordering of ports on each face according to target positions (SysDemo)
   if (mode === 'perimeter-optimized' && options?.nodeLayouts) {
     sortPortsByTargetCoordinates(sides, entity.id, edgeList, options.nodeLayouts);
   }

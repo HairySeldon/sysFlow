@@ -19,15 +19,15 @@ const INITIAL_PIPELINE_GRAPH: LogicalGraph = {
     INGEST: {
       id: 'INGEST',
       label: 'Task: Ingest Telemetry',
-      ports: [{ id: 'p_out', label: 'out' }],
+      ports: [{ id: 'p_out', label: 'out', side: 'top' }],
       data: { priority: 'P0', duration: '12ms' }
     },
     VALIDATE: {
       id: 'VALIDATE',
       label: 'Task: Schema Validation',
       ports: [
-        { id: 'p_in', label: 'in' },
-        { id: 'p_out', label: 'out' }
+        { id: 'p_in', label: 'in', side: 'bottom' },
+        { id: 'p_out', label: 'out', side: 'top' }
       ],
       data: { priority: 'P0', duration: '5ms' }
     },
@@ -35,15 +35,15 @@ const INITIAL_PIPELINE_GRAPH: LogicalGraph = {
       id: 'ENRICH',
       label: 'Task: AI Classification',
       ports: [
-        { id: 'p_in', label: 'in' },
-        { id: 'p_out', label: 'out' }
+        { id: 'p_in', label: 'in', side: 'bottom' },
+        { id: 'p_out', label: 'out', side: 'top' }
       ],
       data: { priority: 'P1', duration: '140ms' }
     },
     PERSIST: {
       id: 'PERSIST',
       label: 'Task: Cold Storage Sink',
-      ports: [{ id: 'p_in', label: 'in' }],
+      ports: [{ id: 'p_in', label: 'in', side: 'bottom' }],
       data: { priority: 'P2', duration: '45ms' }
     }
   },
@@ -151,8 +151,8 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
       id,
       label,
       ports: [
-        { id: `p_in_${Date.now()}`, label: 'in' },
-        { id: `p_out_${Date.now()}`, label: 'out' }
+        { id: `p_in_${Date.now()}`, label: 'in', side: 'bottom' },
+        { id: `p_out_${Date.now()}`, label: 'out', side: 'top' }
       ],
       data: { priority: 'P1', duration: '20ms' }
     };
@@ -287,22 +287,27 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <label style={labelStyle}>Ports ({selectedNode.ports.length})</label>
-              <button
-                style={smallBtnStyle}
-                onClick={() => {
-                  const name = prompt('Port name:', `port_${selectedNode.ports.length + 1}`);
-                  if (name) {
-                    updateSelectedNode({
-                      ports: [
-                        ...selectedNode.ports,
-                        { id: `p_${Date.now()}`, label: name }
-                      ]
-                    });
-                  }
-                }}
-              >
-                + Add Port
-              </button>
+                <button
+                  style={smallBtnStyle}
+                  onClick={() => {
+                    const name = prompt('Port name (in/out):', 'in');
+                    if (name) {
+                      const isBottom = name.toLowerCase().includes('in');
+                      updateSelectedNode({
+                        ports: [
+                          ...selectedNode.ports,
+                          {
+                            id: `p_${Date.now()}`,
+                            label: name,
+                            side: isBottom ? 'bottom' : 'top'
+                          }
+                        ]
+                      });
+                    }
+                  }}
+                >
+                  + Add Port
+                </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>

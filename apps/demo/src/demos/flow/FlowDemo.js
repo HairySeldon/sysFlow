@@ -11,15 +11,15 @@ const INITIAL_PIPELINE_GRAPH = {
         INGEST: {
             id: 'INGEST',
             label: 'Task: Ingest Telemetry',
-            ports: [{ id: 'p_out', label: 'out' }],
+            ports: [{ id: 'p_out', label: 'out', side: 'top' }],
             data: { priority: 'P0', duration: '12ms' }
         },
         VALIDATE: {
             id: 'VALIDATE',
             label: 'Task: Schema Validation',
             ports: [
-                { id: 'p_in', label: 'in' },
-                { id: 'p_out', label: 'out' }
+                { id: 'p_in', label: 'in', side: 'bottom' },
+                { id: 'p_out', label: 'out', side: 'top' }
             ],
             data: { priority: 'P0', duration: '5ms' }
         },
@@ -27,15 +27,15 @@ const INITIAL_PIPELINE_GRAPH = {
             id: 'ENRICH',
             label: 'Task: AI Classification',
             ports: [
-                { id: 'p_in', label: 'in' },
-                { id: 'p_out', label: 'out' }
+                { id: 'p_in', label: 'in', side: 'bottom' },
+                { id: 'p_out', label: 'out', side: 'top' }
             ],
             data: { priority: 'P1', duration: '140ms' }
         },
         PERSIST: {
             id: 'PERSIST',
             label: 'Task: Cold Storage Sink',
-            ports: [{ id: 'p_in', label: 'in' }],
+            ports: [{ id: 'p_in', label: 'in', side: 'bottom' }],
             data: { priority: 'P2', duration: '45ms' }
         }
     },
@@ -135,8 +135,8 @@ export const FlowDemo = ({ theme }) => {
             id,
             label,
             ports: [
-                { id: `p_in_${Date.now()}`, label: 'in' },
-                { id: `p_out_${Date.now()}`, label: 'out' }
+                { id: `p_in_${Date.now()}`, label: 'in', side: 'bottom' },
+                { id: `p_out_${Date.now()}`, label: 'out', side: 'top' }
             ],
             data: { priority: 'P1', duration: '20ms' }
         };
@@ -188,12 +188,17 @@ export const FlowDemo = ({ theme }) => {
                     flexDirection: 'column',
                     gap: 16
                 }, children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsx("h3", { style: { margin: 0, fontSize: 16, color: '#38bdf8' }, children: "Task Node Editor" }), _jsx("button", { onClick: () => setEditorNodeId(null), style: { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }, children: "\u2715" })] }), _jsxs("div", { children: [_jsx("label", { style: labelStyle, children: "Task Name" }), _jsx("input", { type: "text", value: selectedNode.label, onChange: (e) => updateSelectedNode({ label: e.target.value }), style: inputStyle })] }), _jsxs("div", { style: { display: 'flex', gap: 10 }, children: [_jsxs("div", { style: { flex: 1 }, children: [_jsx("label", { style: labelStyle, children: "Priority" }), _jsxs("select", { value: String(selectedNode.data?.priority || 'P1'), onChange: (e) => updateSelectedNode({ data: { ...selectedNode.data, priority: e.target.value } }), style: inputStyle, children: [_jsx("option", { value: "P0", children: "P0 (Critical)" }), _jsx("option", { value: "P1", children: "P1 (High)" }), _jsx("option", { value: "P2", children: "P2 (Normal)" })] })] }), _jsxs("div", { style: { flex: 1 }, children: [_jsx("label", { style: labelStyle, children: "Duration" }), _jsx("input", { type: "text", value: String(selectedNode.data?.duration || '10ms'), onChange: (e) => updateSelectedNode({ data: { ...selectedNode.data, duration: e.target.value } }), style: inputStyle })] })] }), _jsxs("div", { children: [_jsxs("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs("label", { style: labelStyle, children: ["Ports (", selectedNode.ports.length, ")"] }), _jsx("button", { style: smallBtnStyle, onClick: () => {
-                                            const name = prompt('Port name:', `port_${selectedNode.ports.length + 1}`);
+                                            const name = prompt('Port name (in/out):', 'in');
                                             if (name) {
+                                                const isBottom = name.toLowerCase().includes('in');
                                                 updateSelectedNode({
                                                     ports: [
                                                         ...selectedNode.ports,
-                                                        { id: `p_${Date.now()}`, label: name }
+                                                        {
+                                                            id: `p_${Date.now()}`,
+                                                            label: name,
+                                                            side: isBottom ? 'bottom' : 'top'
+                                                        }
                                                     ]
                                                 });
                                             }
