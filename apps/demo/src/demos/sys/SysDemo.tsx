@@ -5,12 +5,12 @@ import {
   SysFlowCanvas,
   ReparentStrategy,
   NodeEntity,
-  ContainerEntity
+  ContainerEntity,
+  useGraphHistory
 } from '@sysflow/core';
 import { SysModuleRenderer } from './SysModuleEditor';
 import { Toolbar } from '../../components/Toolbar';
 import { InspectorDrawer } from '../../components/InspectorDrawer';
-import { useGraphHistory } from '../../hooks/useGraphHistory';
 import {
   SourceConfig,
   DEFAULT_SOURCE_CONFIG,

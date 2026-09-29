@@ -1,10 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useRef } from 'react';
-import { SysFlowCanvas, ReparentStrategy } from '@sysflow/core';
+import { SysFlowCanvas, ReparentStrategy, useGraphHistory } from '@sysflow/core';
 import { SysModuleRenderer } from './SysModuleEditor';
 import { Toolbar } from '../../components/Toolbar';
 import { InspectorDrawer } from '../../components/InspectorDrawer';
-import { useGraphHistory } from '../../hooks/useGraphHistory';
 import { DEFAULT_SOURCE_CONFIG, readTextFile, writeTextFile } from '../../utils/fileSystem';
 const INITIAL_VERILOG_GRAPH = {
     version: '2.0.0',

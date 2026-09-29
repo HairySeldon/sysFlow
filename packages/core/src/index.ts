@@ -17,6 +17,7 @@ export * from './strategies/EdgeRewireStrategy';
 export * from './hooks/useCanvasTransform';
 export * from './hooks/useMeasurement';
 export * from './hooks/useDragGesture';
+export * from './hooks/useGraphHistory';
 
 // Components
 export * from './components/SysFlowCanvas';

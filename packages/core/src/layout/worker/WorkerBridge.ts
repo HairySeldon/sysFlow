@@ -1,6 +1,9 @@
 import { ID, LogicalGraph } from '../../models';
 import { LayoutEngine, LayoutResult, LayoutOptions } from '../LayoutEngine';
 import { SugiyamaEngine } from '../sugiyama/SugiyamaEngine';
+// Import worker inlined via Vite query parameter
+// @ts-ignore
+import LayoutWorker from './layout.worker?worker&inline';
 
 export class WorkerBridge implements LayoutEngine {
   private worker: Worker | null = null;
@@ -13,9 +16,7 @@ export class WorkerBridge implements LayoutEngine {
   constructor() {
     if (typeof Worker !== 'undefined') {
       try {
-        this.worker = new Worker(new URL('./layout.worker.ts', import.meta.url), {
-          type: 'module'
-        });
+        this.worker = new LayoutWorker();
 
         this.worker.onmessage = (e: MessageEvent) => {
           const { id, success, layout, error } = e.data;
@@ -31,9 +32,10 @@ export class WorkerBridge implements LayoutEngine {
         };
 
         this.worker.onerror = (err) => {
-          console.warn('[SysFlow Worker] Error in worker, failing gracefully:', err);
+          console.warn('[SysFlow Worker] Error in worker, falling back to sync engine:', err);
         };
-      } catch {
+      } catch (e) {
+        console.warn('[SysFlow Worker] Failed to instantiate worker. Falling back to sync engine:', e);
         this.worker = null;
       }
     }
@@ -44,16 +46,17 @@ export class WorkerBridge implements LayoutEngine {
     measurements: Map<ID, { width: number; height: number }>,
     options?: LayoutOptions
   ): Promise<LayoutResult> {
-    return new Promise((resolve, reject) => {
-      if (!this.worker) {
-        return reject(new Error('Worker is not initialized'));
-      }
+    // If worker failed to construct or isn't supported, seamlessly fallback to SugiyamaEngine!
+    if (!this.worker) {
+      return this.fallbackEngine.execute(graph, measurements, options);
+    }
 
+    return new Promise((resolve, reject) => {
       const id = `req_${Date.now()}_${Math.random()}`;
       this.pendingRequests.set(id, { resolve, reject });
 
       const measurementEntries = Array.from(measurements.entries());
-      this.worker.postMessage({
+      this.worker!.postMessage({
         id,
         graph,
         measurements: measurementEntries,
@@ -61,7 +64,6 @@ export class WorkerBridge implements LayoutEngine {
       });
     });
   }
-
 
   public dispose(): void {
     if (this.worker) {

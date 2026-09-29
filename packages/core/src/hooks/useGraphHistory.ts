@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import {
   LogicalGraph,
   ID,
@@ -7,15 +7,17 @@ import {
   EdgeEntity,
   GraphAction,
   pruneDanglingEdges
-} from '@sysflow/core';
+} from '../models';
+
+export interface GraphClipboardState {
+  entity: NodeEntity | ContainerEntity;
+  isCut: boolean;
+}
 
 export function useGraphHistory(initialGraph: LogicalGraph) {
   const [history, setHistory] = useState<LogicalGraph[]>([initialGraph]);
   const [index, setIndex] = useState(0);
-  const [clipboard, setClipboard] = useState<{
-    entity: NodeEntity | ContainerEntity;
-    isCut: boolean;
-  } | null>(null);
+  const [clipboard, setClipboard] = useState<GraphClipboardState | null>(null);
 
   const currentGraph = history[index];
 
@@ -93,7 +95,7 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
 
       // 2. Splice splicedNodeId into edgeId: source -> splicedNode -> origTarget
       const targetPort = prev.nodes[splicedNodeId]?.ports[0]?.id || 'p_in';
-      const sourcePort = prev.nodes[splicedNodeId]?.ports.find(p => p.id !== targetPort)?.id || targetPort;
+      const sourcePort = prev.nodes[splicedNodeId]?.ports.find((p) => p.id !== targetPort)?.id || targetPort;
 
       nextEdges[edgeId] = {
         ...oldEdge,
@@ -163,7 +165,7 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
       delete nextEdges[id];
     }
 
-    // pushState will automatically invoke pruneDanglingEdges to clean connected edges
+    // pushState automatically invokes pruneDanglingEdges
     pushState({
       ...currentGraph,
       nodes: nextNodes,

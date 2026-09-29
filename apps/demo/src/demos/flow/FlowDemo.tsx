@@ -6,71 +6,18 @@ import {
   EdgeRewireStrategy,
   NodeEntity,
   ContainerEntity,
-  Port
+  Port,
+  useGraphHistory
 } from '@sysflow/core';
 import { Toolbar } from '../../components/Toolbar';
-import { useGraphHistory } from '../../hooks/useGraphHistory';
 import { FlowNodeRenderer } from './FlowNodeRenderer';
 import '@sysflow/core/dist/style.css';
 
 const INITIAL_PIPELINE_GRAPH: LogicalGraph = {
   version: '2.0.0',
   containers: {},
-  nodes: {
-    INGEST: {
-      id: 'INGEST',
-      label: 'Task: Ingest Telemetry',
-      ports: [{ id: 'p_out', label: 'out', side: 'top' }],
-      data: { priority: 'P0', duration: '12ms' }
-    },
-    VALIDATE: {
-      id: 'VALIDATE',
-      label: 'Task: Schema Validation',
-      ports: [
-        { id: 'p_in', label: 'in', side: 'bottom' },
-        { id: 'p_out', label: 'out', side: 'top' }
-      ],
-      data: { priority: 'P0', duration: '5ms' }
-    },
-    ENRICH: {
-      id: 'ENRICH',
-      label: 'Task: AI Classification',
-      ports: [
-        { id: 'p_in', label: 'in', side: 'bottom' },
-        { id: 'p_out', label: 'out', side: 'top' }
-      ],
-      data: { priority: 'P1', duration: '140ms' }
-    },
-    PERSIST: {
-      id: 'PERSIST',
-      label: 'Task: Cold Storage Sink',
-      ports: [{ id: 'p_in', label: 'in', side: 'bottom' }],
-      data: { priority: 'P2', duration: '45ms' }
-    }
-  },
-  edges: {
-    STEP1: {
-      id: 'STEP1',
-      sourceId: 'INGEST',
-      sourcePortId: 'p_out',
-      targetId: 'VALIDATE',
-      targetPortId: 'p_in'
-    },
-    STEP2: {
-      id: 'STEP2',
-      sourceId: 'VALIDATE',
-      sourcePortId: 'p_out',
-      targetId: 'ENRICH',
-      targetPortId: 'p_in'
-    },
-    STEP3: {
-      id: 'STEP3',
-      sourceId: 'ENRICH',
-      sourcePortId: 'p_out',
-      targetId: 'PERSIST',
-      targetPortId: 'p_in'
-    }
-  }
+  nodes: {},
+  edges: {}
 };
 
 const rewireStrategy = new EdgeRewireStrategy();
@@ -114,7 +61,6 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
           { id: inPortId, label: 'in', side: 'bottom' },
           { id: outPortId, label: 'out', side: 'top' }
         ],
-        data: { priority: 'P1', duration: '15ms' }
       };
 
       const edgeId = `edge_${Date.now()}`;
@@ -234,7 +180,6 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
         { id: `p_in_${Date.now()}`, label: 'in', side: 'bottom' },
         { id: `p_out_${Date.now()}`, label: 'out', side: 'top' }
       ],
-      data: { priority: 'P1', duration: '20ms' }
     };
     setGraphDirect({
       ...graph,
