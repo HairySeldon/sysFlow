@@ -8,7 +8,6 @@
   "scripts": {
     "build": "npm run build --workspace=@sysflow/core && npm run build --workspace=@sysflow/demo",
     "dev:core": "npm run dev --workspace=@sysflow/core",
-    "dev:demo": "npm run dev --workspace=@sysflow/demo",
-    "prepare": "npm run build --workspace=@sysflow/core"
+    "dev:demo": "npm run dev --workspace=@sysflow/demo"
   }
 }
