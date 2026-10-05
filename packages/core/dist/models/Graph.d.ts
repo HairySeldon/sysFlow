@@ -19,8 +19,9 @@ export interface PortPerimeterLocation {
     worldY: number;
 }
 export type PortPlacementMode = 'strict-flow' | 'perimeter-optimized';
+export type LayoutDirection = 'LR' | 'TB' | 'RL' | 'BT';
 export interface ComputePortOptions {
-    direction?: 'LR' | 'TB';
+    direction?: LayoutDirection;
     mode?: PortPlacementMode;
     nodeLayouts?: Record<ID, NodeLayoutResult>;
 }
@@ -28,7 +29,7 @@ export interface ComputePortOptions {
  * Calculates exact perimeter port locations for an entity after layout dimensions are resolved.
  * Uses edge connections (source vs target) to determine input vs output sides if side is 'auto'.
  */
-export declare function computeEntityPortLocations(entity: NodeEntity, layout: NodeLayoutResult, defaultLayoutDirection?: 'LR' | 'TB', edges?: Record<ID, EdgeEntity> | EdgeEntity[], options?: ComputePortOptions): Map<ID, PortPerimeterLocation>;
+export declare function computeEntityPortLocations(entity: NodeEntity, layout: NodeLayoutResult, defaultLayoutDirection?: LayoutDirection, edges?: Record<ID, EdgeEntity> | EdgeEntity[], options?: ComputePortOptions): Map<ID, PortPerimeterLocation>;
 /**
  * Removes any edges whose source/target entity or port no longer exists.
  */

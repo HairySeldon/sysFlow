@@ -11,15 +11,10 @@ export interface LayoutResult {
     nodes: Record<ID, NodeLayoutResult>;
     containers: Record<ID, NodeLayoutResult>;
 }
+export type FlowDirection = 'LR' | 'TB' | 'RL' | 'BT';
 export interface LayoutOptions {
-    direction?: 'LR' | 'TB';
-    /**
-     * 'flow' for sequential DAGs/trees (median-centered hierarchy)
-     * 'concurrent' for modular/nested CAD architectures (aspect-ratio multi-row packing)
-     * 'auto' chooses based on graph topology (presence of deep containment vs pure edge flow)
-     */
+    direction?: FlowDirection;
     mode?: 'flow' | 'concurrent' | 'auto';
-    /** Target width/height ratio for concurrent packing (defaults to 16/9 ~ 1.77) */
     aspectRatio?: number;
     channelSpacing?: number;
 }

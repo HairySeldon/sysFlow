@@ -47,7 +47,9 @@ export class CoordinateAssigner {
     measurements: Map<ID, { width: number; height: number }>,
     options: LayoutOptions = { direction: 'TB', mode: 'auto', aspectRatio: 1.55 }
   ): LayoutResult {
-    const isTB = options.direction === 'TB';
+    const direction = options.direction ?? 'TB';
+    const isVertical = direction === 'TB' || direction === 'BT';
+    const isReverse = direction === 'BT' || direction === 'RL';
     const targetAspect = options.aspectRatio ?? 1.55;
 
     const numContainers = Object.keys(graph.containers).length;
@@ -86,13 +88,14 @@ export class CoordinateAssigner {
         graph,
         orderedLayers,
         getBaseDim,
-        isTB,
+        isVertical,
+        isReverse,
         nodesLayout,
         containersLayout
       );
     }
 
-    CoordinateAssigner.assignDynamicPortSides(graph, nodesLayout, containersLayout, isTB);
+    CoordinateAssigner.assignDynamicPortSides(graph, nodesLayout, containersLayout, isVertical);
 
     return { nodes: nodesLayout, containers: containersLayout };
   }
@@ -402,142 +405,147 @@ export class CoordinateAssigner {
   // FLOW TREE SYMMETRICAL CENTERING (DEMO 2)
   // ===========================================================================
   private static layoutFlowTree(
-    graph: LogicalGraph,
-    orderedLayers: Map<number, ID[]>,
-    getBaseDim: (id: ID) => { width: number; height: number },
-    isTB: boolean,
-    nodesLayout: Record<ID, NodeLayoutResult>,
-    containersLayout: Record<ID, NodeLayoutResult>
-  ) {
-    const sortedLayers = Array.from(orderedLayers.keys()).sort((a, b) => a - b);
-    const primaryOffsets = new Map<number, number>();
-    let curPrimary = 80;
+      graph: LogicalGraph,
+      orderedLayers: Map<number, ID[]>,
+      getBaseDim: (id: ID) => { width: number; height: number },
+      isVertical: boolean,
+      isReverse: boolean,
+      nodesLayout: Record<ID, NodeLayoutResult>,
+      containersLayout: Record<ID, NodeLayoutResult>
+    ) {
+      const layerIndices = Array.from(orderedLayers.keys()).sort((a, b) => a - b);
+      const primaryOffsets = new Map<number, number>();
+      let curPrimary = 80;
 
-    const primGap = isTB ? ROW_GAP * 1.5 : COLUMN_GAP * 1.5;
-    const secGap = isTB ? COLUMN_GAP : ROW_GAP;
+      const primGap = isVertical ? ROW_GAP * 1.5 : COLUMN_GAP * 1.5;
+      const secGap = isVertical ? COLUMN_GAP : ROW_GAP;
 
-    for (const layerIdx of sortedLayers) {
-      const entities = orderedLayers.get(layerIdx) || [];
-      let maxPrimaryBreadth = 0;
-      for (const id of entities) {
-        const dim = getBaseDim(id);
-        const pb = isTB ? dim.height : dim.width;
-        maxPrimaryBreadth = Math.max(maxPrimaryBreadth, pb);
+      // In reverse mode (BT or RL), higher topological layers (targets) appear at the top/left,
+      // and lower layers (sources) appear at the bottom/right.
+      const placementOrder = isReverse ? [...layerIndices].reverse() : [...layerIndices];
+
+      for (const layerIdx of placementOrder) {
+        const entities = orderedLayers.get(layerIdx) || [];
+        let maxPrimaryBreadth = 0;
+        for (const id of entities) {
+          const dim = getBaseDim(id);
+          const pb = isVertical ? dim.height : dim.width;
+          maxPrimaryBreadth = Math.max(maxPrimaryBreadth, pb);
+        }
+        primaryOffsets.set(layerIdx, curPrimary);
+        curPrimary += maxPrimaryBreadth + primGap;
       }
-      primaryOffsets.set(layerIdx, curPrimary);
-      curPrimary += maxPrimaryBreadth + primGap;
-    }
 
-    const parentsOf = new Map<ID, ID[]>();
-    const childrenOf = new Map<ID, ID[]>();
-    for (const e of Object.values(graph.edges)) {
-      if (!parentsOf.has(e.targetId)) parentsOf.set(e.targetId, []);
-      parentsOf.get(e.targetId)!.push(e.sourceId);
+      const parentsOf = new Map<ID, ID[]>();
+      const childrenOf = new Map<ID, ID[]>();
+      for (const e of Object.values(graph.edges)) {
+        if (!parentsOf.has(e.targetId)) parentsOf.set(e.targetId, []);
+        parentsOf.get(e.targetId)!.push(e.sourceId);
 
-      if (!childrenOf.has(e.sourceId)) childrenOf.set(e.sourceId, []);
-      childrenOf.get(e.sourceId)!.push(e.targetId);
-    }
+        if (!childrenOf.has(e.sourceId)) childrenOf.set(e.sourceId, []);
+        childrenOf.get(e.sourceId)!.push(e.targetId);
+      }
 
-    const secondaryPos = new Map<ID, number>();
+      const secondaryPos = new Map<ID, number>();
 
-    // Pass 1: Top-down median positioning
-    for (const layerIdx of sortedLayers) {
-      const entities = orderedLayers.get(layerIdx) || [];
-      let prevEnd = -Infinity;
+      // Pass 1: Median positioning along secondary axis
+      for (const layerIdx of layerIndices) {
+        const entities = orderedLayers.get(layerIdx) || [];
+        let prevEnd = -Infinity;
 
-      for (const id of entities) {
-        const dim = getBaseDim(id);
-        const breadth = isTB ? dim.width : dim.height;
-        const parents = parentsOf.get(id) || [];
+        for (const id of entities) {
+          const dim = getBaseDim(id);
+          const breadth = isVertical ? dim.width : dim.height;
+          const parents = parentsOf.get(id) || [];
 
-        let idealCenter: number | null = null;
-        if (parents.length > 0) {
-          const parentCenters = parents
-            .map((p) => {
-              const pos = secondaryPos.get(p);
+          let idealCenter: number | null = null;
+          if (parents.length > 0) {
+            const parentCenters = parents
+              .map((p) => {
+                const pos = secondaryPos.get(p);
+                if (pos === undefined) return null;
+                const pDim = getBaseDim(p);
+                return pos + (isVertical ? pDim.width : pDim.height) / 2;
+              })
+              .filter((v): v is number => v !== null);
+
+            if (parentCenters.length > 0) {
+              idealCenter = parentCenters.reduce((a, b) => a + b, 0) / parentCenters.length;
+            }
+          }
+
+          let startPos = idealCenter !== null ? idealCenter - breadth / 2 : 80;
+          if (startPos < prevEnd + secGap) {
+            startPos = prevEnd === -Infinity ? 80 : prevEnd + secGap;
+          }
+
+          secondaryPos.set(id, startPos);
+          prevEnd = startPos + breadth;
+        }
+      }
+
+      // Pass 2: Centering along secondary axis
+      for (let i = layerIndices.length - 1; i >= 0; i--) {
+        const layerIdx = layerIndices[i];
+        const entities = orderedLayers.get(layerIdx) || [];
+
+        for (const id of entities) {
+          const children = childrenOf.get(id) || [];
+          if (children.length === 0) continue;
+
+          const childCenters = children
+            .map((c) => {
+              const pos = secondaryPos.get(c);
               if (pos === undefined) return null;
-              const pDim = getBaseDim(p);
-              return pos + (isTB ? pDim.width : pDim.height) / 2;
+              const cDim = getBaseDim(c);
+              return pos + (isVertical ? cDim.width : cDim.height) / 2;
             })
             .filter((v): v is number => v !== null);
 
-          if (parentCenters.length > 0) {
-            idealCenter = parentCenters.reduce((a, b) => a + b, 0) / parentCenters.length;
+          if (childCenters.length > 0) {
+            const avgChildCenter = childCenters.reduce((a, b) => a + b, 0) / childCenters.length;
+            const dim = getBaseDim(id);
+            const breadth = isVertical ? dim.width : dim.height;
+            secondaryPos.set(id, avgChildCenter - breadth / 2);
           }
         }
 
-        let startPos = idealCenter !== null ? idealCenter - breadth / 2 : 80;
-        if (startPos < prevEnd + secGap) {
-          startPos = prevEnd === -Infinity ? 80 : prevEnd + secGap;
-        }
-
-        secondaryPos.set(id, startPos);
-        prevEnd = startPos + breadth;
-      }
-    }
-
-    // Pass 2: Bottom-up median centering
-    for (let i = sortedLayers.length - 1; i >= 0; i--) {
-      const layerIdx = sortedLayers[i];
-      const entities = orderedLayers.get(layerIdx) || [];
-
-      for (const id of entities) {
-        const children = childrenOf.get(id) || [];
-        if (children.length === 0) continue;
-
-        const childCenters = children
-          .map((c) => {
-            const pos = secondaryPos.get(c);
-            if (pos === undefined) return null;
-            const cDim = getBaseDim(c);
-            return pos + (isTB ? cDim.width : cDim.height) / 2;
-          })
-          .filter((v): v is number => v !== null);
-
-        if (childCenters.length > 0) {
-          const avgChildCenter = childCenters.reduce((a, b) => a + b, 0) / childCenters.length;
+        let prevEnd = -Infinity;
+        for (const id of entities) {
           const dim = getBaseDim(id);
-          const breadth = isTB ? dim.width : dim.height;
-          secondaryPos.set(id, avgChildCenter - breadth / 2);
+          const breadth = isVertical ? dim.width : dim.height;
+          let pos = secondaryPos.get(id) ?? 80;
+          if (pos < prevEnd + secGap) {
+            pos = prevEnd + secGap;
+            secondaryPos.set(id, pos);
+          }
+          prevEnd = pos + breadth;
         }
       }
 
-      let prevEnd = -Infinity;
-      for (const id of entities) {
-        const dim = getBaseDim(id);
-        const breadth = isTB ? dim.width : dim.height;
-        let pos = secondaryPos.get(id) ?? 80;
-        if (pos < prevEnd + secGap) {
-          pos = prevEnd + secGap;
-          secondaryPos.set(id, pos);
-        }
-        prevEnd = pos + breadth;
-      }
-    }
+      let minSec = Infinity;
+      for (const p of secondaryPos.values()) minSec = Math.min(minSec, p);
+      const secShift = minSec < 80 ? 80 - minSec : 0;
 
-    let minSec = Infinity;
-    for (const p of secondaryPos.values()) minSec = Math.min(minSec, p);
-    const secShift = minSec < 80 ? 80 - minSec : 0;
+      for (const layerIdx of layerIndices) {
+        const entities = orderedLayers.get(layerIdx) || [];
+        const primary = primaryOffsets.get(layerIdx) || 80;
 
-    for (const layerIdx of sortedLayers) {
-      const entities = orderedLayers.get(layerIdx) || [];
-      const primary = primaryOffsets.get(layerIdx) || 80;
+        for (const id of entities) {
+          const dim = getBaseDim(id);
+          const secondary = (secondaryPos.get(id) ?? 80) + secShift;
+          const x = isVertical ? secondary : primary;
+          const y = isVertical ? primary : secondary;
 
-      for (const id of entities) {
-        const dim = getBaseDim(id);
-        const secondary = (secondaryPos.get(id) ?? 80) + secShift;
-        const x = isTB ? secondary : primary;
-        const y = isTB ? primary : secondary;
-
-        const item: NodeLayoutResult = { id, x, y, width: dim.width, height: dim.height };
-        if (graph.containers[id]) {
-          containersLayout[id] = item;
-        } else {
-          nodesLayout[id] = item;
+          const item: NodeLayoutResult = { id, x, y, width: dim.width, height: dim.height };
+          if (graph.containers[id]) {
+            containersLayout[id] = item;
+          } else {
+            nodesLayout[id] = item;
+          }
         }
       }
     }
-  }
 
   private static assignDynamicPortSides(
     graph: LogicalGraph,

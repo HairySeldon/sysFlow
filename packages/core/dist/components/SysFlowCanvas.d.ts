@@ -8,7 +8,7 @@ export interface SysFlowCanvasProps {
     onChange: (action: GraphAction) => void;
     layoutEngine?: LayoutEngine;
     interactionStrategy?: InteractionStrategy;
-    direction?: 'LR' | 'TB';
+    direction?: 'LR' | 'TB' | 'RL' | 'BT';
     layoutOptions?: LayoutOptions;
     showEdgeArrows?: boolean;
     nodeTypes?: Record<string, React.ComponentType<{

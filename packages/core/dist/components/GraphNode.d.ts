@@ -5,7 +5,7 @@ import { NodeLayoutResult } from '../layout/LayoutEngine';
 export interface GraphNodeProps {
     node: NodeEntity;
     layout: NodeLayoutResult;
-    direction?: 'LR' | 'TB';
+    direction?: 'LR' | 'TB' | 'RL' | 'BT';
     edges?: Record<ID, EdgeEntity>;
     selected?: boolean;
     customRenderer?: React.ComponentType<{

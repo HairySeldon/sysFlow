@@ -85,7 +85,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   // Memoized port options available everywhere in the component
   const resolvedPortOptions: ComputePortOptions = useMemo(() => ({
     direction,
-    mode: portPlacementMode ?? (direction === 'TB'|'BT' ? 'strict-flow' : 'perimeter-optimized'),
+    mode: portPlacementMode ?? (direction === 'TB' || direction === 'BT' ? 'strict-flow' : 'perimeter-optimized'),
     nodeLayouts: layout.nodes
   }), [direction, portPlacementMode, layout.nodes]);
 
@@ -294,21 +294,67 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   };
 
   const handlePortPointerUp = (entityId: string, portId: string, isSource: boolean) => {
-    if (activeWire && !isSource) {
-      if (activeWire.sourceId !== entityId) {
-        onChange({
-          type: 'EDGE_CREATE',
-          payload: {
-            edge: {
-              sourceId: activeWire.sourceId,
-              sourcePortId: activeWire.sourcePortId,
-              targetId: entityId,
-              targetPortId: portId
-            }
-          }
-        });
+    if (activeWire && activeWire.sourceId !== entityId) {
+      const fromEntity = graph.nodes[activeWire.sourceId] || graph.containers[activeWire.sourceId];
+      const toEntity = graph.nodes[entityId] || graph.containers[entityId];
+
+      const fromPort = fromEntity?.ports?.find((p) => p.id === activeWire.sourcePortId);
+      const toPort = toEntity?.ports?.find((p) => p.id === portId);
+
+      let finalSourceId = activeWire.sourceId;
+      let finalSourcePortId = activeWire.sourcePortId;
+      let finalTargetId = entityId;
+      let finalTargetPortId = portId;
+
+      const isFromIn = fromPort?.label?.toLowerCase().includes('in') || fromPort?.side === (direction === 'BT' ? 'bottom' : 'top');
+      const isFromOut = fromPort?.label?.toLowerCase().includes('out') || fromPort?.side === (direction === 'BT' ? 'top' : 'bottom');
+      const isToIn = toPort?.label?.toLowerCase().includes('in') || toPort?.side === (direction === 'BT' ? 'bottom' : 'top');
+      const isToOut = toPort?.label?.toLowerCase().includes('out') || toPort?.side === (direction === 'BT' ? 'top' : 'bottom');
+
+      // Rule 1: Port Semantic Normalization (Out is always source, In is always target)
+      if (isFromIn && isToOut) {
+        // Dragged backwards from input to output: flip them!
+        finalSourceId = entityId;
+        finalSourcePortId = portId;
+        finalTargetId = activeWire.sourceId;
+        finalTargetPortId = activeWire.sourcePortId;
+      } 
+      // Rule 2: Layout Spatial Normalization (In BT, the node with greater Y is source)
+      else if (layout.nodes[activeWire.sourceId] && layout.nodes[entityId]) {
+        const fromLayout = layout.nodes[activeWire.sourceId];
+        const toLayout = layout.nodes[entityId];
+
+        const shouldFlipBT = direction === 'BT' && fromLayout.y < toLayout.y;
+        const shouldFlipTB = direction === 'TB' && fromLayout.y > toLayout.y;
+
+        if (shouldFlipBT || shouldFlipTB) {
+          // Flow is in opposite spatial direction: flip source & target and pick proper facing ports
+          finalSourceId = entityId;
+          finalTargetId = activeWire.sourceId;
+
+          const newSourceNode = graph.nodes[finalSourceId];
+          const newTargetNode = graph.nodes[finalTargetId];
+
+          finalSourcePortId =
+            newSourceNode?.ports?.find((p) => p.label.includes('out') || p.side === (direction === 'BT' ? 'top' : 'bottom'))?.id || portId;
+          finalTargetPortId =
+            newTargetNode?.ports?.find((p) => p.label.includes('in') || p.side === (direction === 'BT' ? 'bottom' : 'top'))?.id || activeWire.sourcePortId;
+        }
       }
+
+      onChange({
+        type: 'EDGE_CREATE',
+        payload: {
+          edge: {
+            sourceId: finalSourceId,
+            sourcePortId: finalSourcePortId,
+            targetId: finalTargetId,
+            targetPortId: finalTargetPortId
+          }
+        }
+      });
     }
+
     setActiveWire(null);
   };
 

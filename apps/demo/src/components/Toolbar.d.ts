@@ -3,7 +3,7 @@ import { LogicalGraph, ID } from '@sysflow/core';
 interface ToolbarProps {
     graph: LogicalGraph;
     selectedIds: ID[];
-    direction?: 'LR' | 'TB';
+    direction?: 'LR' | 'TB' | 'RL' | 'BT';
     onToggleDirection?: () => void;
     onAddNode: (label: string, parentId?: string | null) => void;
     onAddContainer: (label: string) => void;

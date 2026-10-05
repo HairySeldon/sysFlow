@@ -6,7 +6,7 @@ interface GraphEdgeLayerProps {
     graph: LogicalGraph;
     layout: LayoutResult;
     selectedIds: ID[];
-    direction?: 'LR' | 'TB';
+    direction?: 'LR' | 'TB' | 'RL' | 'BT';
     showArrows?: boolean;
     routing?: 'bezier' | 'step' | 'auto';
     portOptions?: ComputePortOptions;
