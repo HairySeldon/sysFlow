@@ -23,9 +23,10 @@ export interface PortPerimeterLocation {
 }
 
 export type PortPlacementMode = 'strict-flow' | 'perimeter-optimized';
+export type LayoutDirection = 'LR' | 'TB' | 'RL' | 'BT';
 
 export interface ComputePortOptions {
-  direction?: 'LR' | 'TB';
+  direction?: LayoutDirection;
   mode?: PortPlacementMode;
   nodeLayouts?: Record<ID, NodeLayoutResult>;
 }
@@ -106,7 +107,6 @@ function resolveOptimalPerimeterSide(
   }
 }
 
-
 /**
  * Calculates exact perimeter port locations for an entity after layout dimensions are resolved.
  * Uses edge connections (source vs target) to determine input vs output sides if side is 'auto'.
@@ -114,7 +114,7 @@ function resolveOptimalPerimeterSide(
 export function computeEntityPortLocations(
   entity: NodeEntity,
   layout: NodeLayoutResult,
-  defaultLayoutDirection: 'LR' | 'TB' = 'LR',
+  defaultLayoutDirection: LayoutDirection = 'LR',
   edges?: Record<ID, EdgeEntity> | EdgeEntity[],
   options?: ComputePortOptions
 ): Map<ID, PortPerimeterLocation> {
@@ -124,7 +124,8 @@ export function computeEntityPortLocations(
   }
 
   const direction = options?.direction || defaultLayoutDirection;
-  const mode = options?.mode || (direction === 'TB' ? 'strict-flow' : 'perimeter-optimized');
+  const isVertical = direction === 'TB' || direction === 'BT';
+  const mode = options?.mode || (isVertical ? 'strict-flow' : 'perimeter-optimized');
   const edgeList: EdgeEntity[] = edges
     ? Array.isArray(edges) ? edges : Object.values(edges)
     : [];
@@ -156,14 +157,27 @@ export function computeEntityPortLocations(
     if (mode === 'strict-flow') {
       const isInput = incomingPorts.has(port.id) || port.label.toLowerCase().includes('in');
 
-      if (direction === 'TB') {
-        // User requirement: 'in' ports on bottom, 'out' ports on top
-        side = isInput ? 'bottom' : 'top';
-      } else {
-        side = isInput ? 'left' : 'right';
+      switch (direction) {
+        case 'BT':
+          // Bottom-to-Top: flow goes upwards; inputs at bottom, outputs at top
+          side = isInput ? 'bottom' : 'top';
+          break;
+        case 'TB':
+          // Top-to-Bottom: flow goes downwards; inputs at top, outputs at bottom
+          side = isInput ? 'top' : 'bottom';
+          break;
+        case 'RL':
+          // Right-to-Left: flow goes leftwards; inputs at right, outputs at left
+          side = isInput ? 'right' : 'left';
+          break;
+        case 'LR':
+        default:
+          // Left-to-Right: flow goes rightwards; inputs at left, outputs at right
+          side = isInput ? 'left' : 'right';
+          break;
       }
     } else {
-      // Sys requirement: Dynamically choose the side facing connected nodes
+      // Dynamic mode: choose the side facing connected nodes
       side = resolveOptimalPerimeterSide(
         entity.id,
         port.id,
@@ -177,7 +191,7 @@ export function computeEntityPortLocations(
     sides[side as 'left' | 'right' | 'top' | 'bottom'].push(port);
   });
 
-  // Optimize ordering of ports on each face according to target positions (SysDemo)
+  // Optimize ordering of ports on each face according to target positions
   if (mode === 'perimeter-optimized' && options?.nodeLayouts) {
     sortPortsByTargetCoordinates(sides, entity.id, edgeList, options.nodeLayouts);
   }

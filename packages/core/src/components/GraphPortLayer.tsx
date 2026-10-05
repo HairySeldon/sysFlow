@@ -5,9 +5,9 @@ import { NodeLayoutResult } from '../layout/LayoutEngine';
 export interface GraphPortLayerProps {
   entity: NodeEntity;
   layout: NodeLayoutResult;
-  direction?: 'LR' | 'TB';
+  direction?: 'LR' | 'TB' | 'RL' | 'BT';
   edges?: Record<ID, EdgeEntity>;
-  portOptions?: ComputePortOptions; // <-- Added
+  portOptions?: ComputePortOptions;
   onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
   onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
 }

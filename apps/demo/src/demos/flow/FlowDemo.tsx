@@ -232,11 +232,11 @@ export const FlowDemo: React.FC<FlowDemoProps> = ({ theme }) => {
         graph={graph}
         onChange={handleGraphChange}
         interactionStrategy={rewireStrategy}
-        direction="TB"
+        direction="BT"
         routing="bezier"
         portPlacementMode="strict-flow"
         layoutOptions={{ mode: 'flow', channelSpacing: 30 }}
-        showEdgeArrows={false}
+        showEdgeArrows={true}
         nodeTypes={nodeTypes}
         selectedIds={selectedIds}
       />

@@ -25,7 +25,7 @@ export interface SysFlowCanvasProps {
   onChange: (action: GraphAction) => void;
   layoutEngine?: LayoutEngine;
   interactionStrategy?: InteractionStrategy;
-  direction?: 'LR' | 'TB';
+  direction?: 'LR' | 'TB' | 'RL' | 'BT';
   layoutOptions?: LayoutOptions;
   showEdgeArrows?: boolean;
   nodeTypes?: Record<string, React.ComponentType<{ node: NodeEntity; selected: boolean }>>;
@@ -85,7 +85,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   // Memoized port options available everywhere in the component
   const resolvedPortOptions: ComputePortOptions = useMemo(() => ({
     direction,
-    mode: portPlacementMode ?? (direction === 'TB' ? 'strict-flow' : 'perimeter-optimized'),
+    mode: portPlacementMode ?? (direction === 'TB'|'BT' ? 'strict-flow' : 'perimeter-optimized'),
     nodeLayouts: layout.nodes
   }), [direction, portPlacementMode, layout.nodes]);
 

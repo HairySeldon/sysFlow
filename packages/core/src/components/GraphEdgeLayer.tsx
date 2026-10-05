@@ -13,7 +13,7 @@ interface GraphEdgeLayerProps {
   graph: LogicalGraph;
   layout: LayoutResult;
   selectedIds: ID[];
-  direction?: 'LR' | 'TB';
+  direction?: 'LR' | 'TB' | 'RL' | 'BT';
   showArrows?: boolean;
   routing?: 'bezier' | 'step' | 'auto';
   portOptions?: ComputePortOptions;
@@ -38,7 +38,9 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   portOptions,
   onEdgeClick
 }) => {
-  const isOrthogonal = routing === 'step' || (routing === 'auto' && direction === 'LR');
+  const isOrthogonal =
+    routing === 'step' ||
+    (routing === 'auto' && (direction === 'LR' || direction === 'RL'));
 
   const resolveEffectiveEndpoint = (
     entityId: ID,
@@ -63,11 +65,32 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
 
     if (collapsedContainer) {
       const cLayout = layout.containers[collapsedContainer.id];
-      if (!cLayout) return { x: 0, y: 0, side: isSource ? 'right' : 'left', valid: false, entityId: collapsedContainer.id };
+      if (!cLayout) {
+        return { x: 0, y: 0, side: isSource ? 'right' : 'left', valid: false, entityId: collapsedContainer.id };
+      }
 
-      const defaultSide = direction === 'TB' ? (isSource ? 'bottom' : 'top') : isSource ? 'right' : 'left';
-      const x = isSource ? cLayout.x + cLayout.width : cLayout.x;
-      const y = cLayout.y + cLayout.height / 2;
+      let defaultSide: 'left' | 'right' | 'top' | 'bottom';
+      let x: number;
+      let y: number;
+
+      if (direction === 'TB') {
+        defaultSide = isSource ? 'bottom' : 'top';
+        x = cLayout.x + cLayout.width / 2;
+        y = isSource ? cLayout.y + cLayout.height : cLayout.y;
+      } else if (direction === 'BT') {
+        defaultSide = isSource ? 'top' : 'bottom';
+        x = cLayout.x + cLayout.width / 2;
+        y = isSource ? cLayout.y : cLayout.y + cLayout.height;
+      } else if (direction === 'RL') {
+        defaultSide = isSource ? 'left' : 'right';
+        x = isSource ? cLayout.x : cLayout.x + cLayout.width;
+        y = cLayout.y + cLayout.height / 2;
+      } else {
+        defaultSide = isSource ? 'right' : 'left';
+        x = isSource ? cLayout.x + cLayout.width : cLayout.x;
+        y = cLayout.y + cLayout.height / 2;
+      }
+
       return { x, y, side: defaultSide, valid: true, entityId: collapsedContainer.id };
     }
 
@@ -84,6 +107,14 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
         x = cLayout.x + cLayout.width / 2;
         y = isSource ? cLayout.y + cLayout.height : cLayout.y;
         side = isSource ? 'bottom' : 'top';
+      } else if (direction === 'BT') {
+        x = cLayout.x + cLayout.width / 2;
+        y = isSource ? cLayout.y : cLayout.y + cLayout.height;
+        side = isSource ? 'top' : 'bottom';
+      } else if (direction === 'RL') {
+        x = isSource ? cLayout.x : cLayout.x + cLayout.width;
+        y = cLayout.y + cLayout.height / 2;
+        side = isSource ? 'left' : 'right';
       } else {
         x = isSource ? cLayout.x + cLayout.width : cLayout.x;
         y = cLayout.y + cLayout.height / 2;
@@ -120,6 +151,14 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
       fallbackX = nLayout.x + nLayout.width / 2;
       fallbackY = isSource ? nLayout.y + nLayout.height : nLayout.y;
       fallbackSide = isSource ? 'bottom' : 'top';
+    } else if (direction === 'BT') {
+      fallbackX = nLayout.x + nLayout.width / 2;
+      fallbackY = isSource ? nLayout.y : nLayout.y + nLayout.height;
+      fallbackSide = isSource ? 'top' : 'bottom';
+    } else if (direction === 'RL') {
+      fallbackX = isSource ? nLayout.x : nLayout.x + nLayout.width;
+      fallbackY = nLayout.y + nLayout.height / 2;
+      fallbackSide = isSource ? 'left' : 'right';
     } else {
       fallbackX = isSource ? nLayout.x + nLayout.width : nLayout.x;
       fallbackY = nLayout.y + nLayout.height / 2;
@@ -132,6 +171,7 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
     const midX = (p0.x + p1.x) / 2;
     const midY = (p0.y + p1.y) / 2;
 
+    // LR
     if (p0.side === 'right' && p1.side === 'left') {
       if (p1.x >= p0.x + 20) {
         return `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`;
@@ -141,12 +181,33 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
       }
     }
 
+    // RL
+    if (p0.side === 'left' && p1.side === 'right') {
+      if (p1.x <= p0.x - 20) {
+        return `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`;
+      } else {
+        const yOffset = p1.y >= p0.y ? p0.y - 40 : p0.y + 40;
+        return `M ${p0.x} ${p0.y} L ${p0.x - 20} ${p0.y} L ${p0.x - 20} ${yOffset} L ${p1.x + 20} ${yOffset} L ${p1.x + 20} ${p1.y} L ${p1.x} ${p1.y}`;
+      }
+    }
+
+    // TB
     if (p0.side === 'bottom' && p1.side === 'top') {
       if (p1.y >= p0.y + 16) {
         return `M ${p0.x} ${p0.y} L ${p0.x} ${midY} L ${p1.x} ${midY} L ${p1.x} ${p1.y}`;
       } else {
         const xOffset = p1.x >= p0.x ? p0.x + 50 : p0.x - 50;
         return `M ${p0.x} ${p0.y} L ${p0.x} ${p0.y + 20} L ${xOffset} ${p0.y + 20} L ${xOffset} ${p1.y - 20} L ${p1.x} ${p1.y - 20} L ${p1.x} ${p1.y}`;
+      }
+    }
+
+    // BT
+    if (p0.side === 'top' && p1.side === 'bottom') {
+      if (p1.y <= p0.y - 16) {
+        return `M ${p0.x} ${p0.y} L ${p0.x} ${midY} L ${p1.x} ${midY} L ${p1.x} ${p1.y}`;
+      } else {
+        const xOffset = p1.x >= p0.x ? p0.x + 50 : p0.x - 50;
+        return `M ${p0.x} ${p0.y} L ${p0.x} ${p0.y - 20} L ${xOffset} ${p0.y - 20} L ${xOffset} ${p1.y + 20} L ${p1.x} ${p1.y + 20} L ${p1.x} ${p1.y}`;
       }
     }
 
@@ -157,6 +218,7 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
     const dx = p1.x - p0.x;
     const dy = p1.y - p0.y;
 
+    // TB (Flow downwards)
     if (p0.side === 'bottom' && p1.side === 'top') {
       if (dy > 0) {
         const verticalDrop = Math.min(28, dy * 0.4);
@@ -170,6 +232,21 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
       }
     }
 
+    // BT (Flow upwards)
+    if (p0.side === 'top' && p1.side === 'bottom') {
+      if (dy < 0) {
+        const verticalRise = Math.min(28, Math.abs(dy) * 0.4);
+        const cy0 = p0.y - Math.max(verticalRise, Math.abs(dy) * 0.5);
+        const cy1 = p1.y + Math.max(verticalRise, Math.abs(dy) * 0.5);
+        return `M ${p0.x} ${p0.y} C ${p0.x} ${cy0} ${p1.x} ${cy1} ${p1.x} ${p1.y}`;
+      } else {
+        const loopSide = dx >= 0 ? 1 : -1;
+        const clearanceX = Math.max(40, Math.abs(dx) * 0.2);
+        return `M ${p0.x} ${p0.y} C ${p0.x + clearanceX * loopSide} ${p0.y - 40} ${p1.x + clearanceX * loopSide} ${p1.y + 40} ${p1.x} ${p1.y}`;
+      }
+    }
+
+    // LR (Flow rightwards)
     if (p0.side === 'right' && p1.side === 'left') {
       if (dx > 0) {
         const cx0 = p0.x + dx * 0.5;
@@ -177,6 +254,17 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
         return `M ${p0.x} ${p0.y} C ${cx0} ${p0.y} ${cx1} ${p1.y} ${p1.x} ${p1.y}`;
       } else {
         return `M ${p0.x} ${p0.y} C ${p0.x + 50} ${p0.y - 50} ${p1.x - 50} ${p1.y - 50} ${p1.x} ${p1.y}`;
+      }
+    }
+
+    // RL (Flow leftwards)
+    if (p0.side === 'left' && p1.side === 'right') {
+      if (dx < 0) {
+        const cx0 = p0.x + dx * 0.5;
+        const cx1 = p1.x - dx * 0.5;
+        return `M ${p0.x} ${p0.y} C ${cx0} ${p0.y} ${cx1} ${p1.y} ${p1.x} ${p1.y}`;
+      } else {
+        return `M ${p0.x} ${p0.y} C ${p0.x - 50} ${p0.y - 50} ${p1.x + 50} ${p1.y - 50} ${p1.x} ${p1.y}`;
       }
     }
 
