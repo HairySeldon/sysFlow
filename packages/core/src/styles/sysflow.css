@@ -247,3 +247,15 @@
 .sysflow-control-btn:hover {
   background: var(--sysflow-panel-btn-hover);
 }
+
+.sysflow-container-empty-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100% - 38px);
+  color: var(--sysflow-node-subtext);
+  font-size: 12px;
+  font-style: italic;
+  pointer-events: none;
+  opacity: 0.6;
+}

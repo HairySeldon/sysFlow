@@ -1,10 +1,13 @@
-import { ID } from '../../models';
+// packages/core/src/layout/sugiyama/CrossingMinimizer.ts
+
+import { ID, LogicalGraph } from '../../models';
 
 export class CrossingMinimizer {
   public static minimizeCrossings(
     layeredNodes: Map<number, ID[]>,
     adjList: Map<ID, Set<ID>>,
-    iterations: number = 4
+    iterations: number = 4,
+    graph?: LogicalGraph
   ): Map<number, ID[]> {
     const sortedLayers = Array.from(layeredNodes.keys()).sort((a, b) => a - b);
     if (sortedLayers.length <= 1) return layeredNodes;
@@ -32,11 +35,7 @@ export class CrossingMinimizer {
         const nodeOrderMap = new Map<ID, number>();
         prevLayerNodes.forEach((id, idx) => nodeOrderMap.set(id, idx));
 
-        currentLayerNodes.sort((a, b) => {
-          const baryA = CrossingMinimizer.getBarycenter(a, inAdjList, nodeOrderMap);
-          const baryB = CrossingMinimizer.getBarycenter(b, inAdjList, nodeOrderMap);
-          return baryA - baryB;
-        });
+        CrossingMinimizer.sortLayerNodes(currentLayerNodes, inAdjList, nodeOrderMap, graph);
       }
 
       // Backward sweep
@@ -47,15 +46,84 @@ export class CrossingMinimizer {
         const nodeOrderMap = new Map<ID, number>();
         nextLayerNodes.forEach((id, idx) => nodeOrderMap.set(id, idx));
 
-        currentLayerNodes.sort((a, b) => {
-          const baryA = CrossingMinimizer.getBarycenter(a, adjList, nodeOrderMap);
-          const baryB = CrossingMinimizer.getBarycenter(b, adjList, nodeOrderMap);
-          return baryA - baryB;
-        });
+        CrossingMinimizer.sortLayerNodes(currentLayerNodes, adjList, nodeOrderMap, graph);
       }
     }
 
     return result;
+  }
+
+  private static sortLayerNodes(
+    nodes: ID[],
+    connections: Map<ID, Set<ID>>,
+    neighborIndices: Map<ID, number>,
+    graph?: LogicalGraph
+  ) {
+    if (!graph || Object.keys(graph.containers).length === 0) {
+      nodes.sort((a, b) => {
+        const baryA = CrossingMinimizer.getBarycenter(a, connections, neighborIndices);
+        const baryB = CrossingMinimizer.getBarycenter(b, connections, neighborIndices);
+        return baryA - baryB;
+      });
+      return;
+    }
+
+    // 1. Calculate individual barycenters
+    const nodeBarycenters = new Map<ID, number>();
+    for (const id of nodes) {
+      nodeBarycenters.set(id, CrossingMinimizer.getBarycenter(id, connections, neighborIndices));
+    }
+
+    // 2. Aggregate barycenters across container ancestors
+    const containerSums = new Map<ID, number>();
+    const containerCounts = new Map<ID, number>();
+
+    for (const id of nodes) {
+      const b = nodeBarycenters.get(id) ?? 0;
+      let curr = graph.nodes[id]?.parentId ?? graph.containers[id]?.parentId;
+      while (curr) {
+        containerSums.set(curr, (containerSums.get(curr) || 0) + b);
+        containerCounts.set(curr, (containerCounts.get(curr) || 0) + 1);
+        curr = graph.containers[curr]?.parentId;
+      }
+    }
+
+    const getBary = (id: ID): number => {
+      if (graph.containers[id]) {
+        const count = containerCounts.get(id) || 0;
+        return count === 0 ? 0 : (containerSums.get(id) || 0) / count;
+      }
+      return nodeBarycenters.get(id) ?? 0;
+    };
+
+    // 3. Hierarchical sort: common-ancestor branching prevents interleaving
+    nodes.sort((a, b) => {
+      const pathA = CrossingMinimizer.getAncestorPath(a, graph);
+      const pathB = CrossingMinimizer.getAncestorPath(b, graph);
+
+      let idx = 0;
+      while (idx < pathA.length && idx < pathB.length && pathA[idx] === pathB[idx]) {
+        idx++;
+      }
+
+      const itemA = pathA[idx] ?? a;
+      const itemB = pathB[idx] ?? b;
+
+      const diff = getBary(itemA) - getBary(itemB);
+      if (Math.abs(diff) > 1e-5) return diff;
+
+      return itemA.localeCompare(itemB);
+    });
+  }
+
+  private static getAncestorPath(id: ID, graph: LogicalGraph): ID[] {
+    const path: ID[] = [id];
+    let curr = graph.nodes[id]?.parentId ?? graph.containers[id]?.parentId;
+    while (curr) {
+      path.unshift(curr);
+      curr = graph.containers[curr]?.parentId;
+    }
+    return path;
   }
 
   private static getBarycenter(

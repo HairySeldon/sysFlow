@@ -1,3 +1,5 @@
+// packages/core/src/components/GraphContainer.tsx
+
 import React from 'react';
 import { ContainerEntity } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
@@ -7,6 +9,7 @@ interface GraphContainerProps {
   layout: NodeLayoutResult;
   selected: boolean;
   isHovered?: boolean;
+  hasChildren?: boolean;
   onToggleCollapse: (containerId: string, currentCollapsed: boolean) => void;
   onPointerDown: (container: ContainerEntity, e: React.PointerEvent) => void;
   onMouseEnter: () => void;
@@ -20,6 +23,7 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
   layout,
   selected,
   isHovered = false,
+  hasChildren = false,
   onToggleCollapse,
   onPointerDown,
   onMouseEnter,
@@ -43,23 +47,27 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
       {CustomRenderer ? (
         <CustomRenderer container={container} selected={selected} />
       ) : (
-        <div className="sysflow-container-header">
-          <span
-            className="sysflow-container-title"
-            title={container.label}
-          >
-            {container.label}
-          </span>
-          <button
-            className="sysflow-collapse-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleCollapse(container.id, !container.collapsed);
-            }}
-          >
-            {container.collapsed ? 'Expand ⊞' : 'Collapse ⊟'}
-          </button>
-        </div>
+        <>
+          <div className="sysflow-container-header">
+            <span className="sysflow-container-title" title={container.label}>
+              {container.label}
+            </span>
+            <button
+              className="sysflow-collapse-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCollapse(container.id, !container.collapsed);
+              }}
+            >
+              {container.collapsed ? 'Expand ⊞' : 'Collapse ⊟'}
+            </button>
+          </div>
+          {!container.collapsed && !hasChildren && (
+            <div className="sysflow-container-empty-hint">
+              Drop tasks here
+            </div>
+          )}
+        </>
       )}
     </div>
   );

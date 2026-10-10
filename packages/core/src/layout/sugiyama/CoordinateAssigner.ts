@@ -12,6 +12,8 @@ const COLLAPSED_CONTAINER_WIDTH = 210;
 const COLLAPSED_CONTAINER_HEIGHT = 36;
 const DEFAULT_NODE_WIDTH = 180;
 const DEFAULT_NODE_HEIGHT = 54;
+const EMPTY_CONTAINER_WIDTH = 260;
+const EMPTY_CONTAINER_HEIGHT = 160;
 
 interface LocalBox {
   id: ID;
@@ -69,6 +71,12 @@ export class CoordinateAssigner {
       if (isContainer && isCollapsed) {
         return { width: COLLAPSED_CONTAINER_WIDTH, height: COLLAPSED_CONTAINER_HEIGHT };
       }
+      if (isContainer && !isCollapsed) {
+        return {
+          width: measurements.get(id)?.width || EMPTY_CONTAINER_WIDTH,
+          height: measurements.get(id)?.height || EMPTY_CONTAINER_HEIGHT
+        };
+      }
       return {
         width: measurements.get(id)?.width || DEFAULT_NODE_WIDTH,
         height: measurements.get(id)?.height || DEFAULT_NODE_HEIGHT
@@ -90,12 +98,13 @@ export class CoordinateAssigner {
         getBaseDim,
         isVertical,
         isReverse,
+        options,
         nodesLayout,
         containersLayout
       );
     }
 
-    CoordinateAssigner.assignDynamicPortSides(graph, nodesLayout, containersLayout, isVertical);
+    CoordinateAssigner.assignDynamicPortSides(graph, nodesLayout, containersLayout);
 
     return { nodes: nodesLayout, containers: containersLayout };
   }
@@ -130,7 +139,7 @@ export class CoordinateAssigner {
     const containerInnerDimensions = new Map<ID, { width: number; height: number }>();
     const localPositions = new Map<ID, LocalBox>();
 
-    // 1. Bottom-up: Find optimal, minimal-waste packing for every container
+    // 1. Bottom-up: Find optimal packing for every container
     for (const containerId of sortedContainers) {
       const isCollapsed = Boolean(graph.containers[containerId]?.collapsed);
       if (isCollapsed) {
@@ -163,14 +172,13 @@ export class CoordinateAssigner {
         localPositions.set(box.id, box);
       }
 
-      // Open containers size tightly to their content + padding + header
       const totalW = Math.max(best.width + CONTAINER_PADDING_X * 2, COLLAPSED_CONTAINER_WIDTH);
       const totalH = best.height + HEADER_HEIGHT + CONTAINER_PADDING_Y * 2;
 
       containerInnerDimensions.set(containerId, { width: totalW, height: totalH });
     }
 
-    // 2. Root-level packing: Balance canvas aspect ratio and eliminate dead space
+    // 2. Root-level packing
     const rootItems = childrenMap.get(null) || [];
     let rootBoxes: LocalBox[] = [];
 
@@ -188,7 +196,7 @@ export class CoordinateAssigner {
       }));
     }
 
-    // 3. Top-down: Convert local coordinates into absolute world coordinates
+    // 3. Top-down: World coordinates
     const assignWorldCoordinates = (
       itemId: ID,
       worldX: number,
@@ -228,10 +236,6 @@ export class CoordinateAssigner {
     }
   }
 
-  /**
-   * Evaluates multiple candidate bounding widths using 2D skyline bin packing
-   * and picks the configuration that minimizes empty space while respecting targetAspect.
-   */
   private static findBestTightPacking(items: ItemDim[], targetAspect: number): PackingCandidate {
     if (items.length === 1) {
       return {
@@ -244,26 +248,18 @@ export class CoordinateAssigner {
 
     const totalItemArea = items.reduce((acc, it) => acc + it.width * it.height, 0);
     const maxSingleW = Math.max(...items.map((it) => it.width));
-
-    // Sort items by width to generate natural multi-column candidate widths
     const sortedByWidth = [...items].sort((a, b) => b.width - a.width);
 
     const candidateWidths = new Set<number>();
-
-    // 1. Single row width (all items horizontally)
     const singleRowW = items.reduce((acc, it) => acc + it.width, 0) + (items.length - 1) * COLUMN_GAP;
     candidateWidths.add(singleRowW);
-
-    // 2. Pure vertical column width
     candidateWidths.add(maxSingleW);
 
-    // 3. Aspect-ratio area targets
     const idealAspectW = Math.max(maxSingleW, Math.sqrt(totalItemArea * targetAspect));
     candidateWidths.add(idealAspectW);
     candidateWidths.add(idealAspectW * 0.85);
     candidateWidths.add(idealAspectW * 1.15);
 
-    // 4. Test multi-column splits (1 to N columns)
     const maxCols = Math.min(items.length, 6);
     for (let c = 2; c <= maxCols; c++) {
       let colWidthEstimate = 0;
@@ -286,7 +282,6 @@ export class CoordinateAssigner {
       const aspect = candidate.width / Math.max(1, candidate.height);
       const aspectDeviation = Math.abs(Math.log(aspect / targetAspect));
 
-      // Primary goal: minimize wasted area. Secondary preference: aspect ratio.
       const score = (wastedArea / totalItemArea) * 2.0 + aspectDeviation * 0.25;
       candidate.score = score;
 
@@ -298,15 +293,8 @@ export class CoordinateAssigner {
     return bestCandidate!;
   }
 
-  /**
-   * Bottom-Left Skyline 2D Bin Packing:
-   * Sorts items descending by height (First-Fit Decreasing) and packs into the lowest
-   * available height valley, preventing tall items from locking the vertical baseline.
-   */
   private static simulateSkylinePacking(items: ItemDim[], maxRowWidth: number): PackingCandidate {
-    // Sort descending by height to anchor tall containers first
     const sorted = [...items].sort((a, b) => b.height - a.height);
-
     const skyline: SkylineSegment[] = [{ x: 0, width: maxRowWidth, y: 0 }];
     const boxes: LocalBox[] = [];
 
@@ -314,7 +302,6 @@ export class CoordinateAssigner {
       let bestY = Infinity;
       let bestIdx = -1;
 
-      // Find the lowest skyline segment that can accommodate the item's width
       for (let i = 0; i < skyline.length; i++) {
         const seg = skyline[i];
         if (seg.x + item.width > maxRowWidth) continue;
@@ -333,7 +320,6 @@ export class CoordinateAssigner {
       }
 
       if (bestIdx === -1) {
-        // Exceeds maxRowWidth: place at bottom of entire bounding box
         const maxY = Math.max(...skyline.map((s) => s.y));
         const posY = maxY === 0 ? 0 : maxY + ROW_GAP;
         boxes.push({
@@ -367,7 +353,6 @@ export class CoordinateAssigner {
         height: item.height
       });
 
-      // Update skyline
       const itemSpanW = item.width + COLUMN_GAP;
       const newY = startY + item.height;
       const newSeg: SkylineSegment = { x: startX, width: itemSpanW, y: newY };
@@ -402,156 +387,274 @@ export class CoordinateAssigner {
   }
 
   // ===========================================================================
-  // FLOW TREE SYMMETRICAL CENTERING (DEMO 2)
+  // FLOW TREE WITH COMPOUND CONTAINER SUPPORT
   // ===========================================================================
   private static layoutFlowTree(
-      graph: LogicalGraph,
-      orderedLayers: Map<number, ID[]>,
-      getBaseDim: (id: ID) => { width: number; height: number },
-      isVertical: boolean,
-      isReverse: boolean,
-      nodesLayout: Record<ID, NodeLayoutResult>,
-      containersLayout: Record<ID, NodeLayoutResult>
-    ) {
-      const layerIndices = Array.from(orderedLayers.keys()).sort((a, b) => a - b);
-      const primaryOffsets = new Map<number, number>();
-      let curPrimary = 80;
+    graph: LogicalGraph,
+    orderedLayers: Map<number, ID[]>,
+    getBaseDim: (id: ID) => { width: number; height: number },
+    isVertical: boolean,
+    isReverse: boolean,
+    options: LayoutOptions,
+    nodesLayout: Record<ID, NodeLayoutResult>,
+    containersLayout: Record<ID, NodeLayoutResult>
+  ) {
+    const layerIndices = Array.from(orderedLayers.keys()).sort((a, b) => a - b);
+    const primaryOffsets = new Map<number, number>();
+    let curPrimary = 80;
 
-      const primGap = isVertical ? ROW_GAP * 1.5 : COLUMN_GAP * 1.5;
-      const secGap = isVertical ? COLUMN_GAP : ROW_GAP;
+    // Buffer layer gap to prevent container headers/padding from colliding across ranks
+    const extraPrimaryPad = isVertical ? HEADER_HEIGHT + CONTAINER_PADDING_Y * 2 : CONTAINER_PADDING_X * 2;
+    const primGap = (isVertical ? ROW_GAP * 1.5 : COLUMN_GAP * 1.5) + extraPrimaryPad;
+    const secGap = isVertical ? COLUMN_GAP : ROW_GAP;
 
-      // In reverse mode (BT or RL), higher topological layers (targets) appear at the top/left,
-      // and lower layers (sources) appear at the bottom/right.
-      const placementOrder = isReverse ? [...layerIndices].reverse() : [...layerIndices];
+    const placementOrder = isReverse ? [...layerIndices].reverse() : [...layerIndices];
 
-      for (const layerIdx of placementOrder) {
-        const entities = orderedLayers.get(layerIdx) || [];
-        let maxPrimaryBreadth = 0;
-        for (const id of entities) {
-          const dim = getBaseDim(id);
-          const pb = isVertical ? dim.height : dim.width;
-          maxPrimaryBreadth = Math.max(maxPrimaryBreadth, pb);
+    for (const layerIdx of placementOrder) {
+      const entities = orderedLayers.get(layerIdx) || [];
+      let maxPrimaryBreadth = 0;
+      for (const id of entities) {
+        const dim = getBaseDim(id);
+        const pb = isVertical ? dim.height : dim.width;
+        maxPrimaryBreadth = Math.max(maxPrimaryBreadth, pb);
+      }
+      primaryOffsets.set(layerIdx, curPrimary);
+      curPrimary += maxPrimaryBreadth + primGap;
+    }
+
+    const parentsOf = new Map<ID, ID[]>();
+    const childrenOf = new Map<ID, ID[]>();
+    for (const e of Object.values(graph.edges)) {
+      if (!parentsOf.has(e.targetId)) parentsOf.set(e.targetId, []);
+      parentsOf.get(e.targetId)!.push(e.sourceId);
+
+      if (!childrenOf.has(e.sourceId)) childrenOf.set(e.sourceId, []);
+      childrenOf.get(e.sourceId)!.push(e.targetId);
+    }
+
+    const secondaryPos = new Map<ID, number>();
+
+    const getParentId = (id: ID) =>
+      graph.nodes[id]?.parentId ?? graph.containers[id]?.parentId ?? null;
+
+    // Pass 1: Median positioning along secondary axis with container boundary padding
+    for (const layerIdx of layerIndices) {
+      const entities = orderedLayers.get(layerIdx) || [];
+      let prevEnd = -Infinity;
+      let prevParent: ID | null | undefined = undefined;
+
+      for (const id of entities) {
+        const dim = getBaseDim(id);
+        const breadth = isVertical ? dim.width : dim.height;
+        const parents = parentsOf.get(id) || [];
+        const currentParent = getParentId(id);
+
+        let effectiveGap = secGap;
+        if (prevParent !== undefined && prevParent !== currentParent) {
+          effectiveGap = secGap + (isVertical ? CONTAINER_PADDING_X * 2 : HEADER_HEIGHT + CONTAINER_PADDING_Y * 2);
         }
-        primaryOffsets.set(layerIdx, curPrimary);
-        curPrimary += maxPrimaryBreadth + primGap;
-      }
 
-      const parentsOf = new Map<ID, ID[]>();
-      const childrenOf = new Map<ID, ID[]>();
-      for (const e of Object.values(graph.edges)) {
-        if (!parentsOf.has(e.targetId)) parentsOf.set(e.targetId, []);
-        parentsOf.get(e.targetId)!.push(e.sourceId);
-
-        if (!childrenOf.has(e.sourceId)) childrenOf.set(e.sourceId, []);
-        childrenOf.get(e.sourceId)!.push(e.targetId);
-      }
-
-      const secondaryPos = new Map<ID, number>();
-
-      // Pass 1: Median positioning along secondary axis
-      for (const layerIdx of layerIndices) {
-        const entities = orderedLayers.get(layerIdx) || [];
-        let prevEnd = -Infinity;
-
-        for (const id of entities) {
-          const dim = getBaseDim(id);
-          const breadth = isVertical ? dim.width : dim.height;
-          const parents = parentsOf.get(id) || [];
-
-          let idealCenter: number | null = null;
-          if (parents.length > 0) {
-            const parentCenters = parents
-              .map((p) => {
-                const pos = secondaryPos.get(p);
-                if (pos === undefined) return null;
-                const pDim = getBaseDim(p);
-                return pos + (isVertical ? pDim.width : pDim.height) / 2;
-              })
-              .filter((v): v is number => v !== null);
-
-            if (parentCenters.length > 0) {
-              idealCenter = parentCenters.reduce((a, b) => a + b, 0) / parentCenters.length;
-            }
-          }
-
-          let startPos = idealCenter !== null ? idealCenter - breadth / 2 : 80;
-          if (startPos < prevEnd + secGap) {
-            startPos = prevEnd === -Infinity ? 80 : prevEnd + secGap;
-          }
-
-          secondaryPos.set(id, startPos);
-          prevEnd = startPos + breadth;
-        }
-      }
-
-      // Pass 2: Centering along secondary axis
-      for (let i = layerIndices.length - 1; i >= 0; i--) {
-        const layerIdx = layerIndices[i];
-        const entities = orderedLayers.get(layerIdx) || [];
-
-        for (const id of entities) {
-          const children = childrenOf.get(id) || [];
-          if (children.length === 0) continue;
-
-          const childCenters = children
-            .map((c) => {
-              const pos = secondaryPos.get(c);
+        let idealCenter: number | null = null;
+        if (parents.length > 0) {
+          const parentCenters = parents
+            .map((p) => {
+              const pos = secondaryPos.get(p);
               if (pos === undefined) return null;
-              const cDim = getBaseDim(c);
-              return pos + (isVertical ? cDim.width : cDim.height) / 2;
+              const pDim = getBaseDim(p);
+              return pos + (isVertical ? pDim.width : pDim.height) / 2;
             })
             .filter((v): v is number => v !== null);
 
-          if (childCenters.length > 0) {
-            const avgChildCenter = childCenters.reduce((a, b) => a + b, 0) / childCenters.length;
-            const dim = getBaseDim(id);
-            const breadth = isVertical ? dim.width : dim.height;
-            secondaryPos.set(id, avgChildCenter - breadth / 2);
+          if (parentCenters.length > 0) {
+            idealCenter = parentCenters.reduce((a, b) => a + b, 0) / parentCenters.length;
           }
         }
 
-        let prevEnd = -Infinity;
-        for (const id of entities) {
+        let startPos = idealCenter !== null ? idealCenter - breadth / 2 : 80;
+        if (startPos < prevEnd + effectiveGap) {
+          startPos = prevEnd === -Infinity ? 80 : prevEnd + effectiveGap;
+        }
+
+        secondaryPos.set(id, startPos);
+        prevEnd = startPos + breadth;
+        prevParent = currentParent;
+      }
+    }
+
+    // Pass 2: Centering along secondary axis
+    for (let i = layerIndices.length - 1; i >= 0; i--) {
+      const layerIdx = layerIndices[i];
+      const entities = orderedLayers.get(layerIdx) || [];
+
+      for (const id of entities) {
+        const children = childrenOf.get(id) || [];
+        if (children.length === 0) continue;
+
+        const childCenters = children
+          .map((c) => {
+            const pos = secondaryPos.get(c);
+            if (pos === undefined) return null;
+            const cDim = getBaseDim(c);
+            return pos + (isVertical ? cDim.width : cDim.height) / 2;
+          })
+          .filter((v): v is number => v !== null);
+
+        if (childCenters.length > 0) {
+          const avgChildCenter = childCenters.reduce((a, b) => a + b, 0) / childCenters.length;
           const dim = getBaseDim(id);
           const breadth = isVertical ? dim.width : dim.height;
-          let pos = secondaryPos.get(id) ?? 80;
-          if (pos < prevEnd + secGap) {
-            pos = prevEnd + secGap;
-            secondaryPos.set(id, pos);
-          }
-          prevEnd = pos + breadth;
+          secondaryPos.set(id, avgChildCenter - breadth / 2);
         }
       }
 
-      let minSec = Infinity;
-      for (const p of secondaryPos.values()) minSec = Math.min(minSec, p);
-      const secShift = minSec < 80 ? 80 - minSec : 0;
+      let prevEnd = -Infinity;
+      let prevParent: ID | null | undefined = undefined;
+      for (const id of entities) {
+        const dim = getBaseDim(id);
+        const breadth = isVertical ? dim.width : dim.height;
+        const currentParent = getParentId(id);
 
-      for (const layerIdx of layerIndices) {
-        const entities = orderedLayers.get(layerIdx) || [];
-        const primary = primaryOffsets.get(layerIdx) || 80;
+        let effectiveGap = secGap;
+        if (prevParent !== undefined && prevParent !== currentParent) {
+          effectiveGap = secGap + (isVertical ? CONTAINER_PADDING_X * 2 : HEADER_HEIGHT + CONTAINER_PADDING_Y * 2);
+        }
 
-        for (const id of entities) {
-          const dim = getBaseDim(id);
-          const secondary = (secondaryPos.get(id) ?? 80) + secShift;
-          const x = isVertical ? secondary : primary;
-          const y = isVertical ? primary : secondary;
+        let pos = secondaryPos.get(id) ?? 80;
+        if (pos < prevEnd + effectiveGap) {
+          pos = prevEnd + effectiveGap;
+          secondaryPos.set(id, pos);
+        }
+        prevEnd = pos + breadth;
+        prevParent = currentParent;
+      }
+    }
 
-          const item: NodeLayoutResult = { id, x, y, width: dim.width, height: dim.height };
-          if (graph.containers[id]) {
-            containersLayout[id] = item;
-          } else {
-            nodesLayout[id] = item;
-          }
+    let minSec = Infinity;
+    for (const p of secondaryPos.values()) minSec = Math.min(minSec, p);
+    const secShift = minSec < 80 ? 80 - minSec : 0;
+
+    for (const layerIdx of layerIndices) {
+      const entities = orderedLayers.get(layerIdx) || [];
+      const primary = primaryOffsets.get(layerIdx) || 80;
+
+      for (const id of entities) {
+        const dim = getBaseDim(id);
+        const secondary = (secondaryPos.get(id) ?? 80) + secShift;
+        const x = isVertical ? secondary : primary;
+        const y = isVertical ? primary : secondary;
+
+        const item: NodeLayoutResult = { id, x, y, width: dim.width, height: dim.height };
+        if (graph.containers[id]) {
+          containersLayout[id] = item;
+        } else {
+          nodesLayout[id] = item;
         }
       }
     }
 
+    // -------------------------------------------------------------------------
+    // Compound Container Bounding Boxes (Bottom-up depth traversal)
+    // -------------------------------------------------------------------------
+    const depths = CoordinateAssigner.getContainerDepths(graph);
+    const sortedContainers = Object.keys(graph.containers).sort(
+      (a, b) => (depths.get(b) || 0) - (depths.get(a) || 0)
+    );
+
+    const childrenMap = new Map<ID, ID[]>();
+    for (const [nId, n] of Object.entries(graph.nodes)) {
+      if (n.parentId) {
+        if (!childrenMap.has(n.parentId)) childrenMap.set(n.parentId, []);
+        childrenMap.get(n.parentId)!.push(nId);
+      }
+    }
+    for (const [cId, c] of Object.entries(graph.containers)) {
+      if (c.parentId) {
+        if (!childrenMap.has(c.parentId)) childrenMap.set(c.parentId, []);
+        childrenMap.get(c.parentId)!.push(cId);
+      }
+    }
+
+    for (const cId of sortedContainers) {
+      if (graph.containers[cId]?.collapsed) {
+        if (!containersLayout[cId]) {
+          containersLayout[cId] = {
+            id: cId,
+            x: 80,
+            y: 80,
+            width: COLLAPSED_CONTAINER_WIDTH,
+            height: COLLAPSED_CONTAINER_HEIGHT
+          };
+        }
+        continue;
+      }
+
+      const directChildren = childrenMap.get(cId) || [];
+      const childBoxes: NodeLayoutResult[] = [];
+      for (const chId of directChildren) {
+        const l = nodesLayout[chId] || containersLayout[chId];
+        if (l) childBoxes.push(l);
+      }
+
+      if (childBoxes.length === 0) {
+        if (!containersLayout[cId]) {
+          containersLayout[cId] = {
+            id: cId,
+            x: 80,
+            y: 80,
+            width: EMPTY_CONTAINER_WIDTH,
+            height: EMPTY_CONTAINER_HEIGHT
+          };
+        }
+      } else {
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        for (const b of childBoxes) {
+          minX = Math.min(minX, b.x);
+          maxX = Math.max(maxX, b.x + b.width);
+          minY = Math.min(minY, b.y);
+          maxY = Math.max(maxY, b.y + b.height);
+        }
+
+        const width = Math.max(maxX - minX + CONTAINER_PADDING_X * 2, COLLAPSED_CONTAINER_WIDTH);
+        const height = maxY - minY + HEADER_HEIGHT + CONTAINER_PADDING_Y * 2;
+        const x = minX - CONTAINER_PADDING_X;
+        const y = minY - HEADER_HEIGHT - CONTAINER_PADDING_Y;
+
+        containersLayout[cId] = { id: cId, x, y, width, height };
+      }
+    }
+
+    // Canvas boundary margin normalization
+    let minWorldX = Infinity;
+    let minWorldY = Infinity;
+    for (const it of [...Object.values(nodesLayout), ...Object.values(containersLayout)]) {
+      minWorldX = Math.min(minWorldX, it.x);
+      minWorldY = Math.min(minWorldY, it.y);
+    }
+
+    const TARGET_MARGIN = 60;
+    const shiftX = minWorldX < TARGET_MARGIN ? TARGET_MARGIN - minWorldX : 0;
+    const shiftY = minWorldY < TARGET_MARGIN ? TARGET_MARGIN - minWorldY : 0;
+
+    if (shiftX !== 0 || shiftY !== 0) {
+      for (const n of Object.values(nodesLayout)) {
+        n.x += shiftX;
+        n.y += shiftY;
+      }
+      for (const c of Object.values(containersLayout)) {
+        c.x += shiftX;
+        c.y += shiftY;
+      }
+    }
+  }
+
   private static assignDynamicPortSides(
     graph: LogicalGraph,
     nodesLayout: Record<ID, NodeLayoutResult>,
-    containersLayout: Record<ID, NodeLayoutResult>,
-    isTB: boolean
+    containersLayout: Record<ID, NodeLayoutResult>
   ) {
     const getPos = (id: ID) => nodesLayout[id] || containersLayout[id];
 
@@ -566,7 +669,6 @@ export class CoordinateAssigner {
       const dx = tgtPos.x + tgtPos.width / 2 - (srcPos.x + srcPos.width / 2);
       const dy = tgtPos.y + tgtPos.height / 2 - (srcPos.y + srcPos.height / 2);
 
-      // Determine dominant relative direction between the two connected entities
       const isHorizontalDominant = Math.abs(dx) > Math.abs(dy) * 1.25;
 
       const srcPort = srcEntity?.ports?.find((p) => p.id === edge.sourcePortId);

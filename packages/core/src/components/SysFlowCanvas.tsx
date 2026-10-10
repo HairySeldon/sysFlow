@@ -550,6 +550,10 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
             const containerLayout = layout.containers[container.id];
             if (!containerLayout) return null;
 
+            const hasChildren =
+              Object.values(graph.nodes).some((n) => n.parentId === container.id) ||
+              Object.values(graph.containers).some((c) => c.parentId === container.id);
+
             return (
               <GraphContainer
                 key={container.id}
@@ -557,6 +561,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 layout={containerLayout}
                 selected={selectedIds.includes(container.id)}
                 isHovered={hoveredContainerId === container.id}
+                hasChildren={hasChildren}
                 customRenderer={container.type ? containerTypes?.[container.type] : undefined}
                 onToggleCollapse={(cId, collapsed) =>
                   onChange({

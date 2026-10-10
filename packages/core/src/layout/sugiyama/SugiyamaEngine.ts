@@ -60,7 +60,7 @@ export class SugiyamaEngine implements LayoutEngine {
     const layeredNodes = LayerAssignment.assignLayers(decoupled.allEntityIds, decoupled.adjList);
 
     // 3. Crossing Minimization (Barycenter)
-    const orderedLayers = CrossingMinimizer.minimizeCrossings(layeredNodes, decoupled.adjList, 4);
+    const orderedLayers = CrossingMinimizer.minimizeCrossings(layeredNodes, decoupled.adjList, 4, graph);
 
     // 4. Coordinate & Bubble-Up Assignment
     return CoordinateAssigner.assignCoordinates(graph, orderedLayers, measurements, options);
