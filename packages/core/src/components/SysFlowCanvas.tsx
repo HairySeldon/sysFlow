@@ -311,15 +311,21 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       const isToIn = toPort?.label?.toLowerCase().includes('in') || toPort?.side === (direction === 'BT' ? 'bottom' : 'top');
       const isToOut = toPort?.label?.toLowerCase().includes('out') || toPort?.side === (direction === 'BT' ? 'top' : 'bottom');
 
-      // Rule 1: Port Semantic Normalization (Out is always source, In is always target)
+      // Rule 1: Dragged backwards from input to output: normalize so out -> in
       if (isFromIn && isToOut) {
-        // Dragged backwards from input to output: flip them!
         finalSourceId = entityId;
         finalSourcePortId = portId;
         finalTargetId = activeWire.sourceId;
         finalTargetPortId = activeWire.sourcePortId;
       } 
-      // Rule 2: Layout Spatial Normalization (In BT, the node with greater Y is source)
+      // Rule 2: Already valid output -> input: preserve user's explicit intent!
+      else if (isFromOut && isToIn) {
+        finalSourceId = activeWire.sourceId;
+        finalSourcePortId = activeWire.sourcePortId;
+        finalTargetId = entityId;
+        finalTargetPortId = portId;
+      }
+      // Rule 3: Fallback spatial normalization only for ambiguous/untyped ports
       else if (layout.nodes[activeWire.sourceId] && layout.nodes[entityId]) {
         const fromLayout = layout.nodes[activeWire.sourceId];
         const toLayout = layout.nodes[entityId];
@@ -328,7 +334,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         const shouldFlipTB = direction === 'TB' && fromLayout.y > toLayout.y;
 
         if (shouldFlipBT || shouldFlipTB) {
-          // Flow is in opposite spatial direction: flip source & target and pick proper facing ports
           finalSourceId = entityId;
           finalTargetId = activeWire.sourceId;
 
