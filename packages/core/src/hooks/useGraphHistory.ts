@@ -51,6 +51,74 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
           next.containers[entityId] = { ...next.containers[entityId], parentId: newParentId };
         }
         pushState(next);
+      } else if (action.type === 'EDGE_SPLIT_INSERT_NODE') {
+        const { edge, direction, suggestedNewNodeId, suggestedNewEdge1Id, suggestedNewEdge2Id } = action.payload;
+        const oldEdge = prev.edges[edge.id];
+        if (!oldEdge) return;
+
+        const isBT = direction === 'BT';
+        const isTB = direction === 'TB';
+        const isVertical = isBT || isTB;
+
+        const inPortId = `p_in_${Date.now()}`;
+        const outPortId = `p_out_${Date.now()}`;
+
+        // Direction-aware port orientation
+        let inSide: 'top' | 'bottom' | 'left' | 'right' = 'left';
+        let outSide: 'top' | 'bottom' | 'left' | 'right' = 'right';
+
+        if (isBT) {
+          inSide = 'bottom';
+          outSide = 'top';
+        } else if (isTB) {
+          inSide = 'top';
+          outSide = 'bottom';
+        } else if (direction === 'RL') {
+          inSide = 'right';
+          outSide = 'left';
+        }
+
+        // Inherit node type from the source node if available
+        const sourceNode = prev.nodes[oldEdge.sourceId];
+        const newNode: NodeEntity = {
+          id: suggestedNewNodeId,
+          label: `Node ${Object.keys(prev.nodes).length + 1}`,
+          type: sourceNode?.type || 'FlowTask',
+          parentId: sourceNode?.parentId ?? null,
+          ports: [
+            { id: inPortId, label: 'in', side: inSide },
+            { id: outPortId, label: 'out', side: outSide }
+          ]
+        };
+
+        // Edge 1: Original Source -> New Node
+        const edge1: EdgeEntity = {
+          id: suggestedNewEdge1Id,
+          sourceId: oldEdge.sourceId,
+          sourcePortId: oldEdge.sourcePortId,
+          targetId: suggestedNewNodeId,
+          targetPortId: inPortId
+        };
+
+        // Edge 2: New Node -> Original Target
+        const edge2: EdgeEntity = {
+          id: suggestedNewEdge2Id,
+          sourceId: suggestedNewNodeId,
+          sourcePortId: outPortId,
+          targetId: oldEdge.targetId,
+          targetPortId: oldEdge.targetPortId
+        };
+
+        const nextEdges = { ...prev.edges };
+        delete nextEdges[oldEdge.id]; // Remove original edge
+        nextEdges[suggestedNewEdge1Id] = edge1;
+        nextEdges[suggestedNewEdge2Id] = edge2;
+
+        pushState({
+          ...prev,
+          nodes: { ...prev.nodes, [suggestedNewNodeId]: newNode },
+          edges: nextEdges
+        });
     } else if (action.type === 'NODE_ADD_CONNECTED') {
       const { sourceNode, position, direction, suggestedNewNodeId, suggestedNewEdgeId } = action.payload;
       const isBT = direction === 'BT';

@@ -4,6 +4,7 @@ import {
   ID,
   NodeEntity,
   ContainerEntity,
+  EdgeEntity,
   GraphAction,
   computeEntityPortLocations,
   ComputePortOptions
@@ -37,6 +38,7 @@ export interface SysFlowCanvasProps {
   routing?: 'bezier' | 'step' | 'auto';
   theme?: 'dark' | 'light';
   enableQuickAdd?: boolean;
+  enableEdgeQuickAdd?: boolean;
 }
 
 const DEFAULT_STRATEGY = new ReparentStrategy();
@@ -57,7 +59,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   className = '',
   selectedIds = [],
   theme = 'dark',
-  enableQuickAdd
+  enableQuickAdd,
+  enableEdgeQuickAdd
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const internalEngineRef = useRef<LayoutEngine | null>(null);
@@ -485,6 +488,35 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     [direction, onChange]
   );
 
+  const shouldEnableEdgeQuickAdd =
+    enableEdgeQuickAdd ?? (enableQuickAdd ?? (layoutOptions?.mode === 'flow'));
+
+  const handleInsertNodeOnEdge = useCallback(
+    (edge: EdgeEntity) => {
+      const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newEdge1Id = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newEdge2Id = `edge_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`;
+
+      onChange({
+        type: 'EDGE_SPLIT_INSERT_NODE',
+        payload: {
+          edge,
+          direction,
+          suggestedNewNodeId: newNodeId,
+          suggestedNewEdge1Id: newEdge1Id,
+          suggestedNewEdge2Id: newEdge2Id
+        }
+      });
+
+      // Automatically select the newly created node
+      onChange({
+        type: 'SELECTION_CHANGE',
+        payload: { selectedIds: [newNodeId] }
+      });
+    },
+    [direction, onChange]
+  );
+
   const containersList = Object.values(graph.containers) as ContainerEntity[];
   const themeClass = theme === 'light' ? 'sysflow-theme-light' : 'sysflow-theme-dark';
 
@@ -553,6 +585,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           showArrows={showEdgeArrows}
           routing={routing}
           portOptions={resolvedPortOptions}
+          enableEdgeQuickAdd={shouldEnableEdgeQuickAdd}
+          onInsertNodeOnEdge={handleInsertNodeOnEdge}
           onEdgeClick={(edgeId) =>
             onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } })
           }

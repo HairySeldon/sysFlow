@@ -48,5 +48,14 @@ export type GraphAction = {
         suggestedNewNodeId: ID;
         suggestedNewEdgeId: ID;
     };
+} | {
+    type: 'EDGE_SPLIT_INSERT_NODE';
+    payload: {
+        edge: EdgeEntity;
+        direction: LayoutDirection;
+        suggestedNewNodeId: ID;
+        suggestedNewEdge1Id: ID;
+        suggestedNewEdge2Id: ID;
+    };
 };
 //# sourceMappingURL=Events.d.ts.map

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LogicalGraph,
   ID,
@@ -17,7 +17,9 @@ interface GraphEdgeLayerProps {
   showArrows?: boolean;
   routing?: 'bezier' | 'step' | 'auto';
   portOptions?: ComputePortOptions;
+  enableEdgeQuickAdd?: boolean;
   onEdgeClick?: (edgeId: ID) => void;
+  onInsertNodeOnEdge?: (edge: EdgeEntity) => void;
 }
 
 interface EndpointResult {
@@ -28,6 +30,11 @@ interface EndpointResult {
   entityId: ID;
 }
 
+interface PathCalculationResult {
+  pathStr: string;
+  center: { x: number; y: number };
+}
+
 export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   graph,
   layout,
@@ -36,8 +43,12 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
   showArrows = true,
   routing = 'auto',
   portOptions,
-  onEdgeClick
+  enableEdgeQuickAdd = true,
+  onEdgeClick,
+  onInsertNodeOnEdge
 }) => {
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<ID | null>(null);
+
   const isOrthogonal =
     routing === 'step' ||
     (routing === 'auto' && (direction === 'LR' || direction === 'RL'));
@@ -167,118 +178,156 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
     return { x: fallbackX, y: fallbackY, side: fallbackSide, valid: true, entityId };
   };
 
-  const calculateStepPath = (p0: EndpointResult, p1: EndpointResult): string => {
+  const calculateStepPath = (p0: EndpointResult, p1: EndpointResult): PathCalculationResult => {
     const midX = (p0.x + p1.x) / 2;
     const midY = (p0.y + p1.y) / 2;
 
-    // LR
     if (p0.side === 'right' && p1.side === 'left') {
       if (p1.x >= p0.x + 20) {
-        return `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`,
+          center: { x: midX, y: midY }
+        };
       } else {
         const yOffset = p1.y >= p0.y ? p0.y - 40 : p0.y + 40;
-        return `M ${p0.x} ${p0.y} L ${p0.x + 20} ${p0.y} L ${p0.x + 20} ${yOffset} L ${p1.x - 20} ${yOffset} L ${p1.x - 20} ${p1.y} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${p0.x + 20} ${p0.y} L ${p0.x + 20} ${yOffset} L ${p1.x - 20} ${yOffset} L ${p1.x - 20} ${p1.y} L ${p1.x} ${p1.y}`,
+          center: { x: midX, y: yOffset }
+        };
       }
     }
 
-    // RL
     if (p0.side === 'left' && p1.side === 'right') {
       if (p1.x <= p0.x - 20) {
-        return `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`,
+          center: { x: midX, y: midY }
+        };
       } else {
         const yOffset = p1.y >= p0.y ? p0.y - 40 : p0.y + 40;
-        return `M ${p0.x} ${p0.y} L ${p0.x - 20} ${p0.y} L ${p0.x - 20} ${yOffset} L ${p1.x + 20} ${yOffset} L ${p1.x + 20} ${p1.y} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${p0.x - 20} ${p0.y} L ${p0.x - 20} ${yOffset} L ${p1.x + 20} ${yOffset} L ${p1.x + 20} ${p1.y} L ${p1.x} ${p1.y}`,
+          center: { x: midX, y: yOffset }
+        };
       }
     }
 
-    // TB
     if (p0.side === 'bottom' && p1.side === 'top') {
       if (p1.y >= p0.y + 16) {
-        return `M ${p0.x} ${p0.y} L ${p0.x} ${midY} L ${p1.x} ${midY} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${p0.x} ${midY} L ${p1.x} ${midY} L ${p1.x} ${p1.y}`,
+          center: { x: midX, y: midY }
+        };
       } else {
         const xOffset = p1.x >= p0.x ? p0.x + 50 : p0.x - 50;
-        return `M ${p0.x} ${p0.y} L ${p0.x} ${p0.y + 20} L ${xOffset} ${p0.y + 20} L ${xOffset} ${p1.y - 20} L ${p1.x} ${p1.y - 20} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${p0.x} ${p0.y + 20} L ${xOffset} ${p0.y + 20} L ${xOffset} ${p1.y - 20} L ${p1.x} ${p1.y - 20} L ${p1.x} ${p1.y}`,
+          center: { x: xOffset, y: midY }
+        };
       }
     }
 
-    // BT
     if (p0.side === 'top' && p1.side === 'bottom') {
       if (p1.y <= p0.y - 16) {
-        return `M ${p0.x} ${p0.y} L ${p0.x} ${midY} L ${p1.x} ${midY} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${p0.x} ${midY} L ${p1.x} ${midY} L ${p1.x} ${p1.y}`,
+          center: { x: midX, y: midY }
+        };
       } else {
         const xOffset = p1.x >= p0.x ? p0.x + 50 : p0.x - 50;
-        return `M ${p0.x} ${p0.y} L ${p0.x} ${p0.y - 20} L ${xOffset} ${p0.y - 20} L ${xOffset} ${p1.y + 20} L ${p1.x} ${p1.y + 20} L ${p1.x} ${p1.y}`;
+        return {
+          pathStr: `M ${p0.x} ${p0.y} L ${p0.x} ${p0.y - 20} L ${xOffset} ${p0.y - 20} L ${xOffset} ${p1.y + 20} L ${p1.x} ${p1.y + 20} L ${p1.x} ${p1.y}`,
+          center: { x: xOffset, y: midY }
+        };
       }
     }
 
-    return `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`;
+    return {
+      pathStr: `M ${p0.x} ${p0.y} L ${midX} ${p0.y} L ${midX} ${p1.y} L ${p1.x} ${p1.y}`,
+      center: { x: midX, y: midY }
+    };
   };
 
-  const calculateBezierPath = (p0: EndpointResult, p1: EndpointResult): string => {
+  const calculateBezierPath = (p0: EndpointResult, p1: EndpointResult): PathCalculationResult => {
     const dx = p1.x - p0.x;
     const dy = p1.y - p0.y;
 
-    // TB (Flow downwards)
+    let cx0 = p0.x;
+    let cy0 = p0.y;
+    let cx1 = p1.x;
+    let cy1 = p1.y;
+
     if (p0.side === 'bottom' && p1.side === 'top') {
       if (dy > 0) {
         const verticalDrop = Math.min(28, dy * 0.4);
-        const cy0 = p0.y + Math.max(verticalDrop, dy * 0.5);
-        const cy1 = p1.y - Math.max(verticalDrop, dy * 0.5);
-        return `M ${p0.x} ${p0.y} C ${p0.x} ${cy0} ${p1.x} ${cy1} ${p1.x} ${p1.y}`;
+        cy0 = p0.y + Math.max(verticalDrop, dy * 0.5);
+        cy1 = p1.y - Math.max(verticalDrop, dy * 0.5);
       } else {
         const loopSide = dx >= 0 ? 1 : -1;
         const clearanceX = Math.max(40, Math.abs(dx) * 0.2);
-        return `M ${p0.x} ${p0.y} C ${p0.x + clearanceX * loopSide} ${p0.y + 40} ${p1.x + clearanceX * loopSide} ${p1.y - 40} ${p1.x} ${p1.y}`;
+        cx0 = p0.x + clearanceX * loopSide;
+        cy0 = p0.y + 40;
+        cx1 = p1.x + clearanceX * loopSide;
+        cy1 = p1.y - 40;
       }
-    }
-
-    // BT (Flow upwards)
-    if (p0.side === 'top' && p1.side === 'bottom') {
+    } else if (p0.side === 'top' && p1.side === 'bottom') {
       if (dy < 0) {
         const verticalRise = Math.min(28, Math.abs(dy) * 0.4);
-        const cy0 = p0.y - Math.max(verticalRise, Math.abs(dy) * 0.5);
-        const cy1 = p1.y + Math.max(verticalRise, Math.abs(dy) * 0.5);
-        return `M ${p0.x} ${p0.y} C ${p0.x} ${cy0} ${p1.x} ${cy1} ${p1.x} ${p1.y}`;
+        cy0 = p0.y - Math.max(verticalRise, Math.abs(dy) * 0.5);
+        cy1 = p1.y + Math.max(verticalRise, Math.abs(dy) * 0.5);
       } else {
         const loopSide = dx >= 0 ? 1 : -1;
         const clearanceX = Math.max(40, Math.abs(dx) * 0.2);
-        return `M ${p0.x} ${p0.y} C ${p0.x + clearanceX * loopSide} ${p0.y - 40} ${p1.x + clearanceX * loopSide} ${p1.y + 40} ${p1.x} ${p1.y}`;
+        cx0 = p0.x + clearanceX * loopSide;
+        cy0 = p0.y - 40;
+        cx1 = p1.x + clearanceX * loopSide;
+        cy1 = p1.y + 40;
       }
-    }
-
-    // LR (Flow rightwards)
-    if (p0.side === 'right' && p1.side === 'left') {
+    } else if (p0.side === 'right' && p1.side === 'left') {
       if (dx > 0) {
-        const cx0 = p0.x + dx * 0.5;
-        const cx1 = p1.x - dx * 0.5;
-        return `M ${p0.x} ${p0.y} C ${cx0} ${p0.y} ${cx1} ${p1.y} ${p1.x} ${p1.y}`;
+        cx0 = p0.x + dx * 0.5;
+        cx1 = p1.x - dx * 0.5;
       } else {
-        return `M ${p0.x} ${p0.y} C ${p0.x + 50} ${p0.y - 50} ${p1.x - 50} ${p1.y - 50} ${p1.x} ${p1.y}`;
+        cx0 = p0.x + 50;
+        cy0 = p0.y - 50;
+        cx1 = p1.x - 50;
+        cy1 = p1.y - 50;
       }
-    }
-
-    // RL (Flow leftwards)
-    if (p0.side === 'left' && p1.side === 'right') {
+    } else if (p0.side === 'left' && p1.side === 'right') {
       if (dx < 0) {
-        const cx0 = p0.x + dx * 0.5;
-        const cx1 = p1.x - dx * 0.5;
-        return `M ${p0.x} ${p0.y} C ${cx0} ${p0.y} ${cx1} ${p1.y} ${p1.x} ${p1.y}`;
+        cx0 = p0.x + dx * 0.5;
+        cx1 = p1.x - dx * 0.5;
       } else {
-        return `M ${p0.x} ${p0.y} C ${p0.x - 50} ${p0.y - 50} ${p1.x + 50} ${p1.y - 50} ${p1.x} ${p1.y}`;
+        cx0 = p0.x - 50;
+        cy0 = p0.y - 50;
+        cx1 = p1.x + 50;
+        cy1 = p1.y - 50;
       }
+    } else {
+      const normalMap: Record<string, { x: number; y: number }> = {
+        left: { x: -1, y: 0 },
+        right: { x: 1, y: 0 },
+        top: { x: 0, y: -1 },
+        bottom: { x: 0, y: 1 }
+      };
+      const n0 = normalMap[p0.side] || { x: 0, y: 1 };
+      const n1 = normalMap[p1.side] || { x: 0, y: -1 };
+      const clearance = Math.min(60, Math.hypot(dx, dy) * 0.35);
+
+      cx0 = p0.x + n0.x * clearance;
+      cy0 = p0.y + n0.y * clearance;
+      cx1 = p1.x + n1.x * clearance;
+      cy1 = p1.y + n1.y * clearance;
     }
 
-    const normalMap: Record<string, { x: number; y: number }> = {
-      left:   { x: -1, y: 0 },
-      right:  { x: 1,  y: 0 },
-      top:    { x: 0,  y: -1 },
-      bottom: { x: 0,  y: 1 }
-    };
-    const n0 = normalMap[p0.side] || { x: 0, y: 1 };
-    const n1 = normalMap[p1.side] || { x: 0, y: -1 };
-    const clearance = Math.min(60, Math.hypot(dx, dy) * 0.35);
+    // Exact Bézier Midpoint (t = 0.5): B(0.5) = (p0 + 3*c0 + 3*c1 + p1) / 8
+    const midX = 0.125 * p0.x + 0.375 * cx0 + 0.375 * cx1 + 0.125 * p1.x;
+    const midY = 0.125 * p0.y + 0.375 * cy0 + 0.375 * cy1 + 0.125 * p1.y;
 
-    return `M ${p0.x} ${p0.y} C ${p0.x + n0.x * clearance} ${p0.y + n0.y * clearance} ${p1.x + n1.x * clearance} ${p1.y + n1.y * clearance} ${p1.x} ${p1.y}`;
+    return {
+      pathStr: `M ${p0.x} ${p0.y} C ${cx0} ${cy0} ${cx1} ${cy1} ${p1.x} ${p1.y}`,
+      center: { x: midX, y: midY }
+    };
   };
 
   return (
@@ -316,28 +365,43 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
         if (p0.entityId === p1.entityId) return null;
 
         const isSelected = selectedIds.includes(edge.id);
-        const pathStr = isOrthogonal ? calculateStepPath(p0, p1) : calculateBezierPath(p0, p1);
+        const isHovered = hoveredEdgeId === edge.id;
+        const { pathStr, center } = isOrthogonal ? calculateStepPath(p0, p1) : calculateBezierPath(p0, p1);
 
         return (
-          <g key={edge.id} style={{ pointerEvents: 'stroke' }}>
+          <g
+            key={edge.id}
+            onMouseEnter={() => setHoveredEdgeId(edge.id)}
+            onMouseLeave={() => setHoveredEdgeId(null)}
+          >
+            {/* Wide invisible hit area */}
             <path
               d={pathStr}
               fill="none"
               stroke="transparent"
-              strokeWidth={14}
+              strokeWidth={24}
+              style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
               onClick={(e) => {
                 e.stopPropagation();
                 onEdgeClick?.(edge.id);
               }}
-              style={{ cursor: 'pointer' }}
             />
+
+            {/* Visible edge line */}
             <path
               d={pathStr}
               fill="none"
-              stroke={isSelected ? 'var(--sysflow-edge-selected)' : 'var(--sysflow-edge-stroke)'}
-              strokeWidth={isSelected ? 2.5 : 1.75}
+              stroke={
+                isSelected
+                  ? 'var(--sysflow-edge-selected)'
+                  : isHovered
+                  ? 'var(--sysflow-edge-hover, #38bdf8)'
+                  : 'var(--sysflow-edge-stroke)'
+              }
+              strokeWidth={isSelected ? 2.5 : isHovered ? 2.25 : 1.75}
               strokeLinejoin="round"
               strokeLinecap="round"
+              style={{ pointerEvents: 'none' }}
               markerEnd={
                 showArrows
                   ? isSelected
@@ -346,6 +410,45 @@ export const GraphEdgeLayer: React.FC<GraphEdgeLayerProps> = ({
                   : undefined
               }
             />
+
+            {/* Centered Quick-Add (+) Button on Edge Hover */}
+            {enableEdgeQuickAdd && isHovered && onInsertNodeOnEdge && (
+              <g transform={`translate(${center.x}, ${center.y})`}>
+                <g
+                  className="sysflow-edge-quick-add"
+                  style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onInsertNodeOnEdge(edge);
+                  }}
+                >
+                  {/* Outer invisible hit-pad to prevent hover loss */}
+                  <circle r={16} fill="transparent" />
+                  {/* Button background circle */}
+                  <circle
+                    r={10}
+                    className="sysflow-edge-add-circle"
+                    fill="#0ea5e9"
+                    stroke="#ffffff"
+                    strokeWidth={1.5}
+                  />
+                  {/* Plus glyph */}
+                  <text
+                    x={0}
+                    y={0}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="#ffffff"
+                    fontSize={14}
+                    fontWeight="bold"
+                    style={{ userSelect: 'none', pointerEvents: 'none' }}
+                  >
+                    +
+                  </text>
+                </g>
+              </g>
+            )}
           </g>
         );
       })}

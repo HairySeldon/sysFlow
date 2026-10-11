@@ -29,6 +29,7 @@ export interface SysFlowCanvasProps {
     routing?: 'bezier' | 'step' | 'auto';
     theme?: 'dark' | 'light';
     enableQuickAdd?: boolean;
+    enableEdgeQuickAdd?: boolean;
 }
 export declare const SysFlowCanvas: React.FC<SysFlowCanvasProps>;
 //# sourceMappingURL=SysFlowCanvas.d.ts.map

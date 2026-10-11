@@ -324,3 +324,23 @@
   left: 50%;
   transform: translateX(-50%);
 }
+
+/* Edge Quick-Add (+) Button */
+.sysflow-edge-quick-add {
+  transform-origin: 0 0;
+  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.sysflow-edge-quick-add:hover {
+  transform: scale(1.25);
+}
+
+.sysflow-edge-quick-add .sysflow-edge-add-circle {
+  transition: fill 0.15s ease, stroke 0.15s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.sysflow-edge-quick-add:hover .sysflow-edge-add-circle {
+  fill: #0284c7;
+  stroke: #e0f2fe;
+}

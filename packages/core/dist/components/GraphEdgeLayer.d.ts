@@ -1,5 +1,5 @@
 import { default as React } from 'react';
-import { LogicalGraph, ID, ComputePortOptions } from '../models';
+import { LogicalGraph, ID, EdgeEntity, ComputePortOptions } from '../models';
 import { LayoutResult } from '../layout/LayoutEngine';
 
 interface GraphEdgeLayerProps {
@@ -10,7 +10,9 @@ interface GraphEdgeLayerProps {
     showArrows?: boolean;
     routing?: 'bezier' | 'step' | 'auto';
     portOptions?: ComputePortOptions;
+    enableEdgeQuickAdd?: boolean;
     onEdgeClick?: (edgeId: ID) => void;
+    onInsertNodeOnEdge?: (edge: EdgeEntity) => void;
 }
 export declare const GraphEdgeLayer: React.FC<GraphEdgeLayerProps>;
 export {};

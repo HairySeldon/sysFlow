@@ -1,3 +1,5 @@
+// packages/core/src/models/Events.ts
+
 import { ID, NodeEntity } from './Entity';
 import { EdgeEntity } from './Edge';
 import { LayoutDirection } from './Graph';
@@ -17,5 +19,15 @@ export type GraphAction =
         direction: LayoutDirection;
         suggestedNewNodeId: ID;
         suggestedNewEdgeId: ID;
+      };
+    }
+  | {
+      type: 'EDGE_SPLIT_INSERT_NODE';
+      payload: {
+        edge: EdgeEntity;
+        direction: LayoutDirection;
+        suggestedNewNodeId: ID;
+        suggestedNewEdge1Id: ID;
+        suggestedNewEdge2Id: ID;
       };
     };
