@@ -91,7 +91,7 @@
   left: 0;
   width: 25000px;
   height: 25000px;
-  z-index: 0;
+  z-index: 5;
   pointer-events: none;
 }
 

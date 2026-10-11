@@ -576,22 +576,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           />
         )}
 
-        {/* Layer 0: SVG Background Edge System */}
-        <GraphEdgeLayer
-          graph={graph}
-          layout={layout}
-          selectedIds={selectedIds}
-          direction={direction}
-          showArrows={showEdgeArrows}
-          routing={routing}
-          portOptions={resolvedPortOptions}
-          enableEdgeQuickAdd={shouldEnableEdgeQuickAdd}
-          onInsertNodeOnEdge={handleInsertNodeOnEdge}
-          onEdgeClick={(edgeId) =>
-            onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } })
-          }
-        />
-
         {/* Live Wiring preview curve */}
         {activeWire && (
           <svg className="sysflow-edge-layer" style={{ pointerEvents: 'none' }}>
@@ -607,42 +591,61 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           </svg>
         )}
 
-        {/* Layer 10: HTML DOM Node & Container System */}
-        <div className="sysflow-dom-layer">
-          {containersList.map((container: ContainerEntity) => {
-            const containerLayout = layout.containers[container.id];
-            if (!containerLayout) return null;
+          {/* 1. Container Layer (z-index: 1) */}
+          <div className="sysflow-containers-layer" style={{ position: 'absolute', zIndex: 1, pointerEvents: 'none' }}>
+            {containersList.map((container: ContainerEntity) => {
+              const containerLayout = layout.containers[container.id];
+              if (!containerLayout) return null;
 
-            const hasChildren =
-              Object.values(graph.nodes).some((n) => n.parentId === container.id) ||
-              Object.values(graph.containers).some((c) => c.parentId === container.id);
+              const hasChildren =
+                Object.values(graph.nodes).some((n) => n.parentId === container.id) ||
+                Object.values(graph.containers).some((c) => c.parentId === container.id);
 
-            return (
-              <GraphContainer
-                key={container.id}
-                container={container}
-                layout={containerLayout}
-                selected={selectedIds.includes(container.id)}
-                isHovered={hoveredContainerId === container.id}
-                hasChildren={hasChildren}
-                customRenderer={container.type ? containerTypes?.[container.type] : undefined}
-                onToggleCollapse={(cId, collapsed) =>
-                  onChange({
-                    type: 'CONTAINER_TOGGLE_COLLAPSE',
-                    payload: { containerId: cId, collapsed }
-                  })
-                }
-                onPointerDown={onEntityPointerDown}
-                onMouseEnter={() => {}}
-                onMouseLeave={() => {}}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [container.id] } });
-                }}
-              />
-            );
-          })}
+              return (
+                <GraphContainer
+                  key={container.id}
+                  container={container}
+                  layout={containerLayout}
+                  selected={selectedIds.includes(container.id)}
+                  isHovered={hoveredContainerId === container.id}
+                  hasChildren={hasChildren}
+                  customRenderer={container.type ? containerTypes?.[container.type] : undefined}
+                  onToggleCollapse={(cId, collapsed) =>
+                    onChange({
+                      type: 'CONTAINER_TOGGLE_COLLAPSE',
+                      payload: { containerId: cId, collapsed }
+                    })
+                  }
+                  onPointerDown={onEntityPointerDown}
+                  onMouseEnter={() => {}}
+                  onMouseLeave={() => {}}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [container.id] } });
+                  }}
+                />
+              );
+            })}
+        </div>
 
+        {/* 2. Edges Layer (z-index: 5) */}
+        <GraphEdgeLayer
+          graph={graph}
+          layout={layout}
+          selectedIds={selectedIds}
+          direction={direction}
+          showArrows={showEdgeArrows}
+          routing={routing}
+          portOptions={resolvedPortOptions}
+          enableEdgeQuickAdd={shouldEnableEdgeQuickAdd}
+          onInsertNodeOnEdge={handleInsertNodeOnEdge}
+          onEdgeClick={(edgeId) =>
+            onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } })
+          }
+        />
+
+          {/* 3. Node Layer (z-index: 10) */}
+        <div className="sysflow-nodes-layer" style={{ position: 'absolute', zIndex: 10, pointerEvents: 'none' }}>
           {Object.values(graph.nodes).map((node) => {
             const nodeLayout = layout.nodes[node.id];
             if (!nodeLayout) return null;
