@@ -1,276 +1,276 @@
-var se = Object.defineProperty;
-var ne = (i, g, n) => g in i ? se(i, g, { enumerable: !0, configurable: !0, writable: !0, value: n }) : i[g] = n;
-var St = (i, g, n) => ne(i, typeof g != "symbol" ? g + "" : g, n);
-import { useState as et, useRef as Ct, useCallback as M, useEffect as Dt, useMemo as Ce } from "react";
-import { jsxs as $, jsx as N, Fragment as Et } from "react/jsx-runtime";
-function ie(i, g, n, s) {
-  const I = (r) => {
-    const c = n.find(
-      (C) => C.sourceId === g && C.sourcePortId === r || C.targetId === g && C.targetPortId === r
+var ne = Object.defineProperty;
+var Ce = (r, g, o) => g in r ? ne(r, g, { enumerable: !0, configurable: !0, writable: !0, value: o }) : r[g] = o;
+var St = (r, g, o) => Ce(r, typeof g != "symbol" ? g + "" : g, o);
+import { useState as et, useRef as Ct, useCallback as M, useEffect as Dt, useMemo as ie } from "react";
+import { jsxs as $, jsx as D, Fragment as Et } from "react/jsx-runtime";
+function de(r, g, o, d) {
+  const I = (s) => {
+    const C = o.find(
+      (c) => c.sourceId === g && c.sourcePortId === s || c.targetId === g && c.targetPortId === s
     );
-    if (!c) return null;
-    const l = c.sourceId === g ? c.targetId : c.sourceId, o = s[l];
-    return o ? { x: o.x + o.width / 2, y: o.y + o.height / 2 } : null;
+    if (!C) return null;
+    const a = C.sourceId === g ? C.targetId : C.sourceId, i = d[a];
+    return i ? { x: i.x + i.width / 2, y: i.y + i.height / 2 } : null;
   };
-  ["left", "right"].forEach((r) => {
-    i[r].sort((c, l) => {
+  ["left", "right"].forEach((s) => {
+    r[s].sort((C, a) => {
       var h, A;
-      const o = ((h = I(c.id)) == null ? void 0 : h.y) ?? 0, C = ((A = I(l.id)) == null ? void 0 : A.y) ?? 0;
-      return o - C;
+      const i = ((h = I(C.id)) == null ? void 0 : h.y) ?? 0, c = ((A = I(a.id)) == null ? void 0 : A.y) ?? 0;
+      return i - c;
     });
-  }), ["top", "bottom"].forEach((r) => {
-    i[r].sort((c, l) => {
+  }), ["top", "bottom"].forEach((s) => {
+    r[s].sort((C, a) => {
       var h, A;
-      const o = ((h = I(c.id)) == null ? void 0 : h.x) ?? 0, C = ((A = I(l.id)) == null ? void 0 : A.x) ?? 0;
-      return o - C;
+      const i = ((h = I(C.id)) == null ? void 0 : h.x) ?? 0, c = ((A = I(a.id)) == null ? void 0 : A.x) ?? 0;
+      return i - c;
     });
   });
 }
-function de(i, g, n, s, I, r) {
-  if (!I || !r)
-    return n ? "left" : "right";
-  const c = s.find(
-    (A) => n ? A.targetId === i && A.targetPortId === g : A.sourceId === i && A.sourcePortId === g
+function ce(r, g, o, d, I, s) {
+  if (!I || !s)
+    return o ? "left" : "right";
+  const C = d.find(
+    (A) => o ? A.targetId === r && A.targetPortId === g : A.sourceId === r && A.sourcePortId === g
   );
-  if (!c) return n ? "left" : "right";
-  const l = n ? c.sourceId : c.targetId, o = I[l];
-  if (!o) return n ? "left" : "right";
-  const C = o.x + o.width / 2 - (r.x + r.width / 2), h = o.y + o.height / 2 - (r.y + r.height / 2);
-  return Math.abs(C) > Math.abs(h) ? C > 0 ? "right" : "left" : h > 0 ? "bottom" : "top";
+  if (!C) return o ? "left" : "right";
+  const a = o ? C.sourceId : C.targetId, i = I[a];
+  if (!i) return o ? "left" : "right";
+  const c = i.x + i.width / 2 - (s.x + s.width / 2), h = i.y + i.height / 2 - (s.y + s.height / 2);
+  return Math.abs(c) > Math.abs(h) ? c > 0 ? "right" : "left" : h > 0 ? "bottom" : "top";
 }
-function Nt(i, g, n = "LR", s, I) {
-  const r = /* @__PURE__ */ new Map();
-  if (!i || !g || !i.ports || i.ports.length === 0)
-    return r;
-  const c = (I == null ? void 0 : I.direction) || n, l = c === "TB" || c === "BT", o = (I == null ? void 0 : I.mode) || (l ? "strict-flow" : "perimeter-optimized"), C = s ? Array.isArray(s) ? s : Object.values(s) : [], h = {
+function Nt(r, g, o = "LR", d, I) {
+  const s = /* @__PURE__ */ new Map();
+  if (!r || !g || !r.ports || r.ports.length === 0)
+    return s;
+  const C = (I == null ? void 0 : I.direction) || o, a = C === "TB" || C === "BT", i = (I == null ? void 0 : I.mode) || (a ? "strict-flow" : "perimeter-optimized"), c = d ? Array.isArray(d) ? d : Object.values(d) : [], h = {
     left: [],
     right: [],
     top: [],
     bottom: []
   }, A = new Set(
-    C.filter((b) => b.targetId === i.id).map((b) => b.targetPortId)
+    c.filter((b) => b.targetId === r.id).map((b) => b.targetPortId)
   );
   new Set(
-    C.filter((b) => b.sourceId === i.id).map((b) => b.sourcePortId)
-  ), i.ports.forEach((b) => {
-    let y = b.side || "auto";
-    if (y !== "auto") {
-      h[y].push(b);
+    c.filter((b) => b.sourceId === r.id).map((b) => b.sourcePortId)
+  ), r.ports.forEach((b) => {
+    let B = b.side || "auto";
+    if (B !== "auto") {
+      h[B].push(b);
       return;
     }
-    if (o === "strict-flow") {
-      const a = A.has(b.id) || b.label.toLowerCase().includes("in");
-      switch (c) {
+    if (i === "strict-flow") {
+      const n = A.has(b.id) || b.label.toLowerCase().includes("in");
+      switch (C) {
         case "BT":
-          y = a ? "bottom" : "top";
+          B = n ? "bottom" : "top";
           break;
         case "TB":
-          y = a ? "top" : "bottom";
+          B = n ? "top" : "bottom";
           break;
         case "RL":
-          y = a ? "right" : "left";
+          B = n ? "right" : "left";
           break;
         case "LR":
         default:
-          y = a ? "left" : "right";
+          B = n ? "left" : "right";
           break;
       }
     } else
-      y = de(
-        i.id,
+      B = ce(
+        r.id,
         b.id,
         A.has(b.id),
-        C,
+        c,
         I == null ? void 0 : I.nodeLayouts,
         g
       );
-    h[y].push(b);
-  }), o === "perimeter-optimized" && (I != null && I.nodeLayouts) && ie(h, i.id, C, I.nodeLayouts);
-  const f = (b, y) => {
-    const a = b.length;
-    b.forEach((e, t) => {
-      let d = 0, w = 0;
-      y === "left" || y === "right" ? (w = g.height / (a + 1) * (t + 1), d = y === "left" ? 0 : g.width) : (d = g.width / (a + 1) * (t + 1), w = y === "top" ? 0 : g.height), r.set(e.id, {
-        portId: e.id,
-        side: y,
-        localX: d,
-        localY: w,
-        worldX: g.x + d,
-        worldY: g.y + w
+    h[B].push(b);
+  }), i === "perimeter-optimized" && (I != null && I.nodeLayouts) && de(h, r.id, c, I.nodeLayouts);
+  const f = (b, B) => {
+    const n = b.length;
+    b.forEach((t, e) => {
+      let l = 0, m = 0;
+      B === "left" || B === "right" ? (m = g.height / (n + 1) * (e + 1), l = B === "left" ? 0 : g.width) : (l = g.width / (n + 1) * (e + 1), m = B === "top" ? 0 : g.height), s.set(t.id, {
+        portId: t.id,
+        side: B,
+        localX: l,
+        localY: m,
+        worldX: g.x + l,
+        worldY: g.y + m
       });
     });
   };
-  return f(h.left, "left"), f(h.right, "right"), f(h.top, "top"), f(h.bottom, "bottom"), r;
+  return f(h.left, "left"), f(h.right, "right"), f(h.top, "top"), f(h.bottom, "bottom"), s;
 }
-function ce(i) {
-  const g = {}, n = (s) => {
-    var r;
-    const I = i.nodes[s];
-    return new Set(((r = I == null ? void 0 : I.ports) == null ? void 0 : r.map((c) => c.id)) || []);
+function Wt(r) {
+  const g = {}, o = (d) => {
+    var s;
+    const I = r.nodes[d];
+    return new Set(((s = I == null ? void 0 : I.ports) == null ? void 0 : s.map((C) => C.id)) || []);
   };
-  for (const [s, I] of Object.entries(i.edges)) {
-    const r = n(I.sourceId), c = n(I.targetId), l = r.has(I.sourcePortId), o = c.has(I.targetPortId);
-    l && o && (g[s] = I);
+  for (const [d, I] of Object.entries(r.edges)) {
+    const s = o(I.sourceId), C = o(I.targetId), a = s.has(I.sourcePortId), i = C.has(I.targetPortId);
+    a && i && (g[d] = I);
   }
   return {
-    ...i,
+    ...r,
     edges: g
   };
 }
 class re {
-  static decouple(g, n) {
-    const s = /* @__PURE__ */ new Map();
-    for (const C of n)
-      s.set(C, /* @__PURE__ */ new Set());
+  static decouple(g, o) {
+    const d = /* @__PURE__ */ new Map();
+    for (const c of o)
+      d.set(c, /* @__PURE__ */ new Set());
     const I = Object.values(g.edges);
-    for (const C of I)
-      n.has(C.sourceId) && n.has(C.targetId) && s.get(C.sourceId).add(C.targetId);
-    const r = /* @__PURE__ */ new Set(), c = /* @__PURE__ */ new Set(), l = /* @__PURE__ */ new Set(), o = (C) => {
-      r.add(C), c.add(C);
-      const h = Array.from(s.get(C) || []);
+    for (const c of I)
+      o.has(c.sourceId) && o.has(c.targetId) && d.get(c.sourceId).add(c.targetId);
+    const s = /* @__PURE__ */ new Set(), C = /* @__PURE__ */ new Set(), a = /* @__PURE__ */ new Set(), i = (c) => {
+      s.add(c), C.add(c);
+      const h = Array.from(d.get(c) || []);
       for (const A of h)
-        r.has(A) ? c.has(A) && (s.get(C).delete(A), s.get(A).add(C), l.add(`${C}->${A}`)) : o(A);
-      c.delete(C);
+        s.has(A) ? C.has(A) && (d.get(c).delete(A), d.get(A).add(c), a.add(`${c}->${A}`)) : i(A);
+      C.delete(c);
     };
-    for (const C of n)
-      r.has(C) || o(C);
+    for (const c of o)
+      s.has(c) || i(c);
     return {
-      adjList: s,
-      reversedEdges: l,
-      allEntityIds: Array.from(n)
+      adjList: d,
+      reversedEdges: a,
+      allEntityIds: Array.from(o)
     };
   }
 }
 class le {
-  static assignLayers(g, n) {
-    const s = /* @__PURE__ */ new Map();
-    for (const o of g)
-      s.set(o, 0);
-    for (const [, o] of n.entries())
-      for (const C of o)
-        s.set(C, (s.get(C) || 0) + 1);
-    const I = /* @__PURE__ */ new Map(), r = [];
-    for (const o of g)
-      (s.get(o) || 0) === 0 && (I.set(o, 0), r.push(o));
-    const c = /* @__PURE__ */ new Set();
-    for (; r.length > 0; ) {
-      const o = r.shift();
-      c.add(o);
-      const C = I.get(o) || 0, h = n.get(o) || /* @__PURE__ */ new Set();
+  static assignLayers(g, o) {
+    const d = /* @__PURE__ */ new Map();
+    for (const i of g)
+      d.set(i, 0);
+    for (const [, i] of o.entries())
+      for (const c of i)
+        d.set(c, (d.get(c) || 0) + 1);
+    const I = /* @__PURE__ */ new Map(), s = [];
+    for (const i of g)
+      (d.get(i) || 0) === 0 && (I.set(i, 0), s.push(i));
+    const C = /* @__PURE__ */ new Set();
+    for (; s.length > 0; ) {
+      const i = s.shift();
+      C.add(i);
+      const c = I.get(i) || 0, h = o.get(i) || /* @__PURE__ */ new Set();
       for (const A of h) {
         const f = I.get(A) ?? 0;
-        I.set(A, Math.max(f, C + 1)), s.set(A, (s.get(A) || 1) - 1), s.get(A) === 0 && r.push(A);
+        I.set(A, Math.max(f, c + 1)), d.set(A, (d.get(A) || 1) - 1), d.get(A) === 0 && s.push(A);
       }
     }
-    for (const o of g)
-      I.has(o) || I.set(o, 0);
-    const l = /* @__PURE__ */ new Map();
-    for (const [o, C] of I.entries())
-      l.has(C) || l.set(C, []), l.get(C).push(o);
-    return l;
+    for (const i of g)
+      I.has(i) || I.set(i, 0);
+    const a = /* @__PURE__ */ new Map();
+    for (const [i, c] of I.entries())
+      a.has(c) || a.set(c, []), a.get(c).push(i);
+    return a;
   }
 }
 class nt {
-  static minimizeCrossings(g, n, s = 4, I) {
-    const r = Array.from(g.keys()).sort((o, C) => o - C);
-    if (r.length <= 1) return g;
-    const c = /* @__PURE__ */ new Map();
-    for (const [o, C] of n.entries())
-      for (const h of C)
-        c.has(h) || c.set(h, /* @__PURE__ */ new Set()), c.get(h).add(o);
-    const l = /* @__PURE__ */ new Map();
-    for (const [o, C] of g.entries())
-      l.set(o, [...C]);
-    for (let o = 0; o < s; o++) {
-      for (let C = 1; C < r.length; C++) {
-        const h = l.get(r[C - 1]), A = l.get(r[C]), f = /* @__PURE__ */ new Map();
-        h.forEach((b, y) => f.set(b, y)), nt.sortLayerNodes(A, c, f, I);
+  static minimizeCrossings(g, o, d = 4, I) {
+    const s = Array.from(g.keys()).sort((i, c) => i - c);
+    if (s.length <= 1) return g;
+    const C = /* @__PURE__ */ new Map();
+    for (const [i, c] of o.entries())
+      for (const h of c)
+        C.has(h) || C.set(h, /* @__PURE__ */ new Set()), C.get(h).add(i);
+    const a = /* @__PURE__ */ new Map();
+    for (const [i, c] of g.entries())
+      a.set(i, [...c]);
+    for (let i = 0; i < d; i++) {
+      for (let c = 1; c < s.length; c++) {
+        const h = a.get(s[c - 1]), A = a.get(s[c]), f = /* @__PURE__ */ new Map();
+        h.forEach((b, B) => f.set(b, B)), nt.sortLayerNodes(A, C, f, I);
       }
-      for (let C = r.length - 2; C >= 0; C--) {
-        const h = l.get(r[C + 1]), A = l.get(r[C]), f = /* @__PURE__ */ new Map();
-        h.forEach((b, y) => f.set(b, y)), nt.sortLayerNodes(A, n, f, I);
+      for (let c = s.length - 2; c >= 0; c--) {
+        const h = a.get(s[c + 1]), A = a.get(s[c]), f = /* @__PURE__ */ new Map();
+        h.forEach((b, B) => f.set(b, B)), nt.sortLayerNodes(A, o, f, I);
       }
     }
-    return l;
+    return a;
   }
-  static sortLayerNodes(g, n, s, I) {
-    var C, h, A;
+  static sortLayerNodes(g, o, d, I) {
+    var c, h, A;
     if (!I || Object.keys(I.containers).length === 0) {
       g.sort((f, b) => {
-        const y = nt.getBarycenter(f, n, s), a = nt.getBarycenter(b, n, s);
-        return y - a;
+        const B = nt.getBarycenter(f, o, d), n = nt.getBarycenter(b, o, d);
+        return B - n;
       });
       return;
     }
-    const r = /* @__PURE__ */ new Map();
+    const s = /* @__PURE__ */ new Map();
     for (const f of g)
-      r.set(f, nt.getBarycenter(f, n, s));
-    const c = /* @__PURE__ */ new Map(), l = /* @__PURE__ */ new Map();
+      s.set(f, nt.getBarycenter(f, o, d));
+    const C = /* @__PURE__ */ new Map(), a = /* @__PURE__ */ new Map();
     for (const f of g) {
-      const b = r.get(f) ?? 0;
-      let y = ((C = I.nodes[f]) == null ? void 0 : C.parentId) ?? ((h = I.containers[f]) == null ? void 0 : h.parentId);
-      for (; y; )
-        c.set(y, (c.get(y) || 0) + b), l.set(y, (l.get(y) || 0) + 1), y = (A = I.containers[y]) == null ? void 0 : A.parentId;
+      const b = s.get(f) ?? 0;
+      let B = ((c = I.nodes[f]) == null ? void 0 : c.parentId) ?? ((h = I.containers[f]) == null ? void 0 : h.parentId);
+      for (; B; )
+        C.set(B, (C.get(B) || 0) + b), a.set(B, (a.get(B) || 0) + 1), B = (A = I.containers[B]) == null ? void 0 : A.parentId;
     }
-    const o = (f) => {
+    const i = (f) => {
       if (I.containers[f]) {
-        const b = l.get(f) || 0;
-        return b === 0 ? 0 : (c.get(f) || 0) / b;
+        const b = a.get(f) || 0;
+        return b === 0 ? 0 : (C.get(f) || 0) / b;
       }
-      return r.get(f) ?? 0;
+      return s.get(f) ?? 0;
     };
     g.sort((f, b) => {
-      const y = nt.getAncestorPath(f, I), a = nt.getAncestorPath(b, I);
-      let e = 0;
-      for (; e < y.length && e < a.length && y[e] === a[e]; )
-        e++;
-      const t = y[e] ?? f, d = a[e] ?? b, w = o(t) - o(d);
-      return Math.abs(w) > 1e-5 ? w : t.localeCompare(d);
+      const B = nt.getAncestorPath(f, I), n = nt.getAncestorPath(b, I);
+      let t = 0;
+      for (; t < B.length && t < n.length && B[t] === n[t]; )
+        t++;
+      const e = B[t] ?? f, l = n[t] ?? b, m = i(e) - i(l);
+      return Math.abs(m) > 1e-5 ? m : e.localeCompare(l);
     });
   }
-  static getAncestorPath(g, n) {
-    var r, c, l;
-    const s = [g];
-    let I = ((r = n.nodes[g]) == null ? void 0 : r.parentId) ?? ((c = n.containers[g]) == null ? void 0 : c.parentId);
+  static getAncestorPath(g, o) {
+    var s, C, a;
+    const d = [g];
+    let I = ((s = o.nodes[g]) == null ? void 0 : s.parentId) ?? ((C = o.containers[g]) == null ? void 0 : C.parentId);
     for (; I; )
-      s.unshift(I), I = (l = n.containers[I]) == null ? void 0 : l.parentId;
-    return s;
+      d.unshift(I), I = (a = o.containers[I]) == null ? void 0 : a.parentId;
+    return d;
   }
-  static getBarycenter(g, n, s) {
-    const I = n.get(g);
+  static getBarycenter(g, o, d) {
+    const I = o.get(g);
     if (!I || I.size === 0) return 0;
-    let r = 0, c = 0;
-    for (const l of I)
-      s.has(l) && (r += s.get(l), c++);
-    return c === 0 ? 0 : r / c;
+    let s = 0, C = 0;
+    for (const a of I)
+      d.has(a) && (s += d.get(a), C++);
+    return C === 0 ? 0 : s / C;
   }
 }
-const st = 32, Pt = 24, ut = 22, rt = 18, lt = 38, wt = 210, Ht = 36, Ae = 180, ae = 54, Wt = 260, Xt = 160;
+const st = 32, Pt = 24, ut = 22, rt = 18, lt = 38, wt = 210, Ht = 36, Ae = 180, ae = 54, Xt = 260, Vt = 160;
 class It {
-  static assignCoordinates(g, n, s, I = { direction: "TB", mode: "auto", aspectRatio: 1.55 }) {
-    const r = I.direction ?? "TB", c = r === "TB" || r === "BT", l = r === "BT" || r === "RL", o = I.aspectRatio ?? 1.55, C = Object.keys(g.containers).length, h = I.mode && I.mode !== "auto" ? I.mode : C > 0 ? "concurrent" : "flow", A = {}, f = {}, b = (y) => {
-      var t, d, w, B, S;
-      const a = !!g.containers[y], e = !!((t = g.containers[y]) != null && t.collapsed);
-      return a && e ? { width: wt, height: Ht } : a && !e ? {
-        width: ((d = s.get(y)) == null ? void 0 : d.width) || Wt,
-        height: ((w = s.get(y)) == null ? void 0 : w.height) || Xt
+  static assignCoordinates(g, o, d, I = { direction: "TB", mode: "auto", aspectRatio: 1.55 }) {
+    const s = I.direction ?? "TB", C = s === "TB" || s === "BT", a = s === "BT" || s === "RL", i = I.aspectRatio ?? 1.55, c = Object.keys(g.containers).length, h = I.mode && I.mode !== "auto" ? I.mode : c > 0 ? "concurrent" : "flow", A = {}, f = {}, b = (B) => {
+      var e, l, m, w, u;
+      const n = !!g.containers[B], t = !!((e = g.containers[B]) != null && e.collapsed);
+      return n && t ? { width: wt, height: Ht } : n && !t ? {
+        width: ((l = d.get(B)) == null ? void 0 : l.width) || Xt,
+        height: ((m = d.get(B)) == null ? void 0 : m.height) || Vt
       } : {
-        width: ((B = s.get(y)) == null ? void 0 : B.width) || Ae,
-        height: ((S = s.get(y)) == null ? void 0 : S.height) || ae
+        width: ((w = d.get(B)) == null ? void 0 : w.width) || Ae,
+        height: ((u = d.get(B)) == null ? void 0 : u.height) || ae
       };
     };
     return h === "concurrent" ? It.layoutConcurrentHierarchy(
       g,
       b,
-      o,
+      i,
       A,
       f
     ) : It.layoutFlowTree(
       g,
-      n,
+      o,
       b,
-      c,
-      l,
+      C,
+      a,
       I,
       A,
       f
@@ -279,81 +279,81 @@ class It {
   // ===========================================================================
   // CONCURRENT COMPOUND PACKING WITH SKYLINE 2D BIN PACKING
   // ===========================================================================
-  static layoutConcurrentHierarchy(g, n, s, I, r) {
-    var y;
-    const c = /* @__PURE__ */ new Map();
-    for (const [a, e] of Object.entries(g.nodes)) {
-      const t = e.parentId ?? null;
-      c.has(t) || c.set(t, []), c.get(t).push(a);
+  static layoutConcurrentHierarchy(g, o, d, I, s) {
+    var B;
+    const C = /* @__PURE__ */ new Map();
+    for (const [n, t] of Object.entries(g.nodes)) {
+      const e = t.parentId ?? null;
+      C.has(e) || C.set(e, []), C.get(e).push(n);
     }
-    for (const [a, e] of Object.entries(g.containers)) {
-      const t = e.parentId ?? null;
-      c.has(t) || c.set(t, []), c.get(t).push(a);
+    for (const [n, t] of Object.entries(g.containers)) {
+      const e = t.parentId ?? null;
+      C.has(e) || C.set(e, []), C.get(e).push(n);
     }
-    const l = It.getContainerDepths(g), o = Object.keys(g.containers).sort(
-      (a, e) => (l.get(e) || 0) - (l.get(a) || 0)
-    ), C = /* @__PURE__ */ new Map(), h = /* @__PURE__ */ new Map();
-    for (const a of o) {
-      if (!!((y = g.containers[a]) != null && y.collapsed)) {
-        C.set(a, {
+    const a = It.getContainerDepths(g), i = Object.keys(g.containers).sort(
+      (n, t) => (a.get(t) || 0) - (a.get(n) || 0)
+    ), c = /* @__PURE__ */ new Map(), h = /* @__PURE__ */ new Map();
+    for (const n of i) {
+      if (!!((B = g.containers[n]) != null && B.collapsed)) {
+        c.set(n, {
           width: wt,
           height: Ht
         });
         continue;
       }
-      const t = c.get(a) || [];
-      if (t.length === 0) {
-        C.set(a, {
+      const e = C.get(n) || [];
+      if (e.length === 0) {
+        c.set(n, {
           width: wt,
           height: lt + rt * 2
         });
         continue;
       }
-      const d = t.map((m) => {
-        const p = C.has(m) ? C.get(m) : n(m);
-        return { id: m, width: p.width, height: p.height };
-      }), w = It.findBestTightPacking(d, s);
-      for (const m of w.boxes)
-        h.set(m.id, m);
-      const B = Math.max(w.width + ut * 2, wt), S = w.height + lt + rt * 2;
-      C.set(a, { width: B, height: S });
+      const l = e.map((p) => {
+        const G = c.has(p) ? c.get(p) : o(p);
+        return { id: p, width: G.width, height: G.height };
+      }), m = It.findBestTightPacking(l, d);
+      for (const p of m.boxes)
+        h.set(p.id, p);
+      const w = Math.max(m.width + ut * 2, wt), u = m.height + lt + rt * 2;
+      c.set(n, { width: w, height: u });
     }
-    const A = c.get(null) || [];
+    const A = C.get(null) || [];
     let f = [];
     if (A.length > 0) {
-      const a = A.map((t) => {
-        const d = C.get(t) || n(t);
-        return { id: t, width: d.width, height: d.height };
+      const n = A.map((e) => {
+        const l = c.get(e) || o(e);
+        return { id: e, width: l.width, height: l.height };
       });
-      f = It.findBestTightPacking(a, s).boxes.map((t) => ({
-        ...t,
-        localX: t.localX + 60,
-        localY: t.localY + 60
+      f = It.findBestTightPacking(n, d).boxes.map((e) => ({
+        ...e,
+        localX: e.localX + 60,
+        localY: e.localY + 60
       }));
     }
-    const b = (a, e, t, d, w) => {
-      var m;
-      const B = !!g.containers[a], S = { id: a, x: e, y: t, width: d, height: w };
-      if (B) {
-        if (r[a] = S, (m = g.containers[a]) != null && m.collapsed) return;
-        const p = e + ut, H = t + lt + rt, W = c.get(a) || [];
-        for (const P of W) {
-          const L = h.get(P);
-          L && b(
-            P,
-            p + L.localX,
-            H + L.localY,
-            L.width,
-            L.height
+    const b = (n, t, e, l, m) => {
+      var p;
+      const w = !!g.containers[n], u = { id: n, x: t, y: e, width: l, height: m };
+      if (w) {
+        if (s[n] = u, (p = g.containers[n]) != null && p.collapsed) return;
+        const G = t + ut, v = e + lt + rt, T = C.get(n) || [];
+        for (const Z of T) {
+          const P = h.get(Z);
+          P && b(
+            Z,
+            G + P.localX,
+            v + P.localY,
+            P.width,
+            P.height
           );
         }
       } else
-        I[a] = S;
+        I[n] = u;
     };
-    for (const a of f)
-      b(a.id, a.localX, a.localY, a.width, a.height);
+    for (const n of f)
+      b(n.id, n.localX, n.localY, n.width, n.height);
   }
-  static findBestTightPacking(g, n) {
+  static findBestTightPacking(g, o) {
     if (g.length === 1)
       return {
         width: g[0].width,
@@ -361,161 +361,161 @@ class It {
         boxes: [{ id: g[0].id, localX: 0, localY: 0, width: g[0].width, height: g[0].height }],
         score: 0
       };
-    const s = g.reduce((A, f) => A + f.width * f.height, 0), I = Math.max(...g.map((A) => A.width)), r = [...g].sort((A, f) => f.width - A.width), c = /* @__PURE__ */ new Set(), l = g.reduce((A, f) => A + f.width, 0) + (g.length - 1) * st;
-    c.add(l), c.add(I);
-    const o = Math.max(I, Math.sqrt(s * n));
-    c.add(o), c.add(o * 0.85), c.add(o * 1.15);
-    const C = Math.min(g.length, 6);
-    for (let A = 2; A <= C; A++) {
+    const d = g.reduce((A, f) => A + f.width * f.height, 0), I = Math.max(...g.map((A) => A.width)), s = [...g].sort((A, f) => f.width - A.width), C = /* @__PURE__ */ new Set(), a = g.reduce((A, f) => A + f.width, 0) + (g.length - 1) * st;
+    C.add(a), C.add(I);
+    const i = Math.max(I, Math.sqrt(d * o));
+    C.add(i), C.add(i * 0.85), C.add(i * 1.15);
+    const c = Math.min(g.length, 6);
+    for (let A = 2; A <= c; A++) {
       let f = 0;
-      for (let b = 0; b < A && b < r.length; b++)
-        f += r[b].width;
-      f += (A - 1) * st, f >= I && c.add(f);
+      for (let b = 0; b < A && b < s.length; b++)
+        f += s[b].width;
+      f += (A - 1) * st, f >= I && C.add(f);
     }
     let h = null;
-    for (const A of c) {
-      const f = It.simulateSkylinePacking(g, A), b = f.width * f.height, y = Math.max(0, b - s), a = f.width / Math.max(1, f.height), e = Math.abs(Math.log(a / n)), t = y / s * 2 + e * 0.25;
-      f.score = t, (!h || t < h.score) && (h = f);
+    for (const A of C) {
+      const f = It.simulateSkylinePacking(g, A), b = f.width * f.height, B = Math.max(0, b - d), n = f.width / Math.max(1, f.height), t = Math.abs(Math.log(n / o)), e = B / d * 2 + t * 0.25;
+      f.score = e, (!h || e < h.score) && (h = f);
     }
     return h;
   }
-  static simulateSkylinePacking(g, n) {
-    const s = [...g].sort((o, C) => C.height - o.height), I = [{ x: 0, width: n, y: 0 }], r = [];
-    for (const o of s) {
-      let C = 1 / 0, h = -1;
-      for (let t = 0; t < I.length; t++) {
-        if (I[t].x + o.width > n) continue;
-        let w = 0, B = 0;
-        for (let S = t; S < I.length && B < o.width; S++)
-          w = Math.max(w, I[S].y), B += I[S].width;
-        w < C && (C = w, h = t);
+  static simulateSkylinePacking(g, o) {
+    const d = [...g].sort((i, c) => c.height - i.height), I = [{ x: 0, width: o, y: 0 }], s = [];
+    for (const i of d) {
+      let c = 1 / 0, h = -1;
+      for (let e = 0; e < I.length; e++) {
+        if (I[e].x + i.width > o) continue;
+        let m = 0, w = 0;
+        for (let u = e; u < I.length && w < i.width; u++)
+          m = Math.max(m, I[u].y), w += I[u].width;
+        m < c && (c = m, h = e);
       }
       if (h === -1) {
-        const t = Math.max(...I.map((w) => w.y)), d = t === 0 ? 0 : t + Pt;
-        r.push({
-          id: o.id,
+        const e = Math.max(...I.map((m) => m.y)), l = e === 0 ? 0 : e + Pt;
+        s.push({
+          id: i.id,
           localX: 0,
-          localY: d,
-          width: o.width,
-          height: o.height
-        }), I.length = 0, I.push({ x: 0, width: o.width + st, y: d + o.height }), n > o.width + st && I.push({
-          x: o.width + st,
-          width: n - (o.width + st),
+          localY: l,
+          width: i.width,
+          height: i.height
+        }), I.length = 0, I.push({ x: 0, width: i.width + st, y: l + i.height }), o > i.width + st && I.push({
+          x: i.width + st,
+          width: o - (i.width + st),
           y: 0
         });
         continue;
       }
-      const A = I[h].x, f = C === 0 ? 0 : C + Pt;
-      r.push({
-        id: o.id,
+      const A = I[h].x, f = c === 0 ? 0 : c + Pt;
+      s.push({
+        id: i.id,
         localX: A,
         localY: f,
-        width: o.width,
-        height: o.height
+        width: i.width,
+        height: i.height
       });
-      const b = o.width + st, y = f + o.height, a = { x: A, width: b, y }, e = [];
-      for (const t of I)
-        t.x + t.width <= A || t.x >= A + b ? e.push(t) : (t.x < A && e.push({ x: t.x, width: A - t.x, y: t.y }), t.x + t.width > A + b && e.push({
+      const b = i.width + st, B = f + i.height, n = { x: A, width: b, y: B }, t = [];
+      for (const e of I)
+        e.x + e.width <= A || e.x >= A + b ? t.push(e) : (e.x < A && t.push({ x: e.x, width: A - e.x, y: e.y }), e.x + e.width > A + b && t.push({
           x: A + b,
-          width: t.x + t.width - (A + b),
-          y: t.y
+          width: e.x + e.width - (A + b),
+          y: e.y
         }));
-      e.push(a), e.sort((t, d) => t.x - d.x), I.length = 0, I.push(...e);
+      t.push(n), t.sort((e, l) => e.x - l.x), I.length = 0, I.push(...t);
     }
-    const c = Math.max(...r.map((o) => o.localX + o.width), 0), l = Math.max(...r.map((o) => o.localY + o.height), 0);
-    return { width: c, height: l, boxes: r, score: 0 };
+    const C = Math.max(...s.map((i) => i.localX + i.width), 0), a = Math.max(...s.map((i) => i.localY + i.height), 0);
+    return { width: C, height: a, boxes: s, score: 0 };
   }
   // ===========================================================================
   // FLOW TREE WITH COMPOUND CONTAINER SUPPORT
   // ===========================================================================
-  static layoutFlowTree(g, n, s, I, r, c, l, o) {
+  static layoutFlowTree(g, o, d, I, s, C, a, i) {
     var Q;
-    const C = Array.from(n.keys()).sort((G, D) => G - D), h = /* @__PURE__ */ new Map();
+    const c = Array.from(o.keys()).sort((K, k) => K - k), h = /* @__PURE__ */ new Map();
     let A = 80;
-    const f = I ? lt + rt * 2 : ut * 2, b = (I ? Pt * 1.5 : st * 1.5) + f, y = I ? st : Pt, a = r ? [...C].reverse() : [...C];
-    for (const G of a) {
-      const D = n.get(G) || [];
-      let u = 0;
-      for (const k of D) {
-        const E = s(k), Z = I ? E.height : E.width;
-        u = Math.max(u, Z);
+    const f = I ? lt + rt * 2 : ut * 2, b = (I ? Pt * 1.5 : st * 1.5) + f, B = I ? st : Pt, n = s ? [...c].reverse() : [...c];
+    for (const K of n) {
+      const k = o.get(K) || [];
+      let y = 0;
+      for (const H of k) {
+        const Y = d(H), L = I ? Y.height : Y.width;
+        y = Math.max(y, L);
       }
-      h.set(G, A), A += u + b;
+      h.set(K, A), A += y + b;
     }
-    const e = /* @__PURE__ */ new Map(), t = /* @__PURE__ */ new Map();
-    for (const G of Object.values(g.edges))
-      e.has(G.targetId) || e.set(G.targetId, []), e.get(G.targetId).push(G.sourceId), t.has(G.sourceId) || t.set(G.sourceId, []), t.get(G.sourceId).push(G.targetId);
-    const d = /* @__PURE__ */ new Map(), w = (G) => {
-      var D, u;
-      return ((D = g.nodes[G]) == null ? void 0 : D.parentId) ?? ((u = g.containers[G]) == null ? void 0 : u.parentId) ?? null;
+    const t = /* @__PURE__ */ new Map(), e = /* @__PURE__ */ new Map();
+    for (const K of Object.values(g.edges))
+      t.has(K.targetId) || t.set(K.targetId, []), t.get(K.targetId).push(K.sourceId), e.has(K.sourceId) || e.set(K.sourceId, []), e.get(K.sourceId).push(K.targetId);
+    const l = /* @__PURE__ */ new Map(), m = (K) => {
+      var k, y;
+      return ((k = g.nodes[K]) == null ? void 0 : k.parentId) ?? ((y = g.containers[K]) == null ? void 0 : y.parentId) ?? null;
     };
-    for (const G of C) {
-      const D = n.get(G) || [];
-      let u = -1 / 0, k;
-      for (const E of D) {
-        const Z = s(E), J = I ? Z.width : Z.height, T = e.get(E) || [], z = w(E);
-        let U = y;
-        k !== void 0 && k !== z && (U = y + (I ? ut * 2 : lt + rt * 2));
+    for (const K of c) {
+      const k = o.get(K) || [];
+      let y = -1 / 0, H;
+      for (const Y of k) {
+        const L = d(Y), F = I ? L.width : L.height, X = t.get(Y) || [], j = m(Y);
+        let U = B;
+        H !== void 0 && H !== j && (U = B + (I ? ut * 2 : lt + rt * 2));
         let R = null;
-        if (T.length > 0) {
-          const it = T.map((dt) => {
-            const ht = d.get(dt);
+        if (X.length > 0) {
+          const it = X.map((dt) => {
+            const ht = l.get(dt);
             if (ht === void 0) return null;
-            const pt = s(dt);
+            const pt = d(dt);
             return ht + (I ? pt.width : pt.height) / 2;
           }).filter((dt) => dt !== null);
           it.length > 0 && (R = it.reduce((dt, ht) => dt + ht, 0) / it.length);
         }
-        let _ = R !== null ? R - J / 2 : 80;
-        _ < u + U && (_ = u === -1 / 0 ? 80 : u + U), d.set(E, _), u = _ + J, k = z;
+        let _ = R !== null ? R - F / 2 : 80;
+        _ < y + U && (_ = y === -1 / 0 ? 80 : y + U), l.set(Y, _), y = _ + F, H = j;
       }
     }
-    for (let G = C.length - 1; G >= 0; G--) {
-      const D = C[G], u = n.get(D) || [];
-      for (const Z of u) {
-        const J = t.get(Z) || [];
-        if (J.length === 0) continue;
-        const T = J.map((z) => {
-          const U = d.get(z);
+    for (let K = c.length - 1; K >= 0; K--) {
+      const k = c[K], y = o.get(k) || [];
+      for (const L of y) {
+        const F = e.get(L) || [];
+        if (F.length === 0) continue;
+        const X = F.map((j) => {
+          const U = l.get(j);
           if (U === void 0) return null;
-          const R = s(z);
+          const R = d(j);
           return U + (I ? R.width : R.height) / 2;
-        }).filter((z) => z !== null);
-        if (T.length > 0) {
-          const z = T.reduce((_, it) => _ + it, 0) / T.length, U = s(Z), R = I ? U.width : U.height;
-          d.set(Z, z - R / 2);
+        }).filter((j) => j !== null);
+        if (X.length > 0) {
+          const j = X.reduce((_, it) => _ + it, 0) / X.length, U = d(L), R = I ? U.width : U.height;
+          l.set(L, j - R / 2);
         }
       }
-      let k = -1 / 0, E;
-      for (const Z of u) {
-        const J = s(Z), T = I ? J.width : J.height, z = w(Z);
-        let U = y;
-        E !== void 0 && E !== z && (U = y + (I ? ut * 2 : lt + rt * 2));
-        let R = d.get(Z) ?? 80;
-        R < k + U && (R = k + U, d.set(Z, R)), k = R + T, E = z;
+      let H = -1 / 0, Y;
+      for (const L of y) {
+        const F = d(L), X = I ? F.width : F.height, j = m(L);
+        let U = B;
+        Y !== void 0 && Y !== j && (U = B + (I ? ut * 2 : lt + rt * 2));
+        let R = l.get(L) ?? 80;
+        R < H + U && (R = H + U, l.set(L, R)), H = R + X, Y = j;
       }
     }
-    let B = 1 / 0;
-    for (const G of d.values()) B = Math.min(B, G);
-    const S = B < 80 ? 80 - B : 0;
-    for (const G of C) {
-      const D = n.get(G) || [], u = h.get(G) || 80;
-      for (const k of D) {
-        const E = s(k), Z = (d.get(k) ?? 80) + S, z = { id: k, x: I ? Z : u, y: I ? u : Z, width: E.width, height: E.height };
-        g.containers[k] ? o[k] = z : l[k] = z;
+    let w = 1 / 0;
+    for (const K of l.values()) w = Math.min(w, K);
+    const u = w < 80 ? 80 - w : 0;
+    for (const K of c) {
+      const k = o.get(K) || [], y = h.get(K) || 80;
+      for (const H of k) {
+        const Y = d(H), L = (l.get(H) ?? 80) + u, j = { id: H, x: I ? L : y, y: I ? y : L, width: Y.width, height: Y.height };
+        g.containers[H] ? i[H] = j : a[H] = j;
       }
     }
-    const m = It.getContainerDepths(g), p = Object.keys(g.containers).sort(
-      (G, D) => (m.get(D) || 0) - (m.get(G) || 0)
-    ), H = /* @__PURE__ */ new Map();
-    for (const [G, D] of Object.entries(g.nodes))
-      D.parentId && (H.has(D.parentId) || H.set(D.parentId, []), H.get(D.parentId).push(G));
-    for (const [G, D] of Object.entries(g.containers))
-      D.parentId && (H.has(D.parentId) || H.set(D.parentId, []), H.get(D.parentId).push(G));
-    for (const G of p) {
-      if ((Q = g.containers[G]) != null && Q.collapsed) {
-        o[G] || (o[G] = {
-          id: G,
+    const p = It.getContainerDepths(g), G = Object.keys(g.containers).sort(
+      (K, k) => (p.get(k) || 0) - (p.get(K) || 0)
+    ), v = /* @__PURE__ */ new Map();
+    for (const [K, k] of Object.entries(g.nodes))
+      k.parentId && (v.has(k.parentId) || v.set(k.parentId, []), v.get(k.parentId).push(K));
+    for (const [K, k] of Object.entries(g.containers))
+      k.parentId && (v.has(k.parentId) || v.set(k.parentId, []), v.get(k.parentId).push(K));
+    for (const K of G) {
+      if ((Q = g.containers[K]) != null && Q.collapsed) {
+        i[K] || (i[K] = {
+          id: K,
           x: 80,
           y: 80,
           width: wt,
@@ -523,123 +523,123 @@ class It {
         });
         continue;
       }
-      const D = H.get(G) || [], u = [];
-      for (const k of D) {
-        const E = l[k] || o[k];
-        E && u.push(E);
+      const k = v.get(K) || [], y = [];
+      for (const H of k) {
+        const Y = a[H] || i[H];
+        Y && y.push(Y);
       }
-      if (u.length === 0)
-        o[G] || (o[G] = {
-          id: G,
+      if (y.length === 0)
+        i[K] || (i[K] = {
+          id: K,
           x: 80,
           y: 80,
-          width: Wt,
-          height: Xt
+          width: Xt,
+          height: Vt
         });
       else {
-        let k = 1 / 0, E = -1 / 0, Z = 1 / 0, J = -1 / 0;
-        for (const _ of u)
-          k = Math.min(k, _.x), E = Math.max(E, _.x + _.width), Z = Math.min(Z, _.y), J = Math.max(J, _.y + _.height);
-        const T = Math.max(E - k + ut * 2, wt), z = J - Z + lt + rt * 2, U = k - ut, R = Z - lt - rt;
-        o[G] = { id: G, x: U, y: R, width: T, height: z };
+        let H = 1 / 0, Y = -1 / 0, L = 1 / 0, F = -1 / 0;
+        for (const _ of y)
+          H = Math.min(H, _.x), Y = Math.max(Y, _.x + _.width), L = Math.min(L, _.y), F = Math.max(F, _.y + _.height);
+        const X = Math.max(Y - H + ut * 2, wt), j = F - L + lt + rt * 2, U = H - ut, R = L - lt - rt;
+        i[K] = { id: K, x: U, y: R, width: X, height: j };
       }
     }
-    let W = 1 / 0, P = 1 / 0;
-    for (const G of [...Object.values(l), ...Object.values(o)])
-      W = Math.min(W, G.x), P = Math.min(P, G.y);
-    const L = 60, X = W < L ? L - W : 0, V = P < L ? L - P : 0;
-    if (X !== 0 || V !== 0) {
-      for (const G of Object.values(l))
-        G.x += X, G.y += V;
-      for (const G of Object.values(o))
-        G.x += X, G.y += V;
+    let T = 1 / 0, Z = 1 / 0;
+    for (const K of [...Object.values(a), ...Object.values(i)])
+      T = Math.min(T, K.x), Z = Math.min(Z, K.y);
+    const P = 60, W = T < P ? P - T : 0, V = Z < P ? P - Z : 0;
+    if (W !== 0 || V !== 0) {
+      for (const K of Object.values(a))
+        K.x += W, K.y += V;
+      for (const K of Object.values(i))
+        K.x += W, K.y += V;
     }
   }
-  static assignDynamicPortSides(g, n, s) {
-    var r, c;
-    const I = (l) => n[l] || s[l];
-    for (const l of Object.values(g.edges)) {
-      const o = I(l.sourceId), C = I(l.targetId);
-      if (!o || !C) continue;
-      const h = g.nodes[l.sourceId] || g.containers[l.sourceId], A = g.nodes[l.targetId] || g.containers[l.targetId], f = C.x + C.width / 2 - (o.x + o.width / 2), b = C.y + C.height / 2 - (o.y + o.height / 2), y = Math.abs(f) > Math.abs(b) * 1.25, a = (r = h == null ? void 0 : h.ports) == null ? void 0 : r.find((t) => t.id === l.sourcePortId);
-      a && (!a.side || a.side === "auto") && (y ? a.side = f >= 0 ? "right" : "left" : a.side = b >= 0 ? "bottom" : "top");
-      const e = (c = A == null ? void 0 : A.ports) == null ? void 0 : c.find((t) => t.id === l.targetPortId);
-      e && (!e.side || e.side === "auto") && (y ? e.side = f >= 0 ? "left" : "right" : e.side = b >= 0 ? "top" : "bottom");
+  static assignDynamicPortSides(g, o, d) {
+    var s, C;
+    const I = (a) => o[a] || d[a];
+    for (const a of Object.values(g.edges)) {
+      const i = I(a.sourceId), c = I(a.targetId);
+      if (!i || !c) continue;
+      const h = g.nodes[a.sourceId] || g.containers[a.sourceId], A = g.nodes[a.targetId] || g.containers[a.targetId], f = c.x + c.width / 2 - (i.x + i.width / 2), b = c.y + c.height / 2 - (i.y + i.height / 2), B = Math.abs(f) > Math.abs(b) * 1.25, n = (s = h == null ? void 0 : h.ports) == null ? void 0 : s.find((e) => e.id === a.sourcePortId);
+      n && (!n.side || n.side === "auto") && (B ? n.side = f >= 0 ? "right" : "left" : n.side = b >= 0 ? "bottom" : "top");
+      const t = (C = A == null ? void 0 : A.ports) == null ? void 0 : C.find((e) => e.id === a.targetPortId);
+      t && (!t.side || t.side === "auto") && (B ? t.side = f >= 0 ? "left" : "right" : t.side = b >= 0 ? "top" : "bottom");
     }
   }
   static getContainerDepths(g) {
-    const n = /* @__PURE__ */ new Map(), s = (I) => {
-      var l;
-      if (n.has(I)) return n.get(I);
-      const r = (l = g.containers[I]) == null ? void 0 : l.parentId;
-      if (!r || !g.containers[r])
-        return n.set(I, 0), 0;
-      const c = 1 + s(r);
-      return n.set(I, c), c;
+    const o = /* @__PURE__ */ new Map(), d = (I) => {
+      var a;
+      if (o.has(I)) return o.get(I);
+      const s = (a = g.containers[I]) == null ? void 0 : a.parentId;
+      if (!s || !g.containers[s])
+        return o.set(I, 0), 0;
+      const C = 1 + d(s);
+      return o.set(I, C), C;
     };
     for (const I of Object.keys(g.containers))
-      s(I);
-    return n;
+      d(I);
+    return o;
   }
 }
-function Vt(i, g, n) {
-  var r, c;
-  let s = i, I = null;
-  for (; s; )
-    n.has(s) && (I = s), s = ((r = g.nodes[s]) == null ? void 0 : r.parentId) ?? ((c = g.containers[s]) == null ? void 0 : c.parentId) ?? void 0;
-  return I ?? i;
+function Qt(r, g, o) {
+  var s, C;
+  let d = r, I = null;
+  for (; d; )
+    o.has(d) && (I = d), d = ((s = g.nodes[d]) == null ? void 0 : s.parentId) ?? ((C = g.containers[d]) == null ? void 0 : C.parentId) ?? void 0;
+  return I ?? r;
 }
 class ue {
-  async execute(g, n, s) {
-    const I = Object.values(g.containers), r = Object.values(g.nodes), c = new Set(
-      I.filter((y) => !!y.collapsed).map((y) => y.id)
-    ), l = (y) => {
-      var e;
-      let a = y;
-      for (; a; ) {
-        if (c.has(a)) return !0;
-        a = (e = g.containers[a]) == null ? void 0 : e.parentId;
+  async execute(g, o, d) {
+    const I = Object.values(g.containers), s = Object.values(g.nodes), C = new Set(
+      I.filter((B) => !!B.collapsed).map((B) => B.id)
+    ), a = (B) => {
+      var t;
+      let n = B;
+      for (; n; ) {
+        if (C.has(n)) return !0;
+        n = (t = g.containers[n]) == null ? void 0 : t.parentId;
       }
       return !1;
-    }, o = /* @__PURE__ */ new Set();
-    for (const [y, a] of Object.entries(g.nodes))
-      l(a.parentId) || o.add(y);
-    for (const [y, a] of Object.entries(g.containers))
-      a.collapsed ? l(a.parentId) || o.add(y) : !(r.some((t) => t.parentId === y) || I.some((t) => t.parentId === y)) && !l(a.parentId) && o.add(y);
-    const C = {};
-    for (const [y, a] of Object.entries(g.edges)) {
-      const e = Vt(a.sourceId, g, c), t = Vt(a.targetId, g, c);
-      e !== t && o.has(e) && o.has(t) && (C[y] = {
-        ...a,
-        sourceId: e,
-        targetId: t
+    }, i = /* @__PURE__ */ new Set();
+    for (const [B, n] of Object.entries(g.nodes))
+      a(n.parentId) || i.add(B);
+    for (const [B, n] of Object.entries(g.containers))
+      n.collapsed ? a(n.parentId) || i.add(B) : !(s.some((e) => e.parentId === B) || I.some((e) => e.parentId === B)) && !a(n.parentId) && i.add(B);
+    const c = {};
+    for (const [B, n] of Object.entries(g.edges)) {
+      const t = Qt(n.sourceId, g, C), e = Qt(n.targetId, g, C);
+      t !== e && i.has(t) && i.has(e) && (c[B] = {
+        ...n,
+        sourceId: t,
+        targetId: e
       });
     }
     const h = {
       ...g,
-      edges: C
-    }, A = re.decouple(h, o), f = le.assignLayers(A.allEntityIds, A.adjList), b = nt.minimizeCrossings(f, A.adjList, 4, h);
-    return It.assignCoordinates(h, b, n, s);
+      edges: c
+    }, A = re.decouple(h, i), f = le.assignLayers(A.allEntityIds, A.adjList), b = nt.minimizeCrossings(f, A.adjList, 4, h);
+    return It.assignCoordinates(h, b, o, d);
   }
 }
-const Mt = "Y2xhc3MgY3QgewogIHN0YXRpYyBkZWNvdXBsZShlLCBmKSB7CiAgICBjb25zdCBjID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGZvciAoY29uc3QgcyBvZiBmKQogICAgICBjLnNldChzLCAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpKTsKICAgIGNvbnN0IHQgPSBPYmplY3QudmFsdWVzKGUuZWRnZXMpOwogICAgZm9yIChjb25zdCBzIG9mIHQpCiAgICAgIGYuaGFzKHMuc291cmNlSWQpICYmIGYuaGFzKHMudGFyZ2V0SWQpICYmIGMuZ2V0KHMuc291cmNlSWQpLmFkZChzLnRhcmdldElkKTsKICAgIGNvbnN0IGQgPSAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpLCBoID0gLyogQF9fUFVSRV9fICovIG5ldyBTZXQoKSwgbCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgU2V0KCksIG4gPSAocykgPT4gewogICAgICBkLmFkZChzKSwgaC5hZGQocyk7CiAgICAgIGNvbnN0IHkgPSBBcnJheS5mcm9tKGMuZ2V0KHMpIHx8IFtdKTsKICAgICAgZm9yIChjb25zdCBpIG9mIHkpCiAgICAgICAgZC5oYXMoaSkgPyBoLmhhcyhpKSAmJiAoYy5nZXQocykuZGVsZXRlKGkpLCBjLmdldChpKS5hZGQocyksIGwuYWRkKGAke3N9LT4ke2l9YCkpIDogbihpKTsKICAgICAgaC5kZWxldGUocyk7CiAgICB9OwogICAgZm9yIChjb25zdCBzIG9mIGYpCiAgICAgIGQuaGFzKHMpIHx8IG4ocyk7CiAgICByZXR1cm4gewogICAgICBhZGpMaXN0OiBjLAogICAgICByZXZlcnNlZEVkZ2VzOiBsLAogICAgICBhbGxFbnRpdHlJZHM6IEFycmF5LmZyb20oZikKICAgIH07CiAgfQp9CmNsYXNzIGl0IHsKICBzdGF0aWMgYXNzaWduTGF5ZXJzKGUsIGYpIHsKICAgIGNvbnN0IGMgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCBuIG9mIGUpCiAgICAgIGMuc2V0KG4sIDApOwogICAgZm9yIChjb25zdCBbLCBuXSBvZiBmLmVudHJpZXMoKSkKICAgICAgZm9yIChjb25zdCBzIG9mIG4pCiAgICAgICAgYy5zZXQocywgKGMuZ2V0KHMpIHx8IDApICsgMSk7CiAgICBjb25zdCB0ID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKSwgZCA9IFtdOwogICAgZm9yIChjb25zdCBuIG9mIGUpCiAgICAgIChjLmdldChuKSB8fCAwKSA9PT0gMCAmJiAodC5zZXQobiwgMCksIGQucHVzaChuKSk7CiAgICBjb25zdCBoID0gLyogQF9fUFVSRV9fICovIG5ldyBTZXQoKTsKICAgIGZvciAoOyBkLmxlbmd0aCA+IDA7ICkgewogICAgICBjb25zdCBuID0gZC5zaGlmdCgpOwogICAgICBoLmFkZChuKTsKICAgICAgY29uc3QgcyA9IHQuZ2V0KG4pIHx8IDAsIHkgPSBmLmdldChuKSB8fCAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpOwogICAgICBmb3IgKGNvbnN0IGkgb2YgeSkgewogICAgICAgIGNvbnN0IHIgPSB0LmdldChpKSA/PyAwOwogICAgICAgIHQuc2V0KGksIE1hdGgubWF4KHIsIHMgKyAxKSksIGMuc2V0KGksIChjLmdldChpKSB8fCAxKSAtIDEpLCBjLmdldChpKSA9PT0gMCAmJiBkLnB1c2goaSk7CiAgICAgIH0KICAgIH0KICAgIGZvciAoY29uc3QgbiBvZiBlKQogICAgICB0LmhhcyhuKSB8fCB0LnNldChuLCAwKTsKICAgIGNvbnN0IGwgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCBbbiwgc10gb2YgdC5lbnRyaWVzKCkpCiAgICAgIGwuaGFzKHMpIHx8IGwuc2V0KHMsIFtdKSwgbC5nZXQocykucHVzaChuKTsKICAgIHJldHVybiBsOwogIH0KfQpjbGFzcyBHIHsKICBzdGF0aWMgbWluaW1pemVDcm9zc2luZ3MoZSwgZiwgYyA9IDQsIHQpIHsKICAgIGNvbnN0IGQgPSBBcnJheS5mcm9tKGUua2V5cygpKS5zb3J0KChuLCBzKSA9PiBuIC0gcyk7CiAgICBpZiAoZC5sZW5ndGggPD0gMSkgcmV0dXJuIGU7CiAgICBjb25zdCBoID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGZvciAoY29uc3QgW24sIHNdIG9mIGYuZW50cmllcygpKQogICAgICBmb3IgKGNvbnN0IHkgb2YgcykKICAgICAgICBoLmhhcyh5KSB8fCBoLnNldCh5LCAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpKSwgaC5nZXQoeSkuYWRkKG4pOwogICAgY29uc3QgbCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IFtuLCBzXSBvZiBlLmVudHJpZXMoKSkKICAgICAgbC5zZXQobiwgWy4uLnNdKTsKICAgIGZvciAobGV0IG4gPSAwOyBuIDwgYzsgbisrKSB7CiAgICAgIGZvciAobGV0IHMgPSAxOyBzIDwgZC5sZW5ndGg7IHMrKykgewogICAgICAgIGNvbnN0IHkgPSBsLmdldChkW3MgLSAxXSksIGkgPSBsLmdldChkW3NdKSwgciA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICAgICAgeS5mb3JFYWNoKChwLCBnKSA9PiByLnNldChwLCBnKSksIEcuc29ydExheWVyTm9kZXMoaSwgaCwgciwgdCk7CiAgICAgIH0KICAgICAgZm9yIChsZXQgcyA9IGQubGVuZ3RoIC0gMjsgcyA+PSAwOyBzLS0pIHsKICAgICAgICBjb25zdCB5ID0gbC5nZXQoZFtzICsgMV0pLCBpID0gbC5nZXQoZFtzXSksIHIgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgICAgIHkuZm9yRWFjaCgocCwgZykgPT4gci5zZXQocCwgZykpLCBHLnNvcnRMYXllck5vZGVzKGksIGYsIHIsIHQpOwogICAgICB9CiAgICB9CiAgICByZXR1cm4gbDsKICB9CiAgc3RhdGljIHNvcnRMYXllck5vZGVzKGUsIGYsIGMsIHQpIHsKICAgIHZhciBzLCB5LCBpOwogICAgaWYgKCF0IHx8IE9iamVjdC5rZXlzKHQuY29udGFpbmVycykubGVuZ3RoID09PSAwKSB7CiAgICAgIGUuc29ydCgociwgcCkgPT4gewogICAgICAgIGNvbnN0IGcgPSBHLmdldEJhcnljZW50ZXIociwgZiwgYyksIGEgPSBHLmdldEJhcnljZW50ZXIocCwgZiwgYyk7CiAgICAgICAgcmV0dXJuIGcgLSBhOwogICAgICB9KTsKICAgICAgcmV0dXJuOwogICAgfQogICAgY29uc3QgZCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IHIgb2YgZSkKICAgICAgZC5zZXQociwgRy5nZXRCYXJ5Y2VudGVyKHIsIGYsIGMpKTsKICAgIGNvbnN0IGggPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpLCBsID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGZvciAoY29uc3QgciBvZiBlKSB7CiAgICAgIGNvbnN0IHAgPSBkLmdldChyKSA/PyAwOwogICAgICBsZXQgZyA9ICgocyA9IHQubm9kZXNbcl0pID09IG51bGwgPyB2b2lkIDAgOiBzLnBhcmVudElkKSA/PyAoKHkgPSB0LmNvbnRhaW5lcnNbcl0pID09IG51bGwgPyB2b2lkIDAgOiB5LnBhcmVudElkKTsKICAgICAgZm9yICg7IGc7ICkKICAgICAgICBoLnNldChnLCAoaC5nZXQoZykgfHwgMCkgKyBwKSwgbC5zZXQoZywgKGwuZ2V0KGcpIHx8IDApICsgMSksIGcgPSAoaSA9IHQuY29udGFpbmVyc1tnXSkgPT0gbnVsbCA/IHZvaWQgMCA6IGkucGFyZW50SWQ7CiAgICB9CiAgICBjb25zdCBuID0gKHIpID0+IHsKICAgICAgaWYgKHQuY29udGFpbmVyc1tyXSkgewogICAgICAgIGNvbnN0IHAgPSBsLmdldChyKSB8fCAwOwogICAgICAgIHJldHVybiBwID09PSAwID8gMCA6IChoLmdldChyKSB8fCAwKSAvIHA7CiAgICAgIH0KICAgICAgcmV0dXJuIGQuZ2V0KHIpID8/IDA7CiAgICB9OwogICAgZS5zb3J0KChyLCBwKSA9PiB7CiAgICAgIGNvbnN0IGcgPSBHLmdldEFuY2VzdG9yUGF0aChyLCB0KSwgYSA9IEcuZ2V0QW5jZXN0b3JQYXRoKHAsIHQpOwogICAgICBsZXQgdyA9IDA7CiAgICAgIGZvciAoOyB3IDwgZy5sZW5ndGggJiYgdyA8IGEubGVuZ3RoICYmIGdbd10gPT09IGFbd107ICkKICAgICAgICB3Kys7CiAgICAgIGNvbnN0IG8gPSBnW3ddID8/IHIsIEkgPSBhW3ddID8/IHAsIE0gPSBuKG8pIC0gbihJKTsKICAgICAgcmV0dXJuIE1hdGguYWJzKE0pID4gMWUtNSA/IE0gOiBvLmxvY2FsZUNvbXBhcmUoSSk7CiAgICB9KTsKICB9CiAgc3RhdGljIGdldEFuY2VzdG9yUGF0aChlLCBmKSB7CiAgICB2YXIgZCwgaCwgbDsKICAgIGNvbnN0IGMgPSBbZV07CiAgICBsZXQgdCA9ICgoZCA9IGYubm9kZXNbZV0pID09IG51bGwgPyB2b2lkIDAgOiBkLnBhcmVudElkKSA/PyAoKGggPSBmLmNvbnRhaW5lcnNbZV0pID09IG51bGwgPyB2b2lkIDAgOiBoLnBhcmVudElkKTsKICAgIGZvciAoOyB0OyApCiAgICAgIGMudW5zaGlmdCh0KSwgdCA9IChsID0gZi5jb250YWluZXJzW3RdKSA9PSBudWxsID8gdm9pZCAwIDogbC5wYXJlbnRJZDsKICAgIHJldHVybiBjOwogIH0KICBzdGF0aWMgZ2V0QmFyeWNlbnRlcihlLCBmLCBjKSB7CiAgICBjb25zdCB0ID0gZi5nZXQoZSk7CiAgICBpZiAoIXQgfHwgdC5zaXplID09PSAwKSByZXR1cm4gMDsKICAgIGxldCBkID0gMCwgaCA9IDA7CiAgICBmb3IgKGNvbnN0IGwgb2YgdCkKICAgICAgYy5oYXMobCkgJiYgKGQgKz0gYy5nZXQobCksIGgrKyk7CiAgICByZXR1cm4gaCA9PT0gMCA/IDAgOiBkIC8gaDsKICB9Cn0KY29uc3QgayA9IDMyLCBRID0gMjQsIF8gPSAyMiwgUiA9IDE4LCBXID0gMzgsICQgPSAyMTAsIFYgPSAzNiwgcnQgPSAxODAsIGF0ID0gNTQsIG50ID0gMjYwLCBzdCA9IDE2MDsKY2xhc3MgWSB7CiAgc3RhdGljIGFzc2lnbkNvb3JkaW5hdGVzKGUsIGYsIGMsIHQgPSB7IGRpcmVjdGlvbjogIlRCIiwgbW9kZTogImF1dG8iLCBhc3BlY3RSYXRpbzogMS41NSB9KSB7CiAgICBjb25zdCBkID0gdC5kaXJlY3Rpb24gPz8gIlRCIiwgaCA9IGQgPT09ICJUQiIgfHwgZCA9PT0gIkJUIiwgbCA9IGQgPT09ICJCVCIgfHwgZCA9PT0gIlJMIiwgbiA9IHQuYXNwZWN0UmF0aW8gPz8gMS41NSwgcyA9IE9iamVjdC5rZXlzKGUuY29udGFpbmVycykubGVuZ3RoLCB5ID0gdC5tb2RlICYmIHQubW9kZSAhPT0gImF1dG8iID8gdC5tb2RlIDogcyA+IDAgPyAiY29uY3VycmVudCIgOiAiZmxvdyIsIGkgPSB7fSwgciA9IHt9LCBwID0gKGcpID0+IHsKICAgICAgdmFyIG8sIEksIE0sIEUsIFM7CiAgICAgIGNvbnN0IGEgPSAhIWUuY29udGFpbmVyc1tnXSwgdyA9ICEhKChvID0gZS5jb250YWluZXJzW2ddKSAhPSBudWxsICYmIG8uY29sbGFwc2VkKTsKICAgICAgcmV0dXJuIGEgJiYgdyA/IHsgd2lkdGg6ICQsIGhlaWdodDogViB9IDogYSAmJiAhdyA/IHsKICAgICAgICB3aWR0aDogKChJID0gYy5nZXQoZykpID09IG51bGwgPyB2b2lkIDAgOiBJLndpZHRoKSB8fCBudCwKICAgICAgICBoZWlnaHQ6ICgoTSA9IGMuZ2V0KGcpKSA9PSBudWxsID8gdm9pZCAwIDogTS5oZWlnaHQpIHx8IHN0CiAgICAgIH0gOiB7CiAgICAgICAgd2lkdGg6ICgoRSA9IGMuZ2V0KGcpKSA9PSBudWxsID8gdm9pZCAwIDogRS53aWR0aCkgfHwgcnQsCiAgICAgICAgaGVpZ2h0OiAoKFMgPSBjLmdldChnKSkgPT0gbnVsbCA/IHZvaWQgMCA6IFMuaGVpZ2h0KSB8fCBhdAogICAgICB9OwogICAgfTsKICAgIHJldHVybiB5ID09PSAiY29uY3VycmVudCIgPyBZLmxheW91dENvbmN1cnJlbnRIaWVyYXJjaHkoCiAgICAgIGUsCiAgICAgIHAsCiAgICAgIG4sCiAgICAgIGksCiAgICAgIHIKICAgICkgOiBZLmxheW91dEZsb3dUcmVlKAogICAgICBlLAogICAgICBmLAogICAgICBwLAogICAgICBoLAogICAgICBsLAogICAgICB0LAogICAgICBpLAogICAgICByCiAgICApLCBZLmFzc2lnbkR5bmFtaWNQb3J0U2lkZXMoZSwgaSwgciksIHsgbm9kZXM6IGksIGNvbnRhaW5lcnM6IHIgfTsKICB9CiAgLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAgLy8gQ09OQ1VSUkVOVCBDT01QT1VORCBQQUNLSU5HIFdJVEggU0tZTElORSAyRCBCSU4gUEFDS0lORwogIC8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQogIHN0YXRpYyBsYXlvdXRDb25jdXJyZW50SGllcmFyY2h5KGUsIGYsIGMsIHQsIGQpIHsKICAgIHZhciBnOwogICAgY29uc3QgaCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IFthLCB3XSBvZiBPYmplY3QuZW50cmllcyhlLm5vZGVzKSkgewogICAgICBjb25zdCBvID0gdy5wYXJlbnRJZCA/PyBudWxsOwogICAgICBoLmhhcyhvKSB8fCBoLnNldChvLCBbXSksIGguZ2V0KG8pLnB1c2goYSk7CiAgICB9CiAgICBmb3IgKGNvbnN0IFthLCB3XSBvZiBPYmplY3QuZW50cmllcyhlLmNvbnRhaW5lcnMpKSB7CiAgICAgIGNvbnN0IG8gPSB3LnBhcmVudElkID8/IG51bGw7CiAgICAgIGguaGFzKG8pIHx8IGguc2V0KG8sIFtdKSwgaC5nZXQobykucHVzaChhKTsKICAgIH0KICAgIGNvbnN0IGwgPSBZLmdldENvbnRhaW5lckRlcHRocyhlKSwgbiA9IE9iamVjdC5rZXlzKGUuY29udGFpbmVycykuc29ydCgKICAgICAgKGEsIHcpID0+IChsLmdldCh3KSB8fCAwKSAtIChsLmdldChhKSB8fCAwKQogICAgKSwgcyA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCksIHkgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCBhIG9mIG4pIHsKICAgICAgaWYgKCEhKChnID0gZS5jb250YWluZXJzW2FdKSAhPSBudWxsICYmIGcuY29sbGFwc2VkKSkgewogICAgICAgIHMuc2V0KGEsIHsKICAgICAgICAgIHdpZHRoOiAkLAogICAgICAgICAgaGVpZ2h0OiBWCiAgICAgICAgfSk7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgY29uc3QgbyA9IGguZ2V0KGEpIHx8IFtdOwogICAgICBpZiAoby5sZW5ndGggPT09IDApIHsKICAgICAgICBzLnNldChhLCB7CiAgICAgICAgICB3aWR0aDogJCwKICAgICAgICAgIGhlaWdodDogVyArIFIgKiAyCiAgICAgICAgfSk7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgY29uc3QgSSA9IG8ubWFwKChBKSA9PiB7CiAgICAgICAgY29uc3QgRiA9IHMuaGFzKEEpID8gcy5nZXQoQSkgOiBmKEEpOwogICAgICAgIHJldHVybiB7IGlkOiBBLCB3aWR0aDogRi53aWR0aCwgaGVpZ2h0OiBGLmhlaWdodCB9OwogICAgICB9KSwgTSA9IFkuZmluZEJlc3RUaWdodFBhY2tpbmcoSSwgYyk7CiAgICAgIGZvciAoY29uc3QgQSBvZiBNLmJveGVzKQogICAgICAgIHkuc2V0KEEuaWQsIEEpOwogICAgICBjb25zdCBFID0gTWF0aC5tYXgoTS53aWR0aCArIF8gKiAyLCAkKSwgUyA9IE0uaGVpZ2h0ICsgVyArIFIgKiAyOwogICAgICBzLnNldChhLCB7IHdpZHRoOiBFLCBoZWlnaHQ6IFMgfSk7CiAgICB9CiAgICBjb25zdCBpID0gaC5nZXQobnVsbCkgfHwgW107CiAgICBsZXQgciA9IFtdOwogICAgaWYgKGkubGVuZ3RoID4gMCkgewogICAgICBjb25zdCBhID0gaS5tYXAoKG8pID0+IHsKICAgICAgICBjb25zdCBJID0gcy5nZXQobykgfHwgZihvKTsKICAgICAgICByZXR1cm4geyBpZDogbywgd2lkdGg6IEkud2lkdGgsIGhlaWdodDogSS5oZWlnaHQgfTsKICAgICAgfSk7CiAgICAgIHIgPSBZLmZpbmRCZXN0VGlnaHRQYWNraW5nKGEsIGMpLmJveGVzLm1hcCgobykgPT4gKHsKICAgICAgICAuLi5vLAogICAgICAgIGxvY2FsWDogby5sb2NhbFggKyA2MCwKICAgICAgICBsb2NhbFk6IG8ubG9jYWxZICsgNjAKICAgICAgfSkpOwogICAgfQogICAgY29uc3QgcCA9IChhLCB3LCBvLCBJLCBNKSA9PiB7CiAgICAgIHZhciBBOwogICAgICBjb25zdCBFID0gISFlLmNvbnRhaW5lcnNbYV0sIFMgPSB7IGlkOiBhLCB4OiB3LCB5OiBvLCB3aWR0aDogSSwgaGVpZ2h0OiBNIH07CiAgICAgIGlmIChFKSB7CiAgICAgICAgaWYgKGRbYV0gPSBTLCAoQSA9IGUuY29udGFpbmVyc1thXSkgIT0gbnVsbCAmJiBBLmNvbGxhcHNlZCkgcmV0dXJuOwogICAgICAgIGNvbnN0IEYgPSB3ICsgXywgSCA9IG8gKyBXICsgUiwgVSA9IGguZ2V0KGEpIHx8IFtdOwogICAgICAgIGZvciAoY29uc3QgTCBvZiBVKSB7CiAgICAgICAgICBjb25zdCBCID0geS5nZXQoTCk7CiAgICAgICAgICBCICYmIHAoCiAgICAgICAgICAgIEwsCiAgICAgICAgICAgIEYgKyBCLmxvY2FsWCwKICAgICAgICAgICAgSCArIEIubG9jYWxZLAogICAgICAgICAgICBCLndpZHRoLAogICAgICAgICAgICBCLmhlaWdodAogICAgICAgICAgKTsKICAgICAgICB9CiAgICAgIH0gZWxzZQogICAgICAgIHRbYV0gPSBTOwogICAgfTsKICAgIGZvciAoY29uc3QgYSBvZiByKQogICAgICBwKGEuaWQsIGEubG9jYWxYLCBhLmxvY2FsWSwgYS53aWR0aCwgYS5oZWlnaHQpOwogIH0KICBzdGF0aWMgZmluZEJlc3RUaWdodFBhY2tpbmcoZSwgZikgewogICAgaWYgKGUubGVuZ3RoID09PSAxKQogICAgICByZXR1cm4gewogICAgICAgIHdpZHRoOiBlWzBdLndpZHRoLAogICAgICAgIGhlaWdodDogZVswXS5oZWlnaHQsCiAgICAgICAgYm94ZXM6IFt7IGlkOiBlWzBdLmlkLCBsb2NhbFg6IDAsIGxvY2FsWTogMCwgd2lkdGg6IGVbMF0ud2lkdGgsIGhlaWdodDogZVswXS5oZWlnaHQgfV0sCiAgICAgICAgc2NvcmU6IDAKICAgICAgfTsKICAgIGNvbnN0IGMgPSBlLnJlZHVjZSgoaSwgcikgPT4gaSArIHIud2lkdGggKiByLmhlaWdodCwgMCksIHQgPSBNYXRoLm1heCguLi5lLm1hcCgoaSkgPT4gaS53aWR0aCkpLCBkID0gWy4uLmVdLnNvcnQoKGksIHIpID0+IHIud2lkdGggLSBpLndpZHRoKSwgaCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgU2V0KCksIGwgPSBlLnJlZHVjZSgoaSwgcikgPT4gaSArIHIud2lkdGgsIDApICsgKGUubGVuZ3RoIC0gMSkgKiBrOwogICAgaC5hZGQobCksIGguYWRkKHQpOwogICAgY29uc3QgbiA9IE1hdGgubWF4KHQsIE1hdGguc3FydChjICogZikpOwogICAgaC5hZGQobiksIGguYWRkKG4gKiAwLjg1KSwgaC5hZGQobiAqIDEuMTUpOwogICAgY29uc3QgcyA9IE1hdGgubWluKGUubGVuZ3RoLCA2KTsKICAgIGZvciAobGV0IGkgPSAyOyBpIDw9IHM7IGkrKykgewogICAgICBsZXQgciA9IDA7CiAgICAgIGZvciAobGV0IHAgPSAwOyBwIDwgaSAmJiBwIDwgZC5sZW5ndGg7IHArKykKICAgICAgICByICs9IGRbcF0ud2lkdGg7CiAgICAgIHIgKz0gKGkgLSAxKSAqIGssIHIgPj0gdCAmJiBoLmFkZChyKTsKICAgIH0KICAgIGxldCB5ID0gbnVsbDsKICAgIGZvciAoY29uc3QgaSBvZiBoKSB7CiAgICAgIGNvbnN0IHIgPSBZLnNpbXVsYXRlU2t5bGluZVBhY2tpbmcoZSwgaSksIHAgPSByLndpZHRoICogci5oZWlnaHQsIGcgPSBNYXRoLm1heCgwLCBwIC0gYyksIGEgPSByLndpZHRoIC8gTWF0aC5tYXgoMSwgci5oZWlnaHQpLCB3ID0gTWF0aC5hYnMoTWF0aC5sb2coYSAvIGYpKSwgbyA9IGcgLyBjICogMiArIHcgKiAwLjI1OwogICAgICByLnNjb3JlID0gbywgKCF5IHx8IG8gPCB5LnNjb3JlKSAmJiAoeSA9IHIpOwogICAgfQogICAgcmV0dXJuIHk7CiAgfQogIHN0YXRpYyBzaW11bGF0ZVNreWxpbmVQYWNraW5nKGUsIGYpIHsKICAgIGNvbnN0IGMgPSBbLi4uZV0uc29ydCgobiwgcykgPT4gcy5oZWlnaHQgLSBuLmhlaWdodCksIHQgPSBbeyB4OiAwLCB3aWR0aDogZiwgeTogMCB9XSwgZCA9IFtdOwogICAgZm9yIChjb25zdCBuIG9mIGMpIHsKICAgICAgbGV0IHMgPSAxIC8gMCwgeSA9IC0xOwogICAgICBmb3IgKGxldCBvID0gMDsgbyA8IHQubGVuZ3RoOyBvKyspIHsKICAgICAgICBpZiAodFtvXS54ICsgbi53aWR0aCA+IGYpIGNvbnRpbnVlOwogICAgICAgIGxldCBNID0gMCwgRSA9IDA7CiAgICAgICAgZm9yIChsZXQgUyA9IG87IFMgPCB0Lmxlbmd0aCAmJiBFIDwgbi53aWR0aDsgUysrKQogICAgICAgICAgTSA9IE1hdGgubWF4KE0sIHRbU10ueSksIEUgKz0gdFtTXS53aWR0aDsKICAgICAgICBNIDwgcyAmJiAocyA9IE0sIHkgPSBvKTsKICAgICAgfQogICAgICBpZiAoeSA9PT0gLTEpIHsKICAgICAgICBjb25zdCBvID0gTWF0aC5tYXgoLi4udC5tYXAoKE0pID0+IE0ueSkpLCBJID0gbyA9PT0gMCA/IDAgOiBvICsgUTsKICAgICAgICBkLnB1c2goewogICAgICAgICAgaWQ6IG4uaWQsCiAgICAgICAgICBsb2NhbFg6IDAsCiAgICAgICAgICBsb2NhbFk6IEksCiAgICAgICAgICB3aWR0aDogbi53aWR0aCwKICAgICAgICAgIGhlaWdodDogbi5oZWlnaHQKICAgICAgICB9KSwgdC5sZW5ndGggPSAwLCB0LnB1c2goeyB4OiAwLCB3aWR0aDogbi53aWR0aCArIGssIHk6IEkgKyBuLmhlaWdodCB9KSwgZiA+IG4ud2lkdGggKyBrICYmIHQucHVzaCh7CiAgICAgICAgICB4OiBuLndpZHRoICsgaywKICAgICAgICAgIHdpZHRoOiBmIC0gKG4ud2lkdGggKyBrKSwKICAgICAgICAgIHk6IDAKICAgICAgICB9KTsKICAgICAgICBjb250aW51ZTsKICAgICAgfQogICAgICBjb25zdCBpID0gdFt5XS54LCByID0gcyA9PT0gMCA/IDAgOiBzICsgUTsKICAgICAgZC5wdXNoKHsKICAgICAgICBpZDogbi5pZCwKICAgICAgICBsb2NhbFg6IGksCiAgICAgICAgbG9jYWxZOiByLAogICAgICAgIHdpZHRoOiBuLndpZHRoLAogICAgICAgIGhlaWdodDogbi5oZWlnaHQKICAgICAgfSk7CiAgICAgIGNvbnN0IHAgPSBuLndpZHRoICsgaywgZyA9IHIgKyBuLmhlaWdodCwgYSA9IHsgeDogaSwgd2lkdGg6IHAsIHk6IGcgfSwgdyA9IFtdOwogICAgICBmb3IgKGNvbnN0IG8gb2YgdCkKICAgICAgICBvLnggKyBvLndpZHRoIDw9IGkgfHwgby54ID49IGkgKyBwID8gdy5wdXNoKG8pIDogKG8ueCA8IGkgJiYgdy5wdXNoKHsgeDogby54LCB3aWR0aDogaSAtIG8ueCwgeTogby55IH0pLCBvLnggKyBvLndpZHRoID4gaSArIHAgJiYgdy5wdXNoKHsKICAgICAgICAgIHg6IGkgKyBwLAogICAgICAgICAgd2lkdGg6IG8ueCArIG8ud2lkdGggLSAoaSArIHApLAogICAgICAgICAgeTogby55CiAgICAgICAgfSkpOwogICAgICB3LnB1c2goYSksIHcuc29ydCgobywgSSkgPT4gby54IC0gSS54KSwgdC5sZW5ndGggPSAwLCB0LnB1c2goLi4udyk7CiAgICB9CiAgICBjb25zdCBoID0gTWF0aC5tYXgoLi4uZC5tYXAoKG4pID0+IG4ubG9jYWxYICsgbi53aWR0aCksIDApLCBsID0gTWF0aC5tYXgoLi4uZC5tYXAoKG4pID0+IG4ubG9jYWxZICsgbi5oZWlnaHQpLCAwKTsKICAgIHJldHVybiB7IHdpZHRoOiBoLCBoZWlnaHQ6IGwsIGJveGVzOiBkLCBzY29yZTogMCB9OwogIH0KICAvLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KICAvLyBGTE9XIFRSRUUgV0lUSCBDT01QT1VORCBDT05UQUlORVIgU1VQUE9SVAogIC8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQogIHN0YXRpYyBsYXlvdXRGbG93VHJlZShlLCBmLCBjLCB0LCBkLCBoLCBsLCBuKSB7CiAgICB2YXIgdHQ7CiAgICBjb25zdCBzID0gQXJyYXkuZnJvbShmLmtleXMoKSkuc29ydCgodSwgeCkgPT4gdSAtIHgpLCB5ID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGxldCBpID0gODA7CiAgICBjb25zdCByID0gdCA/IFcgKyBSICogMiA6IF8gKiAyLCBwID0gKHQgPyBRICogMS41IDogayAqIDEuNSkgKyByLCBnID0gdCA/IGsgOiBRLCBhID0gZCA/IFsuLi5zXS5yZXZlcnNlKCkgOiBbLi4uc107CiAgICBmb3IgKGNvbnN0IHUgb2YgYSkgewogICAgICBjb25zdCB4ID0gZi5nZXQodSkgfHwgW107CiAgICAgIGxldCBPID0gMDsKICAgICAgZm9yIChjb25zdCBtIG9mIHgpIHsKICAgICAgICBjb25zdCBiID0gYyhtKSwgUCA9IHQgPyBiLmhlaWdodCA6IGIud2lkdGg7CiAgICAgICAgTyA9IE1hdGgubWF4KE8sIFApOwogICAgICB9CiAgICAgIHkuc2V0KHUsIGkpLCBpICs9IE8gKyBwOwogICAgfQogICAgY29uc3QgdyA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCksIG8gPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCB1IG9mIE9iamVjdC52YWx1ZXMoZS5lZGdlcykpCiAgICAgIHcuaGFzKHUudGFyZ2V0SWQpIHx8IHcuc2V0KHUudGFyZ2V0SWQsIFtdKSwgdy5nZXQodS50YXJnZXRJZCkucHVzaCh1LnNvdXJjZUlkKSwgby5oYXModS5zb3VyY2VJZCkgfHwgby5zZXQodS5zb3VyY2VJZCwgW10pLCBvLmdldCh1LnNvdXJjZUlkKS5wdXNoKHUudGFyZ2V0SWQpOwogICAgY29uc3QgSSA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCksIE0gPSAodSkgPT4gewogICAgICB2YXIgeCwgTzsKICAgICAgcmV0dXJuICgoeCA9IGUubm9kZXNbdV0pID09IG51bGwgPyB2b2lkIDAgOiB4LnBhcmVudElkKSA/PyAoKE8gPSBlLmNvbnRhaW5lcnNbdV0pID09IG51bGwgPyB2b2lkIDAgOiBPLnBhcmVudElkKSA/PyBudWxsOwogICAgfTsKICAgIGZvciAoY29uc3QgdSBvZiBzKSB7CiAgICAgIGNvbnN0IHggPSBmLmdldCh1KSB8fCBbXTsKICAgICAgbGV0IE8gPSAtMSAvIDAsIG07CiAgICAgIGZvciAoY29uc3QgYiBvZiB4KSB7CiAgICAgICAgY29uc3QgUCA9IGMoYiksIE4gPSB0ID8gUC53aWR0aCA6IFAuaGVpZ2h0LCBEID0gdy5nZXQoYikgfHwgW10sIHYgPSBNKGIpOwogICAgICAgIGxldCBDID0gZzsKICAgICAgICBtICE9PSB2b2lkIDAgJiYgbSAhPT0gdiAmJiAoQyA9IGcgKyAodCA/IF8gKiAyIDogVyArIFIgKiAyKSk7CiAgICAgICAgbGV0IFQgPSBudWxsOwogICAgICAgIGlmIChELmxlbmd0aCA+IDApIHsKICAgICAgICAgIGNvbnN0IEogPSBELm1hcCgocSkgPT4gewogICAgICAgICAgICBjb25zdCBLID0gSS5nZXQocSk7CiAgICAgICAgICAgIGlmIChLID09PSB2b2lkIDApIHJldHVybiBudWxsOwogICAgICAgICAgICBjb25zdCBldCA9IGMocSk7CiAgICAgICAgICAgIHJldHVybiBLICsgKHQgPyBldC53aWR0aCA6IGV0LmhlaWdodCkgLyAyOwogICAgICAgICAgfSkuZmlsdGVyKChxKSA9PiBxICE9PSBudWxsKTsKICAgICAgICAgIEoubGVuZ3RoID4gMCAmJiAoVCA9IEoucmVkdWNlKChxLCBLKSA9PiBxICsgSywgMCkgLyBKLmxlbmd0aCk7CiAgICAgICAgfQogICAgICAgIGxldCBqID0gVCAhPT0gbnVsbCA/IFQgLSBOIC8gMiA6IDgwOwogICAgICAgIGogPCBPICsgQyAmJiAoaiA9IE8gPT09IC0xIC8gMCA/IDgwIDogTyArIEMpLCBJLnNldChiLCBqKSwgTyA9IGogKyBOLCBtID0gdjsKICAgICAgfQogICAgfQogICAgZm9yIChsZXQgdSA9IHMubGVuZ3RoIC0gMTsgdSA+PSAwOyB1LS0pIHsKICAgICAgY29uc3QgeCA9IHNbdV0sIE8gPSBmLmdldCh4KSB8fCBbXTsKICAgICAgZm9yIChjb25zdCBQIG9mIE8pIHsKICAgICAgICBjb25zdCBOID0gby5nZXQoUCkgfHwgW107CiAgICAgICAgaWYgKE4ubGVuZ3RoID09PSAwKSBjb250aW51ZTsKICAgICAgICBjb25zdCBEID0gTi5tYXAoKHYpID0+IHsKICAgICAgICAgIGNvbnN0IEMgPSBJLmdldCh2KTsKICAgICAgICAgIGlmIChDID09PSB2b2lkIDApIHJldHVybiBudWxsOwogICAgICAgICAgY29uc3QgVCA9IGModik7CiAgICAgICAgICByZXR1cm4gQyArICh0ID8gVC53aWR0aCA6IFQuaGVpZ2h0KSAvIDI7CiAgICAgICAgfSkuZmlsdGVyKCh2KSA9PiB2ICE9PSBudWxsKTsKICAgICAgICBpZiAoRC5sZW5ndGggPiAwKSB7CiAgICAgICAgICBjb25zdCB2ID0gRC5yZWR1Y2UoKGosIEopID0+IGogKyBKLCAwKSAvIEQubGVuZ3RoLCBDID0gYyhQKSwgVCA9IHQgPyBDLndpZHRoIDogQy5oZWlnaHQ7CiAgICAgICAgICBJLnNldChQLCB2IC0gVCAvIDIpOwogICAgICAgIH0KICAgICAgfQogICAgICBsZXQgbSA9IC0xIC8gMCwgYjsKICAgICAgZm9yIChjb25zdCBQIG9mIE8pIHsKICAgICAgICBjb25zdCBOID0gYyhQKSwgRCA9IHQgPyBOLndpZHRoIDogTi5oZWlnaHQsIHYgPSBNKFApOwogICAgICAgIGxldCBDID0gZzsKICAgICAgICBiICE9PSB2b2lkIDAgJiYgYiAhPT0gdiAmJiAoQyA9IGcgKyAodCA/IF8gKiAyIDogVyArIFIgKiAyKSk7CiAgICAgICAgbGV0IFQgPSBJLmdldChQKSA/PyA4MDsKICAgICAgICBUIDwgbSArIEMgJiYgKFQgPSBtICsgQywgSS5zZXQoUCwgVCkpLCBtID0gVCArIEQsIGIgPSB2OwogICAgICB9CiAgICB9CiAgICBsZXQgRSA9IDEgLyAwOwogICAgZm9yIChjb25zdCB1IG9mIEkudmFsdWVzKCkpIEUgPSBNYXRoLm1pbihFLCB1KTsKICAgIGNvbnN0IFMgPSBFIDwgODAgPyA4MCAtIEUgOiAwOwogICAgZm9yIChjb25zdCB1IG9mIHMpIHsKICAgICAgY29uc3QgeCA9IGYuZ2V0KHUpIHx8IFtdLCBPID0geS5nZXQodSkgfHwgODA7CiAgICAgIGZvciAoY29uc3QgbSBvZiB4KSB7CiAgICAgICAgY29uc3QgYiA9IGMobSksIFAgPSAoSS5nZXQobSkgPz8gODApICsgUywgdiA9IHsgaWQ6IG0sIHg6IHQgPyBQIDogTywgeTogdCA/IE8gOiBQLCB3aWR0aDogYi53aWR0aCwgaGVpZ2h0OiBiLmhlaWdodCB9OwogICAgICAgIGUuY29udGFpbmVyc1ttXSA/IG5bbV0gPSB2IDogbFttXSA9IHY7CiAgICAgIH0KICAgIH0KICAgIGNvbnN0IEEgPSBZLmdldENvbnRhaW5lckRlcHRocyhlKSwgRiA9IE9iamVjdC5rZXlzKGUuY29udGFpbmVycykuc29ydCgKICAgICAgKHUsIHgpID0+IChBLmdldCh4KSB8fCAwKSAtIChBLmdldCh1KSB8fCAwKQogICAgKSwgSCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IFt1LCB4XSBvZiBPYmplY3QuZW50cmllcyhlLm5vZGVzKSkKICAgICAgeC5wYXJlbnRJZCAmJiAoSC5oYXMoeC5wYXJlbnRJZCkgfHwgSC5zZXQoeC5wYXJlbnRJZCwgW10pLCBILmdldCh4LnBhcmVudElkKS5wdXNoKHUpKTsKICAgIGZvciAoY29uc3QgW3UsIHhdIG9mIE9iamVjdC5lbnRyaWVzKGUuY29udGFpbmVycykpCiAgICAgIHgucGFyZW50SWQgJiYgKEguaGFzKHgucGFyZW50SWQpIHx8IEguc2V0KHgucGFyZW50SWQsIFtdKSwgSC5nZXQoeC5wYXJlbnRJZCkucHVzaCh1KSk7CiAgICBmb3IgKGNvbnN0IHUgb2YgRikgewogICAgICBpZiAoKHR0ID0gZS5jb250YWluZXJzW3VdKSAhPSBudWxsICYmIHR0LmNvbGxhcHNlZCkgewogICAgICAgIG5bdV0gfHwgKG5bdV0gPSB7CiAgICAgICAgICBpZDogdSwKICAgICAgICAgIHg6IDgwLAogICAgICAgICAgeTogODAsCiAgICAgICAgICB3aWR0aDogJCwKICAgICAgICAgIGhlaWdodDogVgogICAgICAgIH0pOwogICAgICAgIGNvbnRpbnVlOwogICAgICB9CiAgICAgIGNvbnN0IHggPSBILmdldCh1KSB8fCBbXSwgTyA9IFtdOwogICAgICBmb3IgKGNvbnN0IG0gb2YgeCkgewogICAgICAgIGNvbnN0IGIgPSBsW21dIHx8IG5bbV07CiAgICAgICAgYiAmJiBPLnB1c2goYik7CiAgICAgIH0KICAgICAgaWYgKE8ubGVuZ3RoID09PSAwKQogICAgICAgIG5bdV0gfHwgKG5bdV0gPSB7CiAgICAgICAgICBpZDogdSwKICAgICAgICAgIHg6IDgwLAogICAgICAgICAgeTogODAsCiAgICAgICAgICB3aWR0aDogbnQsCiAgICAgICAgICBoZWlnaHQ6IHN0CiAgICAgICAgfSk7CiAgICAgIGVsc2UgewogICAgICAgIGxldCBtID0gMSAvIDAsIGIgPSAtMSAvIDAsIFAgPSAxIC8gMCwgTiA9IC0xIC8gMDsKICAgICAgICBmb3IgKGNvbnN0IGogb2YgTykKICAgICAgICAgIG0gPSBNYXRoLm1pbihtLCBqLngpLCBiID0gTWF0aC5tYXgoYiwgai54ICsgai53aWR0aCksIFAgPSBNYXRoLm1pbihQLCBqLnkpLCBOID0gTWF0aC5tYXgoTiwgai55ICsgai5oZWlnaHQpOwogICAgICAgIGNvbnN0IEQgPSBNYXRoLm1heChiIC0gbSArIF8gKiAyLCAkKSwgdiA9IE4gLSBQICsgVyArIFIgKiAyLCBDID0gbSAtIF8sIFQgPSBQIC0gVyAtIFI7CiAgICAgICAgblt1XSA9IHsgaWQ6IHUsIHg6IEMsIHk6IFQsIHdpZHRoOiBELCBoZWlnaHQ6IHYgfTsKICAgICAgfQogICAgfQogICAgbGV0IFUgPSAxIC8gMCwgTCA9IDEgLyAwOwogICAgZm9yIChjb25zdCB1IG9mIFsuLi5PYmplY3QudmFsdWVzKGwpLCAuLi5PYmplY3QudmFsdWVzKG4pXSkKICAgICAgVSA9IE1hdGgubWluKFUsIHUueCksIEwgPSBNYXRoLm1pbihMLCB1LnkpOwogICAgY29uc3QgQiA9IDYwLCBaID0gVSA8IEIgPyBCIC0gVSA6IDAsIHogPSBMIDwgQiA/IEIgLSBMIDogMDsKICAgIGlmIChaICE9PSAwIHx8IHogIT09IDApIHsKICAgICAgZm9yIChjb25zdCB1IG9mIE9iamVjdC52YWx1ZXMobCkpCiAgICAgICAgdS54ICs9IFosIHUueSArPSB6OwogICAgICBmb3IgKGNvbnN0IHUgb2YgT2JqZWN0LnZhbHVlcyhuKSkKICAgICAgICB1LnggKz0gWiwgdS55ICs9IHo7CiAgICB9CiAgfQogIHN0YXRpYyBhc3NpZ25EeW5hbWljUG9ydFNpZGVzKGUsIGYsIGMpIHsKICAgIHZhciBkLCBoOwogICAgY29uc3QgdCA9IChsKSA9PiBmW2xdIHx8IGNbbF07CiAgICBmb3IgKGNvbnN0IGwgb2YgT2JqZWN0LnZhbHVlcyhlLmVkZ2VzKSkgewogICAgICBjb25zdCBuID0gdChsLnNvdXJjZUlkKSwgcyA9IHQobC50YXJnZXRJZCk7CiAgICAgIGlmICghbiB8fCAhcykgY29udGludWU7CiAgICAgIGNvbnN0IHkgPSBlLm5vZGVzW2wuc291cmNlSWRdIHx8IGUuY29udGFpbmVyc1tsLnNvdXJjZUlkXSwgaSA9IGUubm9kZXNbbC50YXJnZXRJZF0gfHwgZS5jb250YWluZXJzW2wudGFyZ2V0SWRdLCByID0gcy54ICsgcy53aWR0aCAvIDIgLSAobi54ICsgbi53aWR0aCAvIDIpLCBwID0gcy55ICsgcy5oZWlnaHQgLyAyIC0gKG4ueSArIG4uaGVpZ2h0IC8gMiksIGcgPSBNYXRoLmFicyhyKSA+IE1hdGguYWJzKHApICogMS4yNSwgYSA9IChkID0geSA9PSBudWxsID8gdm9pZCAwIDogeS5wb3J0cykgPT0gbnVsbCA/IHZvaWQgMCA6IGQuZmluZCgobykgPT4gby5pZCA9PT0gbC5zb3VyY2VQb3J0SWQpOwogICAgICBhICYmICghYS5zaWRlIHx8IGEuc2lkZSA9PT0gImF1dG8iKSAmJiAoZyA/IGEuc2lkZSA9IHIgPj0gMCA/ICJyaWdodCIgOiAibGVmdCIgOiBhLnNpZGUgPSBwID49IDAgPyAiYm90dG9tIiA6ICJ0b3AiKTsKICAgICAgY29uc3QgdyA9IChoID0gaSA9PSBudWxsID8gdm9pZCAwIDogaS5wb3J0cykgPT0gbnVsbCA/IHZvaWQgMCA6IGguZmluZCgobykgPT4gby5pZCA9PT0gbC50YXJnZXRQb3J0SWQpOwogICAgICB3ICYmICghdy5zaWRlIHx8IHcuc2lkZSA9PT0gImF1dG8iKSAmJiAoZyA/IHcuc2lkZSA9IHIgPj0gMCA/ICJsZWZ0IiA6ICJyaWdodCIgOiB3LnNpZGUgPSBwID49IDAgPyAidG9wIiA6ICJib3R0b20iKTsKICAgIH0KICB9CiAgc3RhdGljIGdldENvbnRhaW5lckRlcHRocyhlKSB7CiAgICBjb25zdCBmID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKSwgYyA9ICh0KSA9PiB7CiAgICAgIHZhciBsOwogICAgICBpZiAoZi5oYXModCkpIHJldHVybiBmLmdldCh0KTsKICAgICAgY29uc3QgZCA9IChsID0gZS5jb250YWluZXJzW3RdKSA9PSBudWxsID8gdm9pZCAwIDogbC5wYXJlbnRJZDsKICAgICAgaWYgKCFkIHx8ICFlLmNvbnRhaW5lcnNbZF0pCiAgICAgICAgcmV0dXJuIGYuc2V0KHQsIDApLCAwOwogICAgICBjb25zdCBoID0gMSArIGMoZCk7CiAgICAgIHJldHVybiBmLnNldCh0LCBoKSwgaDsKICAgIH07CiAgICBmb3IgKGNvbnN0IHQgb2YgT2JqZWN0LmtleXMoZS5jb250YWluZXJzKSkKICAgICAgYyh0KTsKICAgIHJldHVybiBmOwogIH0KfQpmdW5jdGlvbiBvdChYLCBlLCBmKSB7CiAgdmFyIGQsIGg7CiAgbGV0IGMgPSBYLCB0ID0gbnVsbDsKICBmb3IgKDsgYzsgKQogICAgZi5oYXMoYykgJiYgKHQgPSBjKSwgYyA9ICgoZCA9IGUubm9kZXNbY10pID09IG51bGwgPyB2b2lkIDAgOiBkLnBhcmVudElkKSA/PyAoKGggPSBlLmNvbnRhaW5lcnNbY10pID09IG51bGwgPyB2b2lkIDAgOiBoLnBhcmVudElkKSA/PyB2b2lkIDA7CiAgcmV0dXJuIHQgPz8gWDsKfQpjbGFzcyBkdCB7CiAgYXN5bmMgZXhlY3V0ZShlLCBmLCBjKSB7CiAgICBjb25zdCB0ID0gT2JqZWN0LnZhbHVlcyhlLmNvbnRhaW5lcnMpLCBkID0gT2JqZWN0LnZhbHVlcyhlLm5vZGVzKSwgaCA9IG5ldyBTZXQoCiAgICAgIHQuZmlsdGVyKChnKSA9PiAhIWcuY29sbGFwc2VkKS5tYXAoKGcpID0+IGcuaWQpCiAgICApLCBsID0gKGcpID0+IHsKICAgICAgdmFyIHc7CiAgICAgIGxldCBhID0gZzsKICAgICAgZm9yICg7IGE7ICkgewogICAgICAgIGlmIChoLmhhcyhhKSkgcmV0dXJuICEwOwogICAgICAgIGEgPSAodyA9IGUuY29udGFpbmVyc1thXSkgPT0gbnVsbCA/IHZvaWQgMCA6IHcucGFyZW50SWQ7CiAgICAgIH0KICAgICAgcmV0dXJuICExOwogICAgfSwgbiA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgU2V0KCk7CiAgICBmb3IgKGNvbnN0IFtnLCBhXSBvZiBPYmplY3QuZW50cmllcyhlLm5vZGVzKSkKICAgICAgbChhLnBhcmVudElkKSB8fCBuLmFkZChnKTsKICAgIGZvciAoY29uc3QgW2csIGFdIG9mIE9iamVjdC5lbnRyaWVzKGUuY29udGFpbmVycykpCiAgICAgIGEuY29sbGFwc2VkID8gbChhLnBhcmVudElkKSB8fCBuLmFkZChnKSA6ICEoZC5zb21lKChvKSA9PiBvLnBhcmVudElkID09PSBnKSB8fCB0LnNvbWUoKG8pID0+IG8ucGFyZW50SWQgPT09IGcpKSAmJiAhbChhLnBhcmVudElkKSAmJiBuLmFkZChnKTsKICAgIGNvbnN0IHMgPSB7fTsKICAgIGZvciAoY29uc3QgW2csIGFdIG9mIE9iamVjdC5lbnRyaWVzKGUuZWRnZXMpKSB7CiAgICAgIGNvbnN0IHcgPSBvdChhLnNvdXJjZUlkLCBlLCBoKSwgbyA9IG90KGEudGFyZ2V0SWQsIGUsIGgpOwogICAgICB3ICE9PSBvICYmIG4uaGFzKHcpICYmIG4uaGFzKG8pICYmIChzW2ddID0gewogICAgICAgIC4uLmEsCiAgICAgICAgc291cmNlSWQ6IHcsCiAgICAgICAgdGFyZ2V0SWQ6IG8KICAgICAgfSk7CiAgICB9CiAgICBjb25zdCB5ID0gewogICAgICAuLi5lLAogICAgICBlZGdlczogcwogICAgfSwgaSA9IGN0LmRlY291cGxlKHksIG4pLCByID0gaXQuYXNzaWduTGF5ZXJzKGkuYWxsRW50aXR5SWRzLCBpLmFkakxpc3QpLCBwID0gRy5taW5pbWl6ZUNyb3NzaW5ncyhyLCBpLmFkakxpc3QsIDQsIHkpOwogICAgcmV0dXJuIFkuYXNzaWduQ29vcmRpbmF0ZXMoeSwgcCwgZiwgYyk7CiAgfQp9CmNvbnN0IGh0ID0gbmV3IGR0KCk7CnNlbGYub25tZXNzYWdlID0gYXN5bmMgKFgpID0+IHsKICBjb25zdCB7IGlkOiBlLCBncmFwaDogZiwgbWVhc3VyZW1lbnRzOiBjLCBvcHRpb25zOiB0IH0gPSBYLmRhdGE7CiAgdHJ5IHsKICAgIGNvbnN0IGQgPSBuZXcgTWFwKGMpLCBoID0gYXdhaXQgaHQuZXhlY3V0ZShmLCBkLCB0KTsKICAgIHNlbGYucG9zdE1lc3NhZ2UoeyBpZDogZSwgc3VjY2VzczogITAsIGxheW91dDogaCB9KTsKICB9IGNhdGNoIChkKSB7CiAgICBzZWxmLnBvc3RNZXNzYWdlKHsgaWQ6IGUsIHN1Y2Nlc3M6ICExLCBlcnJvcjogZC5tZXNzYWdlIH0pOwogIH0KfTsK", he = (i) => Uint8Array.from(atob(i), (g) => g.charCodeAt(0)), Qt = typeof self < "u" && self.Blob && new Blob(["URL.revokeObjectURL(import.meta.url);", he(Mt)], { type: "text/javascript;charset=utf-8" });
-function ye(i) {
+const Rt = "Y2xhc3MgY3QgewogIHN0YXRpYyBkZWNvdXBsZShlLCBmKSB7CiAgICBjb25zdCBjID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGZvciAoY29uc3QgcyBvZiBmKQogICAgICBjLnNldChzLCAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpKTsKICAgIGNvbnN0IHQgPSBPYmplY3QudmFsdWVzKGUuZWRnZXMpOwogICAgZm9yIChjb25zdCBzIG9mIHQpCiAgICAgIGYuaGFzKHMuc291cmNlSWQpICYmIGYuaGFzKHMudGFyZ2V0SWQpICYmIGMuZ2V0KHMuc291cmNlSWQpLmFkZChzLnRhcmdldElkKTsKICAgIGNvbnN0IGQgPSAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpLCBoID0gLyogQF9fUFVSRV9fICovIG5ldyBTZXQoKSwgbCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgU2V0KCksIG4gPSAocykgPT4gewogICAgICBkLmFkZChzKSwgaC5hZGQocyk7CiAgICAgIGNvbnN0IHkgPSBBcnJheS5mcm9tKGMuZ2V0KHMpIHx8IFtdKTsKICAgICAgZm9yIChjb25zdCBpIG9mIHkpCiAgICAgICAgZC5oYXMoaSkgPyBoLmhhcyhpKSAmJiAoYy5nZXQocykuZGVsZXRlKGkpLCBjLmdldChpKS5hZGQocyksIGwuYWRkKGAke3N9LT4ke2l9YCkpIDogbihpKTsKICAgICAgaC5kZWxldGUocyk7CiAgICB9OwogICAgZm9yIChjb25zdCBzIG9mIGYpCiAgICAgIGQuaGFzKHMpIHx8IG4ocyk7CiAgICByZXR1cm4gewogICAgICBhZGpMaXN0OiBjLAogICAgICByZXZlcnNlZEVkZ2VzOiBsLAogICAgICBhbGxFbnRpdHlJZHM6IEFycmF5LmZyb20oZikKICAgIH07CiAgfQp9CmNsYXNzIGl0IHsKICBzdGF0aWMgYXNzaWduTGF5ZXJzKGUsIGYpIHsKICAgIGNvbnN0IGMgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCBuIG9mIGUpCiAgICAgIGMuc2V0KG4sIDApOwogICAgZm9yIChjb25zdCBbLCBuXSBvZiBmLmVudHJpZXMoKSkKICAgICAgZm9yIChjb25zdCBzIG9mIG4pCiAgICAgICAgYy5zZXQocywgKGMuZ2V0KHMpIHx8IDApICsgMSk7CiAgICBjb25zdCB0ID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKSwgZCA9IFtdOwogICAgZm9yIChjb25zdCBuIG9mIGUpCiAgICAgIChjLmdldChuKSB8fCAwKSA9PT0gMCAmJiAodC5zZXQobiwgMCksIGQucHVzaChuKSk7CiAgICBjb25zdCBoID0gLyogQF9fUFVSRV9fICovIG5ldyBTZXQoKTsKICAgIGZvciAoOyBkLmxlbmd0aCA+IDA7ICkgewogICAgICBjb25zdCBuID0gZC5zaGlmdCgpOwogICAgICBoLmFkZChuKTsKICAgICAgY29uc3QgcyA9IHQuZ2V0KG4pIHx8IDAsIHkgPSBmLmdldChuKSB8fCAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpOwogICAgICBmb3IgKGNvbnN0IGkgb2YgeSkgewogICAgICAgIGNvbnN0IHIgPSB0LmdldChpKSA/PyAwOwogICAgICAgIHQuc2V0KGksIE1hdGgubWF4KHIsIHMgKyAxKSksIGMuc2V0KGksIChjLmdldChpKSB8fCAxKSAtIDEpLCBjLmdldChpKSA9PT0gMCAmJiBkLnB1c2goaSk7CiAgICAgIH0KICAgIH0KICAgIGZvciAoY29uc3QgbiBvZiBlKQogICAgICB0LmhhcyhuKSB8fCB0LnNldChuLCAwKTsKICAgIGNvbnN0IGwgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCBbbiwgc10gb2YgdC5lbnRyaWVzKCkpCiAgICAgIGwuaGFzKHMpIHx8IGwuc2V0KHMsIFtdKSwgbC5nZXQocykucHVzaChuKTsKICAgIHJldHVybiBsOwogIH0KfQpjbGFzcyBHIHsKICBzdGF0aWMgbWluaW1pemVDcm9zc2luZ3MoZSwgZiwgYyA9IDQsIHQpIHsKICAgIGNvbnN0IGQgPSBBcnJheS5mcm9tKGUua2V5cygpKS5zb3J0KChuLCBzKSA9PiBuIC0gcyk7CiAgICBpZiAoZC5sZW5ndGggPD0gMSkgcmV0dXJuIGU7CiAgICBjb25zdCBoID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGZvciAoY29uc3QgW24sIHNdIG9mIGYuZW50cmllcygpKQogICAgICBmb3IgKGNvbnN0IHkgb2YgcykKICAgICAgICBoLmhhcyh5KSB8fCBoLnNldCh5LCAvKiBAX19QVVJFX18gKi8gbmV3IFNldCgpKSwgaC5nZXQoeSkuYWRkKG4pOwogICAgY29uc3QgbCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IFtuLCBzXSBvZiBlLmVudHJpZXMoKSkKICAgICAgbC5zZXQobiwgWy4uLnNdKTsKICAgIGZvciAobGV0IG4gPSAwOyBuIDwgYzsgbisrKSB7CiAgICAgIGZvciAobGV0IHMgPSAxOyBzIDwgZC5sZW5ndGg7IHMrKykgewogICAgICAgIGNvbnN0IHkgPSBsLmdldChkW3MgLSAxXSksIGkgPSBsLmdldChkW3NdKSwgciA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICAgICAgeS5mb3JFYWNoKChwLCBnKSA9PiByLnNldChwLCBnKSksIEcuc29ydExheWVyTm9kZXMoaSwgaCwgciwgdCk7CiAgICAgIH0KICAgICAgZm9yIChsZXQgcyA9IGQubGVuZ3RoIC0gMjsgcyA+PSAwOyBzLS0pIHsKICAgICAgICBjb25zdCB5ID0gbC5nZXQoZFtzICsgMV0pLCBpID0gbC5nZXQoZFtzXSksIHIgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgICAgIHkuZm9yRWFjaCgocCwgZykgPT4gci5zZXQocCwgZykpLCBHLnNvcnRMYXllck5vZGVzKGksIGYsIHIsIHQpOwogICAgICB9CiAgICB9CiAgICByZXR1cm4gbDsKICB9CiAgc3RhdGljIHNvcnRMYXllck5vZGVzKGUsIGYsIGMsIHQpIHsKICAgIHZhciBzLCB5LCBpOwogICAgaWYgKCF0IHx8IE9iamVjdC5rZXlzKHQuY29udGFpbmVycykubGVuZ3RoID09PSAwKSB7CiAgICAgIGUuc29ydCgociwgcCkgPT4gewogICAgICAgIGNvbnN0IGcgPSBHLmdldEJhcnljZW50ZXIociwgZiwgYyksIGEgPSBHLmdldEJhcnljZW50ZXIocCwgZiwgYyk7CiAgICAgICAgcmV0dXJuIGcgLSBhOwogICAgICB9KTsKICAgICAgcmV0dXJuOwogICAgfQogICAgY29uc3QgZCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IHIgb2YgZSkKICAgICAgZC5zZXQociwgRy5nZXRCYXJ5Y2VudGVyKHIsIGYsIGMpKTsKICAgIGNvbnN0IGggPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpLCBsID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGZvciAoY29uc3QgciBvZiBlKSB7CiAgICAgIGNvbnN0IHAgPSBkLmdldChyKSA/PyAwOwogICAgICBsZXQgZyA9ICgocyA9IHQubm9kZXNbcl0pID09IG51bGwgPyB2b2lkIDAgOiBzLnBhcmVudElkKSA/PyAoKHkgPSB0LmNvbnRhaW5lcnNbcl0pID09IG51bGwgPyB2b2lkIDAgOiB5LnBhcmVudElkKTsKICAgICAgZm9yICg7IGc7ICkKICAgICAgICBoLnNldChnLCAoaC5nZXQoZykgfHwgMCkgKyBwKSwgbC5zZXQoZywgKGwuZ2V0KGcpIHx8IDApICsgMSksIGcgPSAoaSA9IHQuY29udGFpbmVyc1tnXSkgPT0gbnVsbCA/IHZvaWQgMCA6IGkucGFyZW50SWQ7CiAgICB9CiAgICBjb25zdCBuID0gKHIpID0+IHsKICAgICAgaWYgKHQuY29udGFpbmVyc1tyXSkgewogICAgICAgIGNvbnN0IHAgPSBsLmdldChyKSB8fCAwOwogICAgICAgIHJldHVybiBwID09PSAwID8gMCA6IChoLmdldChyKSB8fCAwKSAvIHA7CiAgICAgIH0KICAgICAgcmV0dXJuIGQuZ2V0KHIpID8/IDA7CiAgICB9OwogICAgZS5zb3J0KChyLCBwKSA9PiB7CiAgICAgIGNvbnN0IGcgPSBHLmdldEFuY2VzdG9yUGF0aChyLCB0KSwgYSA9IEcuZ2V0QW5jZXN0b3JQYXRoKHAsIHQpOwogICAgICBsZXQgdyA9IDA7CiAgICAgIGZvciAoOyB3IDwgZy5sZW5ndGggJiYgdyA8IGEubGVuZ3RoICYmIGdbd10gPT09IGFbd107ICkKICAgICAgICB3Kys7CiAgICAgIGNvbnN0IG8gPSBnW3ddID8/IHIsIEkgPSBhW3ddID8/IHAsIE0gPSBuKG8pIC0gbihJKTsKICAgICAgcmV0dXJuIE1hdGguYWJzKE0pID4gMWUtNSA/IE0gOiBvLmxvY2FsZUNvbXBhcmUoSSk7CiAgICB9KTsKICB9CiAgc3RhdGljIGdldEFuY2VzdG9yUGF0aChlLCBmKSB7CiAgICB2YXIgZCwgaCwgbDsKICAgIGNvbnN0IGMgPSBbZV07CiAgICBsZXQgdCA9ICgoZCA9IGYubm9kZXNbZV0pID09IG51bGwgPyB2b2lkIDAgOiBkLnBhcmVudElkKSA/PyAoKGggPSBmLmNvbnRhaW5lcnNbZV0pID09IG51bGwgPyB2b2lkIDAgOiBoLnBhcmVudElkKTsKICAgIGZvciAoOyB0OyApCiAgICAgIGMudW5zaGlmdCh0KSwgdCA9IChsID0gZi5jb250YWluZXJzW3RdKSA9PSBudWxsID8gdm9pZCAwIDogbC5wYXJlbnRJZDsKICAgIHJldHVybiBjOwogIH0KICBzdGF0aWMgZ2V0QmFyeWNlbnRlcihlLCBmLCBjKSB7CiAgICBjb25zdCB0ID0gZi5nZXQoZSk7CiAgICBpZiAoIXQgfHwgdC5zaXplID09PSAwKSByZXR1cm4gMDsKICAgIGxldCBkID0gMCwgaCA9IDA7CiAgICBmb3IgKGNvbnN0IGwgb2YgdCkKICAgICAgYy5oYXMobCkgJiYgKGQgKz0gYy5nZXQobCksIGgrKyk7CiAgICByZXR1cm4gaCA9PT0gMCA/IDAgOiBkIC8gaDsKICB9Cn0KY29uc3QgayA9IDMyLCBRID0gMjQsIF8gPSAyMiwgUiA9IDE4LCBXID0gMzgsICQgPSAyMTAsIFYgPSAzNiwgcnQgPSAxODAsIGF0ID0gNTQsIG50ID0gMjYwLCBzdCA9IDE2MDsKY2xhc3MgWSB7CiAgc3RhdGljIGFzc2lnbkNvb3JkaW5hdGVzKGUsIGYsIGMsIHQgPSB7IGRpcmVjdGlvbjogIlRCIiwgbW9kZTogImF1dG8iLCBhc3BlY3RSYXRpbzogMS41NSB9KSB7CiAgICBjb25zdCBkID0gdC5kaXJlY3Rpb24gPz8gIlRCIiwgaCA9IGQgPT09ICJUQiIgfHwgZCA9PT0gIkJUIiwgbCA9IGQgPT09ICJCVCIgfHwgZCA9PT0gIlJMIiwgbiA9IHQuYXNwZWN0UmF0aW8gPz8gMS41NSwgcyA9IE9iamVjdC5rZXlzKGUuY29udGFpbmVycykubGVuZ3RoLCB5ID0gdC5tb2RlICYmIHQubW9kZSAhPT0gImF1dG8iID8gdC5tb2RlIDogcyA+IDAgPyAiY29uY3VycmVudCIgOiAiZmxvdyIsIGkgPSB7fSwgciA9IHt9LCBwID0gKGcpID0+IHsKICAgICAgdmFyIG8sIEksIE0sIEUsIFM7CiAgICAgIGNvbnN0IGEgPSAhIWUuY29udGFpbmVyc1tnXSwgdyA9ICEhKChvID0gZS5jb250YWluZXJzW2ddKSAhPSBudWxsICYmIG8uY29sbGFwc2VkKTsKICAgICAgcmV0dXJuIGEgJiYgdyA/IHsgd2lkdGg6ICQsIGhlaWdodDogViB9IDogYSAmJiAhdyA/IHsKICAgICAgICB3aWR0aDogKChJID0gYy5nZXQoZykpID09IG51bGwgPyB2b2lkIDAgOiBJLndpZHRoKSB8fCBudCwKICAgICAgICBoZWlnaHQ6ICgoTSA9IGMuZ2V0KGcpKSA9PSBudWxsID8gdm9pZCAwIDogTS5oZWlnaHQpIHx8IHN0CiAgICAgIH0gOiB7CiAgICAgICAgd2lkdGg6ICgoRSA9IGMuZ2V0KGcpKSA9PSBudWxsID8gdm9pZCAwIDogRS53aWR0aCkgfHwgcnQsCiAgICAgICAgaGVpZ2h0OiAoKFMgPSBjLmdldChnKSkgPT0gbnVsbCA/IHZvaWQgMCA6IFMuaGVpZ2h0KSB8fCBhdAogICAgICB9OwogICAgfTsKICAgIHJldHVybiB5ID09PSAiY29uY3VycmVudCIgPyBZLmxheW91dENvbmN1cnJlbnRIaWVyYXJjaHkoCiAgICAgIGUsCiAgICAgIHAsCiAgICAgIG4sCiAgICAgIGksCiAgICAgIHIKICAgICkgOiBZLmxheW91dEZsb3dUcmVlKAogICAgICBlLAogICAgICBmLAogICAgICBwLAogICAgICBoLAogICAgICBsLAogICAgICB0LAogICAgICBpLAogICAgICByCiAgICApLCBZLmFzc2lnbkR5bmFtaWNQb3J0U2lkZXMoZSwgaSwgciksIHsgbm9kZXM6IGksIGNvbnRhaW5lcnM6IHIgfTsKICB9CiAgLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAgLy8gQ09OQ1VSUkVOVCBDT01QT1VORCBQQUNLSU5HIFdJVEggU0tZTElORSAyRCBCSU4gUEFDS0lORwogIC8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQogIHN0YXRpYyBsYXlvdXRDb25jdXJyZW50SGllcmFyY2h5KGUsIGYsIGMsIHQsIGQpIHsKICAgIHZhciBnOwogICAgY29uc3QgaCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IFthLCB3XSBvZiBPYmplY3QuZW50cmllcyhlLm5vZGVzKSkgewogICAgICBjb25zdCBvID0gdy5wYXJlbnRJZCA/PyBudWxsOwogICAgICBoLmhhcyhvKSB8fCBoLnNldChvLCBbXSksIGguZ2V0KG8pLnB1c2goYSk7CiAgICB9CiAgICBmb3IgKGNvbnN0IFthLCB3XSBvZiBPYmplY3QuZW50cmllcyhlLmNvbnRhaW5lcnMpKSB7CiAgICAgIGNvbnN0IG8gPSB3LnBhcmVudElkID8/IG51bGw7CiAgICAgIGguaGFzKG8pIHx8IGguc2V0KG8sIFtdKSwgaC5nZXQobykucHVzaChhKTsKICAgIH0KICAgIGNvbnN0IGwgPSBZLmdldENvbnRhaW5lckRlcHRocyhlKSwgbiA9IE9iamVjdC5rZXlzKGUuY29udGFpbmVycykuc29ydCgKICAgICAgKGEsIHcpID0+IChsLmdldCh3KSB8fCAwKSAtIChsLmdldChhKSB8fCAwKQogICAgKSwgcyA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCksIHkgPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCBhIG9mIG4pIHsKICAgICAgaWYgKCEhKChnID0gZS5jb250YWluZXJzW2FdKSAhPSBudWxsICYmIGcuY29sbGFwc2VkKSkgewogICAgICAgIHMuc2V0KGEsIHsKICAgICAgICAgIHdpZHRoOiAkLAogICAgICAgICAgaGVpZ2h0OiBWCiAgICAgICAgfSk7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgY29uc3QgbyA9IGguZ2V0KGEpIHx8IFtdOwogICAgICBpZiAoby5sZW5ndGggPT09IDApIHsKICAgICAgICBzLnNldChhLCB7CiAgICAgICAgICB3aWR0aDogJCwKICAgICAgICAgIGhlaWdodDogVyArIFIgKiAyCiAgICAgICAgfSk7CiAgICAgICAgY29udGludWU7CiAgICAgIH0KICAgICAgY29uc3QgSSA9IG8ubWFwKChBKSA9PiB7CiAgICAgICAgY29uc3QgRiA9IHMuaGFzKEEpID8gcy5nZXQoQSkgOiBmKEEpOwogICAgICAgIHJldHVybiB7IGlkOiBBLCB3aWR0aDogRi53aWR0aCwgaGVpZ2h0OiBGLmhlaWdodCB9OwogICAgICB9KSwgTSA9IFkuZmluZEJlc3RUaWdodFBhY2tpbmcoSSwgYyk7CiAgICAgIGZvciAoY29uc3QgQSBvZiBNLmJveGVzKQogICAgICAgIHkuc2V0KEEuaWQsIEEpOwogICAgICBjb25zdCBFID0gTWF0aC5tYXgoTS53aWR0aCArIF8gKiAyLCAkKSwgUyA9IE0uaGVpZ2h0ICsgVyArIFIgKiAyOwogICAgICBzLnNldChhLCB7IHdpZHRoOiBFLCBoZWlnaHQ6IFMgfSk7CiAgICB9CiAgICBjb25zdCBpID0gaC5nZXQobnVsbCkgfHwgW107CiAgICBsZXQgciA9IFtdOwogICAgaWYgKGkubGVuZ3RoID4gMCkgewogICAgICBjb25zdCBhID0gaS5tYXAoKG8pID0+IHsKICAgICAgICBjb25zdCBJID0gcy5nZXQobykgfHwgZihvKTsKICAgICAgICByZXR1cm4geyBpZDogbywgd2lkdGg6IEkud2lkdGgsIGhlaWdodDogSS5oZWlnaHQgfTsKICAgICAgfSk7CiAgICAgIHIgPSBZLmZpbmRCZXN0VGlnaHRQYWNraW5nKGEsIGMpLmJveGVzLm1hcCgobykgPT4gKHsKICAgICAgICAuLi5vLAogICAgICAgIGxvY2FsWDogby5sb2NhbFggKyA2MCwKICAgICAgICBsb2NhbFk6IG8ubG9jYWxZICsgNjAKICAgICAgfSkpOwogICAgfQogICAgY29uc3QgcCA9IChhLCB3LCBvLCBJLCBNKSA9PiB7CiAgICAgIHZhciBBOwogICAgICBjb25zdCBFID0gISFlLmNvbnRhaW5lcnNbYV0sIFMgPSB7IGlkOiBhLCB4OiB3LCB5OiBvLCB3aWR0aDogSSwgaGVpZ2h0OiBNIH07CiAgICAgIGlmIChFKSB7CiAgICAgICAgaWYgKGRbYV0gPSBTLCAoQSA9IGUuY29udGFpbmVyc1thXSkgIT0gbnVsbCAmJiBBLmNvbGxhcHNlZCkgcmV0dXJuOwogICAgICAgIGNvbnN0IEYgPSB3ICsgXywgSCA9IG8gKyBXICsgUiwgVSA9IGguZ2V0KGEpIHx8IFtdOwogICAgICAgIGZvciAoY29uc3QgTCBvZiBVKSB7CiAgICAgICAgICBjb25zdCBCID0geS5nZXQoTCk7CiAgICAgICAgICBCICYmIHAoCiAgICAgICAgICAgIEwsCiAgICAgICAgICAgIEYgKyBCLmxvY2FsWCwKICAgICAgICAgICAgSCArIEIubG9jYWxZLAogICAgICAgICAgICBCLndpZHRoLAogICAgICAgICAgICBCLmhlaWdodAogICAgICAgICAgKTsKICAgICAgICB9CiAgICAgIH0gZWxzZQogICAgICAgIHRbYV0gPSBTOwogICAgfTsKICAgIGZvciAoY29uc3QgYSBvZiByKQogICAgICBwKGEuaWQsIGEubG9jYWxYLCBhLmxvY2FsWSwgYS53aWR0aCwgYS5oZWlnaHQpOwogIH0KICBzdGF0aWMgZmluZEJlc3RUaWdodFBhY2tpbmcoZSwgZikgewogICAgaWYgKGUubGVuZ3RoID09PSAxKQogICAgICByZXR1cm4gewogICAgICAgIHdpZHRoOiBlWzBdLndpZHRoLAogICAgICAgIGhlaWdodDogZVswXS5oZWlnaHQsCiAgICAgICAgYm94ZXM6IFt7IGlkOiBlWzBdLmlkLCBsb2NhbFg6IDAsIGxvY2FsWTogMCwgd2lkdGg6IGVbMF0ud2lkdGgsIGhlaWdodDogZVswXS5oZWlnaHQgfV0sCiAgICAgICAgc2NvcmU6IDAKICAgICAgfTsKICAgIGNvbnN0IGMgPSBlLnJlZHVjZSgoaSwgcikgPT4gaSArIHIud2lkdGggKiByLmhlaWdodCwgMCksIHQgPSBNYXRoLm1heCguLi5lLm1hcCgoaSkgPT4gaS53aWR0aCkpLCBkID0gWy4uLmVdLnNvcnQoKGksIHIpID0+IHIud2lkdGggLSBpLndpZHRoKSwgaCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgU2V0KCksIGwgPSBlLnJlZHVjZSgoaSwgcikgPT4gaSArIHIud2lkdGgsIDApICsgKGUubGVuZ3RoIC0gMSkgKiBrOwogICAgaC5hZGQobCksIGguYWRkKHQpOwogICAgY29uc3QgbiA9IE1hdGgubWF4KHQsIE1hdGguc3FydChjICogZikpOwogICAgaC5hZGQobiksIGguYWRkKG4gKiAwLjg1KSwgaC5hZGQobiAqIDEuMTUpOwogICAgY29uc3QgcyA9IE1hdGgubWluKGUubGVuZ3RoLCA2KTsKICAgIGZvciAobGV0IGkgPSAyOyBpIDw9IHM7IGkrKykgewogICAgICBsZXQgciA9IDA7CiAgICAgIGZvciAobGV0IHAgPSAwOyBwIDwgaSAmJiBwIDwgZC5sZW5ndGg7IHArKykKICAgICAgICByICs9IGRbcF0ud2lkdGg7CiAgICAgIHIgKz0gKGkgLSAxKSAqIGssIHIgPj0gdCAmJiBoLmFkZChyKTsKICAgIH0KICAgIGxldCB5ID0gbnVsbDsKICAgIGZvciAoY29uc3QgaSBvZiBoKSB7CiAgICAgIGNvbnN0IHIgPSBZLnNpbXVsYXRlU2t5bGluZVBhY2tpbmcoZSwgaSksIHAgPSByLndpZHRoICogci5oZWlnaHQsIGcgPSBNYXRoLm1heCgwLCBwIC0gYyksIGEgPSByLndpZHRoIC8gTWF0aC5tYXgoMSwgci5oZWlnaHQpLCB3ID0gTWF0aC5hYnMoTWF0aC5sb2coYSAvIGYpKSwgbyA9IGcgLyBjICogMiArIHcgKiAwLjI1OwogICAgICByLnNjb3JlID0gbywgKCF5IHx8IG8gPCB5LnNjb3JlKSAmJiAoeSA9IHIpOwogICAgfQogICAgcmV0dXJuIHk7CiAgfQogIHN0YXRpYyBzaW11bGF0ZVNreWxpbmVQYWNraW5nKGUsIGYpIHsKICAgIGNvbnN0IGMgPSBbLi4uZV0uc29ydCgobiwgcykgPT4gcy5oZWlnaHQgLSBuLmhlaWdodCksIHQgPSBbeyB4OiAwLCB3aWR0aDogZiwgeTogMCB9XSwgZCA9IFtdOwogICAgZm9yIChjb25zdCBuIG9mIGMpIHsKICAgICAgbGV0IHMgPSAxIC8gMCwgeSA9IC0xOwogICAgICBmb3IgKGxldCBvID0gMDsgbyA8IHQubGVuZ3RoOyBvKyspIHsKICAgICAgICBpZiAodFtvXS54ICsgbi53aWR0aCA+IGYpIGNvbnRpbnVlOwogICAgICAgIGxldCBNID0gMCwgRSA9IDA7CiAgICAgICAgZm9yIChsZXQgUyA9IG87IFMgPCB0Lmxlbmd0aCAmJiBFIDwgbi53aWR0aDsgUysrKQogICAgICAgICAgTSA9IE1hdGgubWF4KE0sIHRbU10ueSksIEUgKz0gdFtTXS53aWR0aDsKICAgICAgICBNIDwgcyAmJiAocyA9IE0sIHkgPSBvKTsKICAgICAgfQogICAgICBpZiAoeSA9PT0gLTEpIHsKICAgICAgICBjb25zdCBvID0gTWF0aC5tYXgoLi4udC5tYXAoKE0pID0+IE0ueSkpLCBJID0gbyA9PT0gMCA/IDAgOiBvICsgUTsKICAgICAgICBkLnB1c2goewogICAgICAgICAgaWQ6IG4uaWQsCiAgICAgICAgICBsb2NhbFg6IDAsCiAgICAgICAgICBsb2NhbFk6IEksCiAgICAgICAgICB3aWR0aDogbi53aWR0aCwKICAgICAgICAgIGhlaWdodDogbi5oZWlnaHQKICAgICAgICB9KSwgdC5sZW5ndGggPSAwLCB0LnB1c2goeyB4OiAwLCB3aWR0aDogbi53aWR0aCArIGssIHk6IEkgKyBuLmhlaWdodCB9KSwgZiA+IG4ud2lkdGggKyBrICYmIHQucHVzaCh7CiAgICAgICAgICB4OiBuLndpZHRoICsgaywKICAgICAgICAgIHdpZHRoOiBmIC0gKG4ud2lkdGggKyBrKSwKICAgICAgICAgIHk6IDAKICAgICAgICB9KTsKICAgICAgICBjb250aW51ZTsKICAgICAgfQogICAgICBjb25zdCBpID0gdFt5XS54LCByID0gcyA9PT0gMCA/IDAgOiBzICsgUTsKICAgICAgZC5wdXNoKHsKICAgICAgICBpZDogbi5pZCwKICAgICAgICBsb2NhbFg6IGksCiAgICAgICAgbG9jYWxZOiByLAogICAgICAgIHdpZHRoOiBuLndpZHRoLAogICAgICAgIGhlaWdodDogbi5oZWlnaHQKICAgICAgfSk7CiAgICAgIGNvbnN0IHAgPSBuLndpZHRoICsgaywgZyA9IHIgKyBuLmhlaWdodCwgYSA9IHsgeDogaSwgd2lkdGg6IHAsIHk6IGcgfSwgdyA9IFtdOwogICAgICBmb3IgKGNvbnN0IG8gb2YgdCkKICAgICAgICBvLnggKyBvLndpZHRoIDw9IGkgfHwgby54ID49IGkgKyBwID8gdy5wdXNoKG8pIDogKG8ueCA8IGkgJiYgdy5wdXNoKHsgeDogby54LCB3aWR0aDogaSAtIG8ueCwgeTogby55IH0pLCBvLnggKyBvLndpZHRoID4gaSArIHAgJiYgdy5wdXNoKHsKICAgICAgICAgIHg6IGkgKyBwLAogICAgICAgICAgd2lkdGg6IG8ueCArIG8ud2lkdGggLSAoaSArIHApLAogICAgICAgICAgeTogby55CiAgICAgICAgfSkpOwogICAgICB3LnB1c2goYSksIHcuc29ydCgobywgSSkgPT4gby54IC0gSS54KSwgdC5sZW5ndGggPSAwLCB0LnB1c2goLi4udyk7CiAgICB9CiAgICBjb25zdCBoID0gTWF0aC5tYXgoLi4uZC5tYXAoKG4pID0+IG4ubG9jYWxYICsgbi53aWR0aCksIDApLCBsID0gTWF0aC5tYXgoLi4uZC5tYXAoKG4pID0+IG4ubG9jYWxZICsgbi5oZWlnaHQpLCAwKTsKICAgIHJldHVybiB7IHdpZHRoOiBoLCBoZWlnaHQ6IGwsIGJveGVzOiBkLCBzY29yZTogMCB9OwogIH0KICAvLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KICAvLyBGTE9XIFRSRUUgV0lUSCBDT01QT1VORCBDT05UQUlORVIgU1VQUE9SVAogIC8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQogIHN0YXRpYyBsYXlvdXRGbG93VHJlZShlLCBmLCBjLCB0LCBkLCBoLCBsLCBuKSB7CiAgICB2YXIgdHQ7CiAgICBjb25zdCBzID0gQXJyYXkuZnJvbShmLmtleXMoKSkuc29ydCgodSwgeCkgPT4gdSAtIHgpLCB5ID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKTsKICAgIGxldCBpID0gODA7CiAgICBjb25zdCByID0gdCA/IFcgKyBSICogMiA6IF8gKiAyLCBwID0gKHQgPyBRICogMS41IDogayAqIDEuNSkgKyByLCBnID0gdCA/IGsgOiBRLCBhID0gZCA/IFsuLi5zXS5yZXZlcnNlKCkgOiBbLi4uc107CiAgICBmb3IgKGNvbnN0IHUgb2YgYSkgewogICAgICBjb25zdCB4ID0gZi5nZXQodSkgfHwgW107CiAgICAgIGxldCBPID0gMDsKICAgICAgZm9yIChjb25zdCBtIG9mIHgpIHsKICAgICAgICBjb25zdCBiID0gYyhtKSwgUCA9IHQgPyBiLmhlaWdodCA6IGIud2lkdGg7CiAgICAgICAgTyA9IE1hdGgubWF4KE8sIFApOwogICAgICB9CiAgICAgIHkuc2V0KHUsIGkpLCBpICs9IE8gKyBwOwogICAgfQogICAgY29uc3QgdyA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCksIG8gPSAvKiBAX19QVVJFX18gKi8gbmV3IE1hcCgpOwogICAgZm9yIChjb25zdCB1IG9mIE9iamVjdC52YWx1ZXMoZS5lZGdlcykpCiAgICAgIHcuaGFzKHUudGFyZ2V0SWQpIHx8IHcuc2V0KHUudGFyZ2V0SWQsIFtdKSwgdy5nZXQodS50YXJnZXRJZCkucHVzaCh1LnNvdXJjZUlkKSwgby5oYXModS5zb3VyY2VJZCkgfHwgby5zZXQodS5zb3VyY2VJZCwgW10pLCBvLmdldCh1LnNvdXJjZUlkKS5wdXNoKHUudGFyZ2V0SWQpOwogICAgY29uc3QgSSA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCksIE0gPSAodSkgPT4gewogICAgICB2YXIgeCwgTzsKICAgICAgcmV0dXJuICgoeCA9IGUubm9kZXNbdV0pID09IG51bGwgPyB2b2lkIDAgOiB4LnBhcmVudElkKSA/PyAoKE8gPSBlLmNvbnRhaW5lcnNbdV0pID09IG51bGwgPyB2b2lkIDAgOiBPLnBhcmVudElkKSA/PyBudWxsOwogICAgfTsKICAgIGZvciAoY29uc3QgdSBvZiBzKSB7CiAgICAgIGNvbnN0IHggPSBmLmdldCh1KSB8fCBbXTsKICAgICAgbGV0IE8gPSAtMSAvIDAsIG07CiAgICAgIGZvciAoY29uc3QgYiBvZiB4KSB7CiAgICAgICAgY29uc3QgUCA9IGMoYiksIE4gPSB0ID8gUC53aWR0aCA6IFAuaGVpZ2h0LCBEID0gdy5nZXQoYikgfHwgW10sIHYgPSBNKGIpOwogICAgICAgIGxldCBDID0gZzsKICAgICAgICBtICE9PSB2b2lkIDAgJiYgbSAhPT0gdiAmJiAoQyA9IGcgKyAodCA/IF8gKiAyIDogVyArIFIgKiAyKSk7CiAgICAgICAgbGV0IFQgPSBudWxsOwogICAgICAgIGlmIChELmxlbmd0aCA+IDApIHsKICAgICAgICAgIGNvbnN0IEogPSBELm1hcCgocSkgPT4gewogICAgICAgICAgICBjb25zdCBLID0gSS5nZXQocSk7CiAgICAgICAgICAgIGlmIChLID09PSB2b2lkIDApIHJldHVybiBudWxsOwogICAgICAgICAgICBjb25zdCBldCA9IGMocSk7CiAgICAgICAgICAgIHJldHVybiBLICsgKHQgPyBldC53aWR0aCA6IGV0LmhlaWdodCkgLyAyOwogICAgICAgICAgfSkuZmlsdGVyKChxKSA9PiBxICE9PSBudWxsKTsKICAgICAgICAgIEoubGVuZ3RoID4gMCAmJiAoVCA9IEoucmVkdWNlKChxLCBLKSA9PiBxICsgSywgMCkgLyBKLmxlbmd0aCk7CiAgICAgICAgfQogICAgICAgIGxldCBqID0gVCAhPT0gbnVsbCA/IFQgLSBOIC8gMiA6IDgwOwogICAgICAgIGogPCBPICsgQyAmJiAoaiA9IE8gPT09IC0xIC8gMCA/IDgwIDogTyArIEMpLCBJLnNldChiLCBqKSwgTyA9IGogKyBOLCBtID0gdjsKICAgICAgfQogICAgfQogICAgZm9yIChsZXQgdSA9IHMubGVuZ3RoIC0gMTsgdSA+PSAwOyB1LS0pIHsKICAgICAgY29uc3QgeCA9IHNbdV0sIE8gPSBmLmdldCh4KSB8fCBbXTsKICAgICAgZm9yIChjb25zdCBQIG9mIE8pIHsKICAgICAgICBjb25zdCBOID0gby5nZXQoUCkgfHwgW107CiAgICAgICAgaWYgKE4ubGVuZ3RoID09PSAwKSBjb250aW51ZTsKICAgICAgICBjb25zdCBEID0gTi5tYXAoKHYpID0+IHsKICAgICAgICAgIGNvbnN0IEMgPSBJLmdldCh2KTsKICAgICAgICAgIGlmIChDID09PSB2b2lkIDApIHJldHVybiBudWxsOwogICAgICAgICAgY29uc3QgVCA9IGModik7CiAgICAgICAgICByZXR1cm4gQyArICh0ID8gVC53aWR0aCA6IFQuaGVpZ2h0KSAvIDI7CiAgICAgICAgfSkuZmlsdGVyKCh2KSA9PiB2ICE9PSBudWxsKTsKICAgICAgICBpZiAoRC5sZW5ndGggPiAwKSB7CiAgICAgICAgICBjb25zdCB2ID0gRC5yZWR1Y2UoKGosIEopID0+IGogKyBKLCAwKSAvIEQubGVuZ3RoLCBDID0gYyhQKSwgVCA9IHQgPyBDLndpZHRoIDogQy5oZWlnaHQ7CiAgICAgICAgICBJLnNldChQLCB2IC0gVCAvIDIpOwogICAgICAgIH0KICAgICAgfQogICAgICBsZXQgbSA9IC0xIC8gMCwgYjsKICAgICAgZm9yIChjb25zdCBQIG9mIE8pIHsKICAgICAgICBjb25zdCBOID0gYyhQKSwgRCA9IHQgPyBOLndpZHRoIDogTi5oZWlnaHQsIHYgPSBNKFApOwogICAgICAgIGxldCBDID0gZzsKICAgICAgICBiICE9PSB2b2lkIDAgJiYgYiAhPT0gdiAmJiAoQyA9IGcgKyAodCA/IF8gKiAyIDogVyArIFIgKiAyKSk7CiAgICAgICAgbGV0IFQgPSBJLmdldChQKSA/PyA4MDsKICAgICAgICBUIDwgbSArIEMgJiYgKFQgPSBtICsgQywgSS5zZXQoUCwgVCkpLCBtID0gVCArIEQsIGIgPSB2OwogICAgICB9CiAgICB9CiAgICBsZXQgRSA9IDEgLyAwOwogICAgZm9yIChjb25zdCB1IG9mIEkudmFsdWVzKCkpIEUgPSBNYXRoLm1pbihFLCB1KTsKICAgIGNvbnN0IFMgPSBFIDwgODAgPyA4MCAtIEUgOiAwOwogICAgZm9yIChjb25zdCB1IG9mIHMpIHsKICAgICAgY29uc3QgeCA9IGYuZ2V0KHUpIHx8IFtdLCBPID0geS5nZXQodSkgfHwgODA7CiAgICAgIGZvciAoY29uc3QgbSBvZiB4KSB7CiAgICAgICAgY29uc3QgYiA9IGMobSksIFAgPSAoSS5nZXQobSkgPz8gODApICsgUywgdiA9IHsgaWQ6IG0sIHg6IHQgPyBQIDogTywgeTogdCA/IE8gOiBQLCB3aWR0aDogYi53aWR0aCwgaGVpZ2h0OiBiLmhlaWdodCB9OwogICAgICAgIGUuY29udGFpbmVyc1ttXSA/IG5bbV0gPSB2IDogbFttXSA9IHY7CiAgICAgIH0KICAgIH0KICAgIGNvbnN0IEEgPSBZLmdldENvbnRhaW5lckRlcHRocyhlKSwgRiA9IE9iamVjdC5rZXlzKGUuY29udGFpbmVycykuc29ydCgKICAgICAgKHUsIHgpID0+IChBLmdldCh4KSB8fCAwKSAtIChBLmdldCh1KSB8fCAwKQogICAgKSwgSCA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgTWFwKCk7CiAgICBmb3IgKGNvbnN0IFt1LCB4XSBvZiBPYmplY3QuZW50cmllcyhlLm5vZGVzKSkKICAgICAgeC5wYXJlbnRJZCAmJiAoSC5oYXMoeC5wYXJlbnRJZCkgfHwgSC5zZXQoeC5wYXJlbnRJZCwgW10pLCBILmdldCh4LnBhcmVudElkKS5wdXNoKHUpKTsKICAgIGZvciAoY29uc3QgW3UsIHhdIG9mIE9iamVjdC5lbnRyaWVzKGUuY29udGFpbmVycykpCiAgICAgIHgucGFyZW50SWQgJiYgKEguaGFzKHgucGFyZW50SWQpIHx8IEguc2V0KHgucGFyZW50SWQsIFtdKSwgSC5nZXQoeC5wYXJlbnRJZCkucHVzaCh1KSk7CiAgICBmb3IgKGNvbnN0IHUgb2YgRikgewogICAgICBpZiAoKHR0ID0gZS5jb250YWluZXJzW3VdKSAhPSBudWxsICYmIHR0LmNvbGxhcHNlZCkgewogICAgICAgIG5bdV0gfHwgKG5bdV0gPSB7CiAgICAgICAgICBpZDogdSwKICAgICAgICAgIHg6IDgwLAogICAgICAgICAgeTogODAsCiAgICAgICAgICB3aWR0aDogJCwKICAgICAgICAgIGhlaWdodDogVgogICAgICAgIH0pOwogICAgICAgIGNvbnRpbnVlOwogICAgICB9CiAgICAgIGNvbnN0IHggPSBILmdldCh1KSB8fCBbXSwgTyA9IFtdOwogICAgICBmb3IgKGNvbnN0IG0gb2YgeCkgewogICAgICAgIGNvbnN0IGIgPSBsW21dIHx8IG5bbV07CiAgICAgICAgYiAmJiBPLnB1c2goYik7CiAgICAgIH0KICAgICAgaWYgKE8ubGVuZ3RoID09PSAwKQogICAgICAgIG5bdV0gfHwgKG5bdV0gPSB7CiAgICAgICAgICBpZDogdSwKICAgICAgICAgIHg6IDgwLAogICAgICAgICAgeTogODAsCiAgICAgICAgICB3aWR0aDogbnQsCiAgICAgICAgICBoZWlnaHQ6IHN0CiAgICAgICAgfSk7CiAgICAgIGVsc2UgewogICAgICAgIGxldCBtID0gMSAvIDAsIGIgPSAtMSAvIDAsIFAgPSAxIC8gMCwgTiA9IC0xIC8gMDsKICAgICAgICBmb3IgKGNvbnN0IGogb2YgTykKICAgICAgICAgIG0gPSBNYXRoLm1pbihtLCBqLngpLCBiID0gTWF0aC5tYXgoYiwgai54ICsgai53aWR0aCksIFAgPSBNYXRoLm1pbihQLCBqLnkpLCBOID0gTWF0aC5tYXgoTiwgai55ICsgai5oZWlnaHQpOwogICAgICAgIGNvbnN0IEQgPSBNYXRoLm1heChiIC0gbSArIF8gKiAyLCAkKSwgdiA9IE4gLSBQICsgVyArIFIgKiAyLCBDID0gbSAtIF8sIFQgPSBQIC0gVyAtIFI7CiAgICAgICAgblt1XSA9IHsgaWQ6IHUsIHg6IEMsIHk6IFQsIHdpZHRoOiBELCBoZWlnaHQ6IHYgfTsKICAgICAgfQogICAgfQogICAgbGV0IFUgPSAxIC8gMCwgTCA9IDEgLyAwOwogICAgZm9yIChjb25zdCB1IG9mIFsuLi5PYmplY3QudmFsdWVzKGwpLCAuLi5PYmplY3QudmFsdWVzKG4pXSkKICAgICAgVSA9IE1hdGgubWluKFUsIHUueCksIEwgPSBNYXRoLm1pbihMLCB1LnkpOwogICAgY29uc3QgQiA9IDYwLCBaID0gVSA8IEIgPyBCIC0gVSA6IDAsIHogPSBMIDwgQiA/IEIgLSBMIDogMDsKICAgIGlmIChaICE9PSAwIHx8IHogIT09IDApIHsKICAgICAgZm9yIChjb25zdCB1IG9mIE9iamVjdC52YWx1ZXMobCkpCiAgICAgICAgdS54ICs9IFosIHUueSArPSB6OwogICAgICBmb3IgKGNvbnN0IHUgb2YgT2JqZWN0LnZhbHVlcyhuKSkKICAgICAgICB1LnggKz0gWiwgdS55ICs9IHo7CiAgICB9CiAgfQogIHN0YXRpYyBhc3NpZ25EeW5hbWljUG9ydFNpZGVzKGUsIGYsIGMpIHsKICAgIHZhciBkLCBoOwogICAgY29uc3QgdCA9IChsKSA9PiBmW2xdIHx8IGNbbF07CiAgICBmb3IgKGNvbnN0IGwgb2YgT2JqZWN0LnZhbHVlcyhlLmVkZ2VzKSkgewogICAgICBjb25zdCBuID0gdChsLnNvdXJjZUlkKSwgcyA9IHQobC50YXJnZXRJZCk7CiAgICAgIGlmICghbiB8fCAhcykgY29udGludWU7CiAgICAgIGNvbnN0IHkgPSBlLm5vZGVzW2wuc291cmNlSWRdIHx8IGUuY29udGFpbmVyc1tsLnNvdXJjZUlkXSwgaSA9IGUubm9kZXNbbC50YXJnZXRJZF0gfHwgZS5jb250YWluZXJzW2wudGFyZ2V0SWRdLCByID0gcy54ICsgcy53aWR0aCAvIDIgLSAobi54ICsgbi53aWR0aCAvIDIpLCBwID0gcy55ICsgcy5oZWlnaHQgLyAyIC0gKG4ueSArIG4uaGVpZ2h0IC8gMiksIGcgPSBNYXRoLmFicyhyKSA+IE1hdGguYWJzKHApICogMS4yNSwgYSA9IChkID0geSA9PSBudWxsID8gdm9pZCAwIDogeS5wb3J0cykgPT0gbnVsbCA/IHZvaWQgMCA6IGQuZmluZCgobykgPT4gby5pZCA9PT0gbC5zb3VyY2VQb3J0SWQpOwogICAgICBhICYmICghYS5zaWRlIHx8IGEuc2lkZSA9PT0gImF1dG8iKSAmJiAoZyA/IGEuc2lkZSA9IHIgPj0gMCA/ICJyaWdodCIgOiAibGVmdCIgOiBhLnNpZGUgPSBwID49IDAgPyAiYm90dG9tIiA6ICJ0b3AiKTsKICAgICAgY29uc3QgdyA9IChoID0gaSA9PSBudWxsID8gdm9pZCAwIDogaS5wb3J0cykgPT0gbnVsbCA/IHZvaWQgMCA6IGguZmluZCgobykgPT4gby5pZCA9PT0gbC50YXJnZXRQb3J0SWQpOwogICAgICB3ICYmICghdy5zaWRlIHx8IHcuc2lkZSA9PT0gImF1dG8iKSAmJiAoZyA/IHcuc2lkZSA9IHIgPj0gMCA/ICJsZWZ0IiA6ICJyaWdodCIgOiB3LnNpZGUgPSBwID49IDAgPyAidG9wIiA6ICJib3R0b20iKTsKICAgIH0KICB9CiAgc3RhdGljIGdldENvbnRhaW5lckRlcHRocyhlKSB7CiAgICBjb25zdCBmID0gLyogQF9fUFVSRV9fICovIG5ldyBNYXAoKSwgYyA9ICh0KSA9PiB7CiAgICAgIHZhciBsOwogICAgICBpZiAoZi5oYXModCkpIHJldHVybiBmLmdldCh0KTsKICAgICAgY29uc3QgZCA9IChsID0gZS5jb250YWluZXJzW3RdKSA9PSBudWxsID8gdm9pZCAwIDogbC5wYXJlbnRJZDsKICAgICAgaWYgKCFkIHx8ICFlLmNvbnRhaW5lcnNbZF0pCiAgICAgICAgcmV0dXJuIGYuc2V0KHQsIDApLCAwOwogICAgICBjb25zdCBoID0gMSArIGMoZCk7CiAgICAgIHJldHVybiBmLnNldCh0LCBoKSwgaDsKICAgIH07CiAgICBmb3IgKGNvbnN0IHQgb2YgT2JqZWN0LmtleXMoZS5jb250YWluZXJzKSkKICAgICAgYyh0KTsKICAgIHJldHVybiBmOwogIH0KfQpmdW5jdGlvbiBvdChYLCBlLCBmKSB7CiAgdmFyIGQsIGg7CiAgbGV0IGMgPSBYLCB0ID0gbnVsbDsKICBmb3IgKDsgYzsgKQogICAgZi5oYXMoYykgJiYgKHQgPSBjKSwgYyA9ICgoZCA9IGUubm9kZXNbY10pID09IG51bGwgPyB2b2lkIDAgOiBkLnBhcmVudElkKSA/PyAoKGggPSBlLmNvbnRhaW5lcnNbY10pID09IG51bGwgPyB2b2lkIDAgOiBoLnBhcmVudElkKSA/PyB2b2lkIDA7CiAgcmV0dXJuIHQgPz8gWDsKfQpjbGFzcyBkdCB7CiAgYXN5bmMgZXhlY3V0ZShlLCBmLCBjKSB7CiAgICBjb25zdCB0ID0gT2JqZWN0LnZhbHVlcyhlLmNvbnRhaW5lcnMpLCBkID0gT2JqZWN0LnZhbHVlcyhlLm5vZGVzKSwgaCA9IG5ldyBTZXQoCiAgICAgIHQuZmlsdGVyKChnKSA9PiAhIWcuY29sbGFwc2VkKS5tYXAoKGcpID0+IGcuaWQpCiAgICApLCBsID0gKGcpID0+IHsKICAgICAgdmFyIHc7CiAgICAgIGxldCBhID0gZzsKICAgICAgZm9yICg7IGE7ICkgewogICAgICAgIGlmIChoLmhhcyhhKSkgcmV0dXJuICEwOwogICAgICAgIGEgPSAodyA9IGUuY29udGFpbmVyc1thXSkgPT0gbnVsbCA/IHZvaWQgMCA6IHcucGFyZW50SWQ7CiAgICAgIH0KICAgICAgcmV0dXJuICExOwogICAgfSwgbiA9IC8qIEBfX1BVUkVfXyAqLyBuZXcgU2V0KCk7CiAgICBmb3IgKGNvbnN0IFtnLCBhXSBvZiBPYmplY3QuZW50cmllcyhlLm5vZGVzKSkKICAgICAgbChhLnBhcmVudElkKSB8fCBuLmFkZChnKTsKICAgIGZvciAoY29uc3QgW2csIGFdIG9mIE9iamVjdC5lbnRyaWVzKGUuY29udGFpbmVycykpCiAgICAgIGEuY29sbGFwc2VkID8gbChhLnBhcmVudElkKSB8fCBuLmFkZChnKSA6ICEoZC5zb21lKChvKSA9PiBvLnBhcmVudElkID09PSBnKSB8fCB0LnNvbWUoKG8pID0+IG8ucGFyZW50SWQgPT09IGcpKSAmJiAhbChhLnBhcmVudElkKSAmJiBuLmFkZChnKTsKICAgIGNvbnN0IHMgPSB7fTsKICAgIGZvciAoY29uc3QgW2csIGFdIG9mIE9iamVjdC5lbnRyaWVzKGUuZWRnZXMpKSB7CiAgICAgIGNvbnN0IHcgPSBvdChhLnNvdXJjZUlkLCBlLCBoKSwgbyA9IG90KGEudGFyZ2V0SWQsIGUsIGgpOwogICAgICB3ICE9PSBvICYmIG4uaGFzKHcpICYmIG4uaGFzKG8pICYmIChzW2ddID0gewogICAgICAgIC4uLmEsCiAgICAgICAgc291cmNlSWQ6IHcsCiAgICAgICAgdGFyZ2V0SWQ6IG8KICAgICAgfSk7CiAgICB9CiAgICBjb25zdCB5ID0gewogICAgICAuLi5lLAogICAgICBlZGdlczogcwogICAgfSwgaSA9IGN0LmRlY291cGxlKHksIG4pLCByID0gaXQuYXNzaWduTGF5ZXJzKGkuYWxsRW50aXR5SWRzLCBpLmFkakxpc3QpLCBwID0gRy5taW5pbWl6ZUNyb3NzaW5ncyhyLCBpLmFkakxpc3QsIDQsIHkpOwogICAgcmV0dXJuIFkuYXNzaWduQ29vcmRpbmF0ZXMoeSwgcCwgZiwgYyk7CiAgfQp9CmNvbnN0IGh0ID0gbmV3IGR0KCk7CnNlbGYub25tZXNzYWdlID0gYXN5bmMgKFgpID0+IHsKICBjb25zdCB7IGlkOiBlLCBncmFwaDogZiwgbWVhc3VyZW1lbnRzOiBjLCBvcHRpb25zOiB0IH0gPSBYLmRhdGE7CiAgdHJ5IHsKICAgIGNvbnN0IGQgPSBuZXcgTWFwKGMpLCBoID0gYXdhaXQgaHQuZXhlY3V0ZShmLCBkLCB0KTsKICAgIHNlbGYucG9zdE1lc3NhZ2UoeyBpZDogZSwgc3VjY2VzczogITAsIGxheW91dDogaCB9KTsKICB9IGNhdGNoIChkKSB7CiAgICBzZWxmLnBvc3RNZXNzYWdlKHsgaWQ6IGUsIHN1Y2Nlc3M6ICExLCBlcnJvcjogZC5tZXNzYWdlIH0pOwogIH0KfTsK", he = (r) => Uint8Array.from(atob(r), (g) => g.charCodeAt(0)), Mt = typeof self < "u" && self.Blob && new Blob(["URL.revokeObjectURL(import.meta.url);", he(Rt)], { type: "text/javascript;charset=utf-8" });
+function ye(r) {
   let g;
   try {
-    if (g = Qt && (self.URL || self.webkitURL).createObjectURL(Qt), !g) throw "";
-    const n = new Worker(g, {
+    if (g = Mt && (self.URL || self.webkitURL).createObjectURL(Mt), !g) throw "";
+    const o = new Worker(g, {
       type: "module",
-      name: i == null ? void 0 : i.name
+      name: r == null ? void 0 : r.name
     });
-    return n.addEventListener("error", () => {
+    return o.addEventListener("error", () => {
       (self.URL || self.webkitURL).revokeObjectURL(g);
-    }), n;
+    }), o;
   } catch {
     return new Worker(
-      "data:text/javascript;base64," + Mt,
+      "data:text/javascript;base64," + Rt,
       {
         type: "module",
-        name: i == null ? void 0 : i.name
+        name: r == null ? void 0 : r.name
       }
     );
   }
@@ -652,8 +652,8 @@ class Be {
     if (typeof Worker < "u")
       try {
         this.worker = new ye(), this.worker.onmessage = (g) => {
-          const { id: n, success: s, layout: I, error: r } = g.data, c = this.pendingRequests.get(n);
-          c && (this.pendingRequests.delete(n), s ? c.resolve(I) : c.reject(new Error(r)));
+          const { id: o, success: d, layout: I, error: s } = g.data, C = this.pendingRequests.get(o);
+          C && (this.pendingRequests.delete(o), d ? C.resolve(I) : C.reject(new Error(s)));
         }, this.worker.onerror = (g) => {
           console.warn("[SysFlow Worker] Error in worker, falling back to sync engine:", g);
         };
@@ -661,18 +661,18 @@ class Be {
         console.warn("[SysFlow Worker] Failed to instantiate worker. Falling back to sync engine:", g), this.worker = null;
       }
   }
-  execute(g, n, s) {
-    return this.worker ? new Promise((I, r) => {
-      const c = `req_${Date.now()}_${Math.random()}`;
-      this.pendingRequests.set(c, { resolve: I, reject: r });
-      const l = Array.from(n.entries());
+  execute(g, o, d) {
+    return this.worker ? new Promise((I, s) => {
+      const C = `req_${Date.now()}_${Math.random()}`;
+      this.pendingRequests.set(C, { resolve: I, reject: s });
+      const a = Array.from(o.entries());
       this.worker.postMessage({
-        id: c,
+        id: C,
         graph: g,
-        measurements: l,
-        options: s
+        measurements: a,
+        options: d
       });
-    }) : this.fallbackEngine.execute(g, n, s);
+    }) : this.fallbackEngine.execute(g, o, d);
   }
   dispose() {
     this.worker && (this.worker.terminate(), this.worker = null), this.pendingRequests.clear();
@@ -686,17 +686,17 @@ class fe {
     return g.cursorWorld;
   }
   onDragEnd(g) {
-    const { draggedEntity: n, hoveredEntity: s, graph: I } = g;
-    return s && s.id === n.id ? null : s && I.containers[s.id] ? n.parentId === s.id ? null : {
+    const { draggedEntity: o, hoveredEntity: d, graph: I } = g;
+    return d && d.id === o.id ? null : d && I.containers[d.id] ? o.parentId === d.id ? null : {
       type: "ENTITY_REPARENT",
       payload: {
-        entityId: n.id,
-        newParentId: s.id
+        entityId: o.id,
+        newParentId: d.id
       }
-    } : !s && n.parentId !== null && n.parentId !== void 0 ? {
+    } : !d && o.parentId !== null && o.parentId !== void 0 ? {
       type: "ENTITY_REPARENT",
       payload: {
-        entityId: n.id,
+        entityId: o.id,
         newParentId: null
       }
     } : null;
@@ -714,654 +714,691 @@ class De {
     return g.cursorWorld;
   }
   onDragEnd(g) {
-    const { draggedEntity: n, hoveredEdge: s, hoveredEntity: I, cursorWorld: r, startWorldPos: c, graph: l } = g;
-    if (I && l.containers[I.id])
-      return I.id !== n.id && n.parentId !== I.id ? {
+    const { draggedEntity: o, hoveredEdge: d, hoveredEntity: I, cursorWorld: s, startWorldPos: C, graph: a } = g;
+    if (I && a.containers[I.id])
+      return I.id !== o.id && o.parentId !== I.id ? {
         type: "ENTITY_REPARENT",
         payload: {
-          entityId: n.id,
+          entityId: o.id,
           newParentId: I.id
         }
       } : null;
-    if (!I && !s) {
-      const C = Object.values(l.edges).filter(
-        (A) => A.targetId === n.id
-      ), h = Object.values(l.edges).filter(
-        (A) => A.sourceId === n.id
+    if (!I && !d) {
+      const c = Object.values(a.edges).filter(
+        (A) => A.targetId === o.id
+      ), h = Object.values(a.edges).filter(
+        (A) => A.sourceId === o.id
       );
-      if (C.length === 1 && h.length === 1 && C[0].sourceId !== h[0].targetId && Math.hypot(
-        r.x - c.x,
-        r.y - c.y
+      if (c.length === 1 && h.length === 1 && c[0].sourceId !== h[0].targetId && Math.hypot(
+        s.x - C.x,
+        s.y - C.y
       ) >= this.dragOffThreshold)
         return {
           type: "NODE_EXTRACT",
           payload: {
-            nodeId: n.id,
-            incomingEdgeId: C[0].id,
+            nodeId: o.id,
+            incomingEdgeId: c[0].id,
             outgoingEdgeId: h[0].id
           }
         };
-      if (n.parentId !== null && n.parentId !== void 0)
+      if (o.parentId !== null && o.parentId !== void 0)
         return {
           type: "ENTITY_REPARENT",
           payload: {
-            entityId: n.id,
+            entityId: o.id,
             newParentId: null
           }
         };
     }
-    const o = (C) => {
-      const h = l.nodes[C.id] || C;
+    const i = (c) => {
+      const h = a.nodes[c.id] || c;
       if (!h.ports || h.ports.length === 0) return "";
-      const A = Object.values(l.edges).find((y) => y.targetId === C.id);
+      const A = Object.values(a.edges).find((B) => B.targetId === c.id);
       if (A) {
-        const y = h.ports.find((a) => a.id === A.targetPortId);
-        if (y) return y.id;
+        const B = h.ports.find((n) => n.id === A.targetPortId);
+        if (B) return B.id;
       }
       const f = new Set(
-        Object.values(l.edges).filter((y) => y.sourceId === C.id).map((y) => y.sourcePortId)
-      ), b = h.ports.find((y) => !f.has(y.id));
+        Object.values(a.edges).filter((B) => B.sourceId === c.id).map((B) => B.sourcePortId)
+      ), b = h.ports.find((B) => !f.has(B.id));
       return b ? b.id : h.ports[0].id;
     };
-    if (s)
-      return s.sourceId === n.id || s.targetId === n.id ? null : {
+    if (d)
+      return d.sourceId === o.id || d.targetId === o.id ? null : {
         type: "EDGE_REWIRE",
         payload: {
-          edgeId: s.id,
-          newSourceId: s.sourceId,
-          newTargetId: n.id,
-          newTargetPortId: o(n)
+          edgeId: d.id,
+          newSourceId: d.sourceId,
+          newTargetId: o.id,
+          newTargetPortId: i(o)
         }
       };
-    if (I && I.id !== n.id && l.nodes[I.id]) {
-      const C = Object.values(l.edges).find(
-        (h) => h.targetId === I.id && h.sourceId !== n.id
+    if (I && I.id !== o.id && a.nodes[I.id]) {
+      const c = Object.values(a.edges).find(
+        (h) => h.targetId === I.id && h.sourceId !== o.id
       );
-      if (C)
+      if (c)
         return {
           type: "EDGE_REWIRE",
           payload: {
-            edgeId: C.id,
-            newSourceId: C.sourceId,
-            newTargetId: n.id,
-            newTargetPortId: o(n)
+            edgeId: c.id,
+            newSourceId: c.sourceId,
+            newTargetId: o.id,
+            newTargetPortId: i(o)
           }
         };
     }
     return null;
   }
 }
-function we(i, g = { min: 0.15, max: 3 }) {
-  const [n, s] = et({ x: 80, y: 80, zoom: 1 }), I = Ct(!1), r = Ct({ x: 0, y: 0 }), c = M(
-    (a, e) => {
-      if (!i.current) return { x: a, y: e };
-      const t = i.current.getBoundingClientRect();
+function we(r, g = { min: 0.15, max: 3 }) {
+  const [o, d] = et({ x: 80, y: 80, zoom: 1 }), I = Ct(!1), s = Ct({ x: 0, y: 0 }), C = M(
+    (n, t) => {
+      if (!r.current) return { x: n, y: t };
+      const e = r.current.getBoundingClientRect();
       return {
-        x: (a - t.left - n.x) / n.zoom,
-        y: (e - t.top - n.y) / n.zoom
+        x: (n - e.left - o.x) / o.zoom,
+        y: (t - e.top - o.y) / o.zoom
       };
     },
-    [n, i]
-  ), l = M(
-    (a) => {
-      if (!i.current) return;
-      const e = [
-        ...Object.values(a.nodes),
-        ...Object.values(a.containers)
+    [o, r]
+  ), a = M(
+    (n) => {
+      if (!r.current) return;
+      const t = [
+        ...Object.values(n.nodes),
+        ...Object.values(n.containers)
       ];
-      if (e.length === 0) {
-        s({ x: 80, y: 80, zoom: 1 });
+      if (t.length === 0) {
+        d({ x: 80, y: 80, zoom: 1 });
         return;
       }
-      let t = 1 / 0, d = 1 / 0, w = -1 / 0, B = -1 / 0;
-      for (const Q of e)
-        t = Math.min(t, Q.x), d = Math.min(d, Q.y), w = Math.max(w, Q.x + Q.width), B = Math.max(B, Q.y + Q.height);
-      const S = i.current.getBoundingClientRect(), m = 80, p = Math.max(w - t, 100), H = Math.max(B - d, 100), W = (S.width - m * 2) / p, P = (S.height - m * 2) / H, L = Math.min(
-        Math.max(Math.min(W, P), g.min),
+      let e = 1 / 0, l = 1 / 0, m = -1 / 0, w = -1 / 0;
+      for (const Q of t)
+        e = Math.min(e, Q.x), l = Math.min(l, Q.y), m = Math.max(m, Q.x + Q.width), w = Math.max(w, Q.y + Q.height);
+      const u = r.current.getBoundingClientRect(), p = 80, G = Math.max(m - e, 100), v = Math.max(w - l, 100), T = (u.width - p * 2) / G, Z = (u.height - p * 2) / v, P = Math.min(
+        Math.max(Math.min(T, Z), g.min),
         Math.min(g.max, 1.25)
-      ), X = (S.width - p * L) / 2 - t * L, V = (S.height - H * L) / 2 - d * L;
-      s({
-        x: X,
+      ), W = (u.width - G * P) / 2 - e * P, V = (u.height - v * P) / 2 - l * P;
+      d({
+        x: W,
         y: V,
-        zoom: L
+        zoom: P
       });
     },
-    [i, g]
-  ), o = M(
-    (a) => {
-      if (a.preventDefault(), !!i.current)
-        if (a.ctrlKey || a.metaKey) {
-          const e = i.current.getBoundingClientRect(), t = a.clientX - e.left, d = a.clientY - e.top, w = a.deltaY < 0 ? 1.08 : 0.92, B = Math.min(Math.max(n.zoom * w, g.min), g.max), S = t - (t - n.x) * (B / n.zoom), m = d - (d - n.y) * (B / n.zoom);
-          s({ x: S, y: m, zoom: B });
+    [r, g]
+  ), i = M(
+    (n) => {
+      if (n.preventDefault(), !!r.current)
+        if (n.ctrlKey || n.metaKey) {
+          const t = r.current.getBoundingClientRect(), e = n.clientX - t.left, l = n.clientY - t.top, m = n.deltaY < 0 ? 1.08 : 0.92, w = Math.min(Math.max(o.zoom * m, g.min), g.max), u = e - (e - o.x) * (w / o.zoom), p = l - (l - o.y) * (w / o.zoom);
+          d({ x: u, y: p, zoom: w });
         } else
-          s((e) => ({
-            ...e,
-            x: e.x - a.deltaX,
-            y: e.y - a.deltaY
+          d((t) => ({
+            ...t,
+            x: t.x - n.deltaX,
+            y: t.y - n.deltaY
           }));
     },
-    [n, g, i]
-  ), C = M(
-    (a, e) => {
-      I.current = !0, r.current = { x: a - n.x, y: e - n.y };
+    [o, g, r]
+  ), c = M(
+    (n, t) => {
+      I.current = !0, s.current = { x: n - o.x, y: t - o.y };
     },
-    [n]
-  ), h = M((a, e) => {
-    I.current && s((t) => ({
-      ...t,
-      x: a - r.current.x,
-      y: e - r.current.y
+    [o]
+  ), h = M((n, t) => {
+    I.current && d((e) => ({
+      ...e,
+      x: n - s.current.x,
+      y: t - s.current.y
     }));
   }, []), A = M(() => {
     I.current = !1;
   }, []), f = M(() => {
-    s({ x: 80, y: 80, zoom: 1 });
+    d({ x: 80, y: 80, zoom: 1 });
   }, []), b = M(() => {
-    s((a) => ({
-      ...a,
-      zoom: Math.min(a.zoom * 1.2, g.max)
+    d((n) => ({
+      ...n,
+      zoom: Math.min(n.zoom * 1.2, g.max)
     }));
-  }, [g]), y = M(() => {
-    s((a) => ({
-      ...a,
-      zoom: Math.max(a.zoom / 1.2, g.min)
+  }, [g]), B = M(() => {
+    d((n) => ({
+      ...n,
+      zoom: Math.max(n.zoom / 1.2, g.min)
     }));
   }, [g]);
   return {
-    transform: n,
-    setTransform: s,
-    screenToWorld: c,
-    onWheel: o,
-    startPan: C,
+    transform: o,
+    setTransform: d,
+    screenToWorld: C,
+    onWheel: i,
+    startPan: c,
     updatePan: h,
     endPan: A,
     resetTransform: f,
     zoomIn: b,
-    zoomOut: y,
-    zoomToFit: l,
+    zoomOut: B,
+    zoomToFit: a,
     isPanning: I
   };
 }
-function be(i) {
-  const [g, n] = et(
+function be(r) {
+  const [g, o] = et(
     /* @__PURE__ */ new Map()
   );
   Ct(/* @__PURE__ */ new Map());
-  const s = Ct(/* @__PURE__ */ new Map()), I = M((r, c) => {
-    c ? s.current.set(r, c) : s.current.delete(r);
+  const d = Ct(/* @__PURE__ */ new Map()), I = M((s, C) => {
+    C ? d.current.set(s, C) : d.current.delete(s);
   }, []);
   return Dt(() => {
-    const r = new ResizeObserver((c) => {
-      let l = !1;
-      const o = new Map(g);
-      for (const C of c) {
-        const h = C.target.getAttribute("data-sysflow-measure-id");
+    const s = new ResizeObserver((C) => {
+      let a = !1;
+      const i = new Map(g);
+      for (const c of C) {
+        const h = c.target.getAttribute("data-sysflow-measure-id");
         if (!h) continue;
-        const A = Math.ceil(C.contentRect.width), f = Math.ceil(C.contentRect.height), b = o.get(h);
-        (!b || b.width !== A || b.height !== f) && (o.set(h, { width: A, height: f }), l = !0);
+        const A = Math.ceil(c.contentRect.width), f = Math.ceil(c.contentRect.height), b = i.get(h);
+        (!b || b.width !== A || b.height !== f) && (i.set(h, { width: A, height: f }), a = !0);
       }
-      l && n(o);
+      a && o(i);
     });
-    return s.current.forEach((c) => r.observe(c)), () => {
-      r.disconnect();
+    return d.current.forEach((C) => s.observe(C)), () => {
+      s.disconnect();
     };
-  }, [i]), { measurements: g, registerMeasureElement: I };
+  }, [r]), { measurements: g, registerMeasureElement: I };
 }
-function me(i, g, n, s, I) {
-  const [r, c] = et(null), [l, o] = et(null), C = Ct(null), h = Ct(null), A = M(
-    (e, t) => {
-      let d = null, w = 1 / 0;
-      for (const [B, S] of Object.entries(g.containers))
-        if (B !== t && e.x >= S.x && e.x <= S.x + S.width && e.y >= S.y && e.y <= S.y + S.height) {
-          const m = S.width * S.height;
-          m < w && (w = m, d = i.containers[B] || null);
+function me(r, g, o, d, I) {
+  const [s, C] = et(null), [a, i] = et(null), c = Ct(null), h = Ct(null), A = M(
+    (t, e) => {
+      let l = null, m = 1 / 0;
+      for (const [w, u] of Object.entries(g.containers))
+        if (w !== e && t.x >= u.x && t.x <= u.x + u.width && t.y >= u.y && t.y <= u.y + u.height) {
+          const p = u.width * u.height;
+          p < m && (m = p, l = r.containers[w] || null);
         }
-      if (d) return d;
-      for (const [B, S] of Object.entries(g.nodes))
-        if (B !== t && e.x >= S.x && e.x <= S.x + S.width && e.y >= S.y && e.y <= S.y + S.height)
-          return i.nodes[B] || null;
+      if (l) return l;
+      for (const [w, u] of Object.entries(g.nodes))
+        if (w !== e && t.x >= u.x && t.x <= u.x + u.width && t.y >= u.y && t.y <= u.y + u.height)
+          return r.nodes[w] || null;
       return null;
     },
-    [g, i]
+    [g, r]
   ), f = M(
-    (e, t) => {
-      let d = null, w = 45;
-      for (const B of Object.values(i.edges)) {
-        if (B.sourceId === t || B.targetId === t) continue;
-        const S = g.nodes[B.sourceId] || g.containers[B.sourceId], m = g.nodes[B.targetId] || g.containers[B.targetId];
-        if (!S || !m) continue;
-        const p = S.x + S.width, H = S.y + S.height / 2, W = m.x, P = m.y + m.height / 2;
-        for (let L = 0; L <= 10; L++) {
-          const X = L / 10, V = (1 - X) * p + X * W, Q = (1 - X) * H + X * P, G = Math.hypot(e.x - V, e.y - Q);
-          G < w && (w = G, d = B);
+    (t, e) => {
+      let l = null, m = 45;
+      for (const w of Object.values(r.edges)) {
+        if (w.sourceId === e || w.targetId === e) continue;
+        const u = g.nodes[w.sourceId] || g.containers[w.sourceId], p = g.nodes[w.targetId] || g.containers[w.targetId];
+        if (!u || !p) continue;
+        const G = u.x + u.width, v = u.y + u.height / 2, T = p.x, Z = p.y + p.height / 2;
+        for (let P = 0; P <= 10; P++) {
+          const W = P / 10, V = (1 - W) * G + W * T, Q = (1 - W) * v + W * Z, K = Math.hypot(t.x - V, t.y - Q);
+          K < m && (m = K, l = w);
         }
       }
-      return d;
+      return l;
     },
-    [g, i]
+    [g, r]
   ), b = M(
-    (e, t) => {
-      if (t.stopPropagation(), n.canDrag && !n.canDrag(e, i))
+    (t, e) => {
+      if (e.stopPropagation(), o.canDrag && !o.canDrag(t, r))
         return;
-      const d = s(t.clientX, t.clientY);
-      c({
-        draggedEntity: e,
-        ghostPosition: d,
-        startPosition: d
+      const l = d(e.clientX, e.clientY);
+      C({
+        draggedEntity: t,
+        ghostPosition: l,
+        startPosition: l
       });
     },
-    [i, n, s]
-  ), y = M(
-    (e) => {
-      if (!r) return;
-      const t = s(e.clientX, e.clientY), d = A(t, r.draggedEntity.id), w = f(t, r.draggedEntity.id);
-      C.current = d, h.current = w, d && i.containers[d.id] ? o(d.id) : o(null);
-      const B = n.onDragMove ? n.onDragMove({
-        draggedEntity: r.draggedEntity,
-        cursorWorld: t,
-        startWorldPos: r.startPosition,
-        hoveredEntity: d,
-        hoveredEdge: w,
-        graph: i,
+    [r, o, d]
+  ), B = M(
+    (t) => {
+      if (!s) return;
+      const e = d(t.clientX, t.clientY), l = A(e, s.draggedEntity.id), m = f(e, s.draggedEntity.id);
+      c.current = l, h.current = m, l && r.containers[l.id] ? i(l.id) : i(null);
+      const w = o.onDragMove ? o.onDragMove({
+        draggedEntity: s.draggedEntity,
+        cursorWorld: e,
+        startWorldPos: s.startPosition,
+        hoveredEntity: l,
+        hoveredEdge: m,
+        graph: r,
         layout: g
-      }) : t;
-      B && c((S) => S ? { ...S, ghostPosition: B } : null);
+      }) : e;
+      w && C((u) => u ? { ...u, ghostPosition: w } : null);
     },
-    [r, s, n, i, g, A, f]
-  ), a = M(
-    (e) => {
-      if (!r) return;
-      const t = s(e.clientX, e.clientY), d = A(t, r.draggedEntity.id), w = f(t, r.draggedEntity.id), B = n.onDragEnd({
-        draggedEntity: r.draggedEntity,
-        cursorWorld: t,
-        startWorldPos: r.startPosition,
-        hoveredEntity: d,
-        hoveredEdge: w,
-        graph: i,
+    [s, d, o, r, g, A, f]
+  ), n = M(
+    (t) => {
+      if (!s) return;
+      const e = d(t.clientX, t.clientY), l = A(e, s.draggedEntity.id), m = f(e, s.draggedEntity.id), w = o.onDragEnd({
+        draggedEntity: s.draggedEntity,
+        cursorWorld: e,
+        startWorldPos: s.startPosition,
+        hoveredEntity: l,
+        hoveredEdge: m,
+        graph: r,
         layout: g
       });
-      B && I(B), c(null), o(null), C.current = null, h.current = null;
+      w && I(w), C(null), i(null), c.current = null, h.current = null;
     },
-    [r, s, n, i, g, A, f, I]
+    [s, d, o, r, g, A, f, I]
   );
   return {
-    dragState: r,
-    hoveredContainerId: l,
+    dragState: s,
+    hoveredContainerId: a,
     handlePointerDown: b,
-    handlePointerMove: y,
-    handlePointerUp: a
+    handlePointerMove: B,
+    handlePointerUp: n
   };
 }
-function Ee(i) {
-  const [g, n] = et([i]), [s, I] = et(0), [r, c] = et(null), l = g[s], o = M((e) => {
-    const t = ce(e);
-    n((d) => [...d.slice(0, s + 1), t]), I((d) => d + 1);
-  }, [s]), C = M(() => {
-    s > 0 && I((e) => e - 1);
-  }, [s]), h = M(() => {
-    s < g.length - 1 && I((e) => e + 1);
-  }, [s, g.length]), A = M((e) => {
-    var d, w, B, S;
-    const t = g[s];
-    if (e.type === "ENTITY_REPARENT") {
-      const { entityId: m, newParentId: p } = e.payload, H = {
-        ...t,
-        nodes: { ...t.nodes },
-        containers: { ...t.containers }
+function Ee(r) {
+  const [g, o] = et({
+    history: [r],
+    index: 0
+  }), [d, I] = et(null), s = g.history[g.index] ?? g.history[0] ?? r, C = M((n) => {
+    const t = Wt(n);
+    o((e) => {
+      const l = e.history.slice(0, e.index + 1);
+      return {
+        history: [...l, t],
+        index: l.length
       };
-      H.nodes[m] ? H.nodes[m] = { ...H.nodes[m], parentId: p } : H.containers[m] && (H.containers[m] = { ...H.containers[m], parentId: p }), o(H);
-    } else if (e.type === "EDGE_SPLIT_INSERT_NODE") {
-      const { edge: m, direction: p, suggestedNewNodeId: H, suggestedNewEdge1Id: W, suggestedNewEdge2Id: P } = e.payload, L = t.edges[m.id];
-      if (!L) return;
-      const X = p === "BT", V = p === "TB", Q = `p_in_${Date.now()}`, G = `p_out_${Date.now()}`;
-      let D = "left", u = "right";
-      X ? (D = "bottom", u = "top") : V ? (D = "top", u = "bottom") : p === "RL" && (D = "right", u = "left");
-      const k = t.nodes[L.sourceId], E = {
-        id: H,
-        label: `Node ${Object.keys(t.nodes).length + 1}`,
-        type: (k == null ? void 0 : k.type) || "FlowTask",
-        parentId: (k == null ? void 0 : k.parentId) ?? null,
-        ports: [
-          { id: Q, label: "in", side: D },
-          { id: G, label: "out", side: u }
-        ]
-      }, Z = {
-        id: W,
-        sourceId: L.sourceId,
-        sourcePortId: L.sourcePortId,
-        targetId: H,
-        targetPortId: Q
-      }, J = {
-        id: P,
-        sourceId: H,
-        sourcePortId: G,
-        targetId: L.targetId,
-        targetPortId: L.targetPortId
-      }, T = { ...t.edges };
-      delete T[L.id], T[W] = Z, T[P] = J, o({
-        ...t,
-        nodes: { ...t.nodes, [H]: E },
-        edges: T
-      });
-    } else if (e.type === "NODE_EXTRACT") {
-      const { nodeId: m, incomingEdgeId: p, outgoingEdgeId: H } = e.payload, W = t.edges[p], P = t.edges[H];
-      if (!W || !P) return;
-      const L = { ...t.edges };
-      L[p] = {
-        ...W,
-        targetId: P.targetId,
-        targetPortId: P.targetPortId
-      }, delete L[H], o({
-        ...t,
-        edges: L
-      });
-    } else if (e.type === "NODE_ADD_CONNECTED") {
-      const { sourceNode: m, position: p, direction: H, suggestedNewNodeId: W, suggestedNewEdgeId: P } = e.payload, L = H === "BT", X = `p_in_${Date.now()}`, V = `p_out_${Date.now()}`, Q = {
-        id: W,
-        label: `Node ${Object.keys(t.nodes).length + 1}`,
-        type: m.type,
-        ports: [
-          { id: X, label: "in", side: L ? "bottom" : "top" },
-          { id: V, label: "out", side: L ? "top" : "bottom" }
-        ]
-      }, G = m.ports.find((E) => E.label === "in") || m.ports[0], D = m.ports.find((E) => E.label === "out") || m.ports[m.ports.length - 1];
-      let u;
-      L && p === "bottom" || !L && p === "top" ? u = {
-        id: P,
-        sourceId: W,
-        sourcePortId: V,
-        targetId: m.id,
-        targetPortId: (G == null ? void 0 : G.id) || "in"
-      } : u = {
-        id: P,
-        sourceId: m.id,
-        sourcePortId: (D == null ? void 0 : D.id) || "out",
-        targetId: W,
-        targetPortId: X
-      }, o({
-        ...t,
-        nodes: { ...t.nodes, [W]: Q },
-        edges: { ...t.edges, [P]: u }
-      });
-    } else if (e.type === "CONTAINER_TOGGLE_COLLAPSE") {
-      const { containerId: m, collapsed: p } = e.payload;
-      t.containers[m] && o({
-        ...t,
-        containers: {
-          ...t.containers,
-          [m]: { ...t.containers[m], collapsed: p }
-        }
-      });
-    } else if (e.type === "EDGE_CREATE") {
-      const m = e.payload.id || `E_${Date.now()}`;
-      o({
-        ...t,
-        edges: {
-          ...t.edges,
-          [m]: { id: m, ...e.payload.edge }
-        }
-      });
-    } else if (e.type === "EDGE_DELETE") {
-      const m = { ...t.edges };
-      delete m[e.payload.edgeId], o({ ...t, edges: m });
-    } else if (e.type === "EDGE_REWIRE") {
-      const { edgeId: m, newTargetId: p } = e.payload;
-      if (!p || !t.edges[m]) return;
-      const H = p, W = t.edges[m], P = W.targetId, L = Object.values(t.edges).find((u) => u.targetId === H), X = Object.values(t.edges).find((u) => u.sourceId === H), V = { ...t.edges };
-      L && X && (V[L.id] = { ...L, targetId: X.targetId, targetPortId: X.targetPortId }, delete V[X.id]);
-      const Q = ((w = (d = t.nodes[H]) == null ? void 0 : d.ports[0]) == null ? void 0 : w.id) || "p_in", G = ((S = (B = t.nodes[H]) == null ? void 0 : B.ports.find((u) => u.id !== Q)) == null ? void 0 : S.id) || Q;
-      V[m] = {
-        ...W,
-        targetId: H,
-        targetPortId: Q
-      };
-      const D = `REWIRE_${Date.now()}`;
-      V[D] = {
-        id: D,
-        sourceId: H,
-        sourcePortId: G,
-        targetId: P,
-        targetPortId: W.targetPortId
-      }, o({ ...t, edges: V });
-    }
-  }, [g, s, o]), f = M((e) => {
-    const t = l.nodes[e] || l.containers[e];
-    t && c({ entity: JSON.parse(JSON.stringify(t)), isCut: !1 });
-  }, [l]), b = M((e) => {
-    const t = l.nodes[e] || l.containers[e];
-    if (t) {
-      c({ entity: JSON.parse(JSON.stringify(t)), isCut: !0 });
-      const d = { ...l.nodes }, w = { ...l.containers };
-      delete d[e], delete w[e], o({ ...l, nodes: d, containers: w });
-    }
-  }, [l, o]), y = M(() => {
-    if (!r) return;
-    const e = r.entity, t = `${e.id}_copy_${Date.now().toString().slice(-4)}`, d = { ...e, id: t, label: `${e.label} (Copy)` };
-    "collapsed" in d ? o({
-      ...l,
-      containers: { ...l.containers, [t]: d }
-    }) : o({
-      ...l,
-      nodes: { ...l.nodes, [t]: d }
     });
-  }, [r, l, o]), a = M((e) => {
-    if (e.length === 0) return;
-    const t = { ...l.nodes }, d = { ...l.containers }, w = { ...l.edges };
-    for (const B of e)
-      delete t[B], delete d[B], delete w[B];
+  }, []), a = M((n) => {
+    const t = Wt(n);
     o({
-      ...l,
-      nodes: t,
-      containers: d,
-      edges: w
+      history: [t],
+      index: 0
     });
-  }, [l, o]);
+  }, []), i = M(() => {
+    o((n) => ({
+      ...n,
+      index: Math.max(0, n.index - 1)
+    }));
+  }, []), c = M(() => {
+    o((n) => ({
+      ...n,
+      index: Math.min(n.history.length - 1, n.index + 1)
+    }));
+  }, []), h = M(
+    (n) => {
+      var e, l, m, w;
+      const t = s;
+      if (n.type === "ENTITY_REPARENT") {
+        const { entityId: u, newParentId: p } = n.payload, G = {
+          ...t,
+          nodes: { ...t.nodes },
+          containers: { ...t.containers }
+        };
+        G.nodes[u] ? G.nodes[u] = { ...G.nodes[u], parentId: p } : G.containers[u] && (G.containers[u] = { ...G.containers[u], parentId: p }), C(G);
+      } else if (n.type === "EDGE_SPLIT_INSERT_NODE") {
+        const { edge: u, direction: p, suggestedNewNodeId: G, suggestedNewEdge1Id: v, suggestedNewEdge2Id: T } = n.payload, Z = t.edges[u.id];
+        if (!Z) return;
+        const P = p === "BT", W = p === "TB", V = `p_in_${Date.now()}`, Q = `p_out_${Date.now()}`;
+        let K = "left", k = "right";
+        P ? (K = "bottom", k = "top") : W ? (K = "top", k = "bottom") : p === "RL" && (K = "right", k = "left");
+        const y = t.nodes[Z.sourceId], H = {
+          id: G,
+          label: `Node ${Object.keys(t.nodes).length + 1}`,
+          type: (y == null ? void 0 : y.type) || "FlowTask",
+          parentId: (y == null ? void 0 : y.parentId) ?? null,
+          ports: [
+            { id: V, label: "in", side: K },
+            { id: Q, label: "out", side: k }
+          ]
+        }, Y = {
+          id: v,
+          sourceId: Z.sourceId,
+          sourcePortId: Z.sourcePortId,
+          targetId: G,
+          targetPortId: V
+        }, L = {
+          id: T,
+          sourceId: G,
+          sourcePortId: Q,
+          targetId: Z.targetId,
+          targetPortId: Z.targetPortId
+        }, F = { ...t.edges };
+        delete F[Z.id], F[v] = Y, F[T] = L, C({
+          ...t,
+          nodes: { ...t.nodes, [G]: H },
+          edges: F
+        });
+      } else if (n.type === "NODE_EXTRACT") {
+        const { incomingEdgeId: u, outgoingEdgeId: p } = n.payload, G = t.edges[u], v = t.edges[p];
+        if (!G || !v) return;
+        const T = { ...t.edges };
+        T[u] = {
+          ...G,
+          targetId: v.targetId,
+          targetPortId: v.targetPortId
+        }, delete T[p], C({
+          ...t,
+          edges: T
+        });
+      } else if (n.type === "NODE_ADD_CONNECTED") {
+        const { sourceNode: u, position: p, direction: G, suggestedNewNodeId: v, suggestedNewEdgeId: T } = n.payload, Z = G === "BT", P = `p_in_${Date.now()}`, W = `p_out_${Date.now()}`, V = {
+          id: v,
+          label: `Node ${Object.keys(t.nodes).length + 1}`,
+          type: u.type,
+          ports: [
+            { id: P, label: "in", side: Z ? "bottom" : "top" },
+            { id: W, label: "out", side: Z ? "top" : "bottom" }
+          ]
+        }, Q = u.ports.find((H) => H.label === "in") || u.ports[0], K = u.ports.find((H) => H.label === "out") || u.ports[u.ports.length - 1];
+        let k;
+        Z && p === "bottom" || !Z && p === "top" ? k = {
+          id: T,
+          sourceId: v,
+          sourcePortId: W,
+          targetId: u.id,
+          targetPortId: (Q == null ? void 0 : Q.id) || "in"
+        } : k = {
+          id: T,
+          sourceId: u.id,
+          sourcePortId: (K == null ? void 0 : K.id) || "out",
+          targetId: v,
+          targetPortId: P
+        }, C({
+          ...t,
+          nodes: { ...t.nodes, [v]: V },
+          edges: { ...t.edges, [T]: k }
+        });
+      } else if (n.type === "CONTAINER_TOGGLE_COLLAPSE") {
+        const { containerId: u, collapsed: p } = n.payload;
+        t.containers[u] && C({
+          ...t,
+          containers: {
+            ...t.containers,
+            [u]: { ...t.containers[u], collapsed: p }
+          }
+        });
+      } else if (n.type === "EDGE_CREATE") {
+        const u = n.payload.id || `E_${Date.now()}`;
+        C({
+          ...t,
+          edges: {
+            ...t.edges,
+            [u]: { id: u, ...n.payload.edge }
+          }
+        });
+      } else if (n.type === "EDGE_DELETE") {
+        const u = { ...t.edges };
+        delete u[n.payload.edgeId], C({ ...t, edges: u });
+      } else if (n.type === "EDGE_REWIRE") {
+        const { edgeId: u, newTargetId: p } = n.payload;
+        if (!p || !t.edges[u]) return;
+        const G = p, v = t.edges[u], T = v.targetId, Z = Object.values(t.edges).find((k) => k.targetId === G), P = Object.values(t.edges).find((k) => k.sourceId === G), W = { ...t.edges };
+        Z && P && (W[Z.id] = {
+          ...Z,
+          targetId: P.targetId,
+          targetPortId: P.targetPortId
+        }, delete W[P.id]);
+        const V = ((l = (e = t.nodes[G]) == null ? void 0 : e.ports[0]) == null ? void 0 : l.id) || "p_in", Q = ((w = (m = t.nodes[G]) == null ? void 0 : m.ports.find((k) => k.id !== V)) == null ? void 0 : w.id) || V;
+        W[u] = {
+          ...v,
+          targetId: G,
+          targetPortId: V
+        };
+        const K = `REWIRE_${Date.now()}`;
+        W[K] = {
+          id: K,
+          sourceId: G,
+          sourcePortId: Q,
+          targetId: T,
+          targetPortId: v.targetPortId
+        }, C({ ...t, edges: W });
+      }
+    },
+    [s, C]
+  ), A = M(
+    (n) => {
+      const t = s.nodes[n] || s.containers[n];
+      t && I({ entity: JSON.parse(JSON.stringify(t)), isCut: !1 });
+    },
+    [s]
+  ), f = M(
+    (n) => {
+      const t = s.nodes[n] || s.containers[n];
+      if (t) {
+        I({ entity: JSON.parse(JSON.stringify(t)), isCut: !0 });
+        const e = { ...s.nodes }, l = { ...s.containers };
+        delete e[n], delete l[n], C({ ...s, nodes: e, containers: l });
+      }
+    },
+    [s, C]
+  ), b = M(() => {
+    if (!d) return;
+    const n = d.entity, t = `${n.id}_copy_${Date.now().toString().slice(-4)}`, e = { ...n, id: t, label: `${n.label} (Copy)` };
+    "collapsed" in e ? C({
+      ...s,
+      containers: { ...s.containers, [t]: e }
+    }) : C({
+      ...s,
+      nodes: { ...s.nodes, [t]: e }
+    });
+  }, [d, s, C]), B = M(
+    (n) => {
+      if (n.length === 0) return;
+      const t = { ...s.nodes }, e = { ...s.containers }, l = { ...s.edges };
+      for (const m of n)
+        delete t[m], delete e[m], delete l[m];
+      C({
+        ...s,
+        nodes: t,
+        containers: e,
+        edges: l
+      });
+    },
+    [s, C]
+  );
   return {
-    graph: l,
-    setGraphDirect: o,
-    applyAction: A,
-    undo: C,
-    redo: h,
-    copyEntity: f,
-    cutEntity: b,
-    pasteEntity: y,
-    deleteSelection: a,
-    canUndo: s > 0,
-    canRedo: s < g.length - 1
+    graph: s,
+    setGraphDirect: a,
+    applyAction: h,
+    undo: i,
+    redo: c,
+    copyEntity: A,
+    cutEntity: f,
+    pasteEntity: b,
+    deleteSelection: B,
+    canUndo: g.index > 0,
+    canRedo: g.index < g.history.length - 1
   };
 }
 const Ge = ({
-  graph: i,
+  graph: r,
   registerMeasureElement: g,
-  nodeTypes: n,
-  containerTypes: s
+  nodeTypes: o,
+  containerTypes: d
 }) => {
-  const I = Object.values(i.nodes), r = Object.values(i.containers);
+  const I = Object.values(r.nodes), s = Object.values(r.containers);
   return /* @__PURE__ */ $("div", { className: "sysflow-measure-layer", "aria-hidden": "true", children: [
-    I.map((c) => {
-      const l = c.type ? n == null ? void 0 : n[c.type] : null;
-      return /* @__PURE__ */ N(
+    I.map((C) => {
+      const a = C.type ? o == null ? void 0 : o[C.type] : null;
+      return /* @__PURE__ */ D(
         "div",
         {
-          ref: (o) => g(c.id, o),
-          "data-sysflow-measure-id": c.id,
+          ref: (i) => g(C.id, i),
+          "data-sysflow-measure-id": C.id,
           className: "sysflow-node",
           style: { display: "inline-block", position: "relative" },
-          children: l ? /* @__PURE__ */ N(l, { node: c, selected: !1 }) : /* @__PURE__ */ $("div", { style: { padding: "12px 16px" }, children: [
-            /* @__PURE__ */ N("div", { style: { fontWeight: 600 }, children: c.label }),
-            c.ports.length > 0 && /* @__PURE__ */ $("div", { style: { fontSize: "11px", marginTop: 4, opacity: 0.7 }, children: [
+          children: a ? /* @__PURE__ */ D(a, { node: C, selected: !1 }) : /* @__PURE__ */ $("div", { style: { padding: "12px 16px" }, children: [
+            /* @__PURE__ */ D("div", { style: { fontWeight: 600 }, children: C.label }),
+            C.ports.length > 0 && /* @__PURE__ */ $("div", { style: { fontSize: "11px", marginTop: 4, opacity: 0.7 }, children: [
               "Ports: ",
-              c.ports.map((o) => o.label).join(", ")
+              C.ports.map((i) => i.label).join(", ")
             ] })
           ] })
         },
-        `measure-node-${c.id}`
+        `measure-node-${C.id}`
       );
     }),
-    r.map((c) => {
-      const l = c.type ? s == null ? void 0 : s[c.type] : null;
-      return /* @__PURE__ */ N(
+    s.map((C) => {
+      const a = C.type ? d == null ? void 0 : d[C.type] : null;
+      return /* @__PURE__ */ D(
         "div",
         {
-          ref: (o) => g(c.id, o),
-          "data-sysflow-measure-id": c.id,
+          ref: (i) => g(C.id, i),
+          "data-sysflow-measure-id": C.id,
           className: "sysflow-container",
           style: { display: "inline-block", position: "relative" },
-          children: l ? /* @__PURE__ */ N(l, { container: c, selected: !1 }) : /* @__PURE__ */ N("div", { className: "sysflow-container-header", children: c.label })
+          children: a ? /* @__PURE__ */ D(a, { container: C, selected: !1 }) : /* @__PURE__ */ D("div", { className: "sysflow-container-header", children: C.label })
         },
-        `measure-container-${c.id}`
+        `measure-container-${C.id}`
       );
     })
   ] });
 }, Ke = ({
-  graph: i,
+  graph: r,
   layout: g,
-  selectedIds: n,
-  direction: s = "TB",
+  selectedIds: o,
+  direction: d = "TB",
   showArrows: I = !0,
-  routing: r = "auto",
-  portOptions: c,
-  enableEdgeQuickAdd: l = !0,
-  onEdgeClick: o,
-  onInsertNodeOnEdge: C
+  routing: s = "auto",
+  portOptions: C,
+  enableEdgeQuickAdd: a = !0,
+  onEdgeClick: i,
+  onInsertNodeOnEdge: c
 }) => {
-  const [h, A] = et(null), f = r === "step" || r === "auto" && (s === "LR" || s === "RL"), b = (e, t, d) => {
-    var V, Q, G, D;
-    let w = e, B = null;
-    for ((V = i.containers[e]) != null && V.collapsed && (B = i.containers[e]); w; ) {
-      const u = ((Q = i.nodes[w]) == null ? void 0 : Q.parentId) ?? ((G = i.containers[w]) == null ? void 0 : G.parentId) ?? null;
-      u && ((D = i.containers[u]) != null && D.collapsed) && (B = i.containers[u]), w = u;
+  const [h, A] = et(null), f = s === "step" || s === "auto" && (d === "LR" || d === "RL"), b = (t, e, l) => {
+    var V, Q, K, k;
+    let m = t, w = null;
+    for ((V = r.containers[t]) != null && V.collapsed && (w = r.containers[t]); m; ) {
+      const y = ((Q = r.nodes[m]) == null ? void 0 : Q.parentId) ?? ((K = r.containers[m]) == null ? void 0 : K.parentId) ?? null;
+      y && ((k = r.containers[y]) != null && k.collapsed) && (w = r.containers[y]), m = y;
     }
-    if (B) {
-      const u = g.containers[B.id];
-      if (!u)
-        return { x: 0, y: 0, side: d ? "right" : "left", valid: !1, entityId: B.id };
-      let k, E, Z;
-      return s === "TB" ? (k = d ? "bottom" : "top", E = u.x + u.width / 2, Z = d ? u.y + u.height : u.y) : s === "BT" ? (k = d ? "top" : "bottom", E = u.x + u.width / 2, Z = d ? u.y : u.y + u.height) : s === "RL" ? (k = d ? "left" : "right", E = d ? u.x : u.x + u.width, Z = u.y + u.height / 2) : (k = d ? "right" : "left", E = d ? u.x + u.width : u.x, Z = u.y + u.height / 2), { x: E, y: Z, side: k, valid: !0, entityId: B.id };
+    if (w) {
+      const y = g.containers[w.id];
+      if (!y)
+        return { x: 0, y: 0, side: l ? "right" : "left", valid: !1, entityId: w.id };
+      let H, Y, L;
+      return d === "TB" ? (H = l ? "bottom" : "top", Y = y.x + y.width / 2, L = l ? y.y + y.height : y.y) : d === "BT" ? (H = l ? "top" : "bottom", Y = y.x + y.width / 2, L = l ? y.y : y.y + y.height) : d === "RL" ? (H = l ? "left" : "right", Y = l ? y.x : y.x + y.width, L = y.y + y.height / 2) : (H = l ? "right" : "left", Y = l ? y.x + y.width : y.x, L = y.y + y.height / 2), { x: Y, y: L, side: H, valid: !0, entityId: w.id };
     }
-    if (!!i.containers[e]) {
-      const u = g.containers[e];
-      if (!u) return { x: 0, y: 0, side: d ? "right" : "left", valid: !1, entityId: e };
-      let k, E, Z;
-      return s === "TB" ? (k = u.x + u.width / 2, E = d ? u.y + u.height : u.y, Z = d ? "bottom" : "top") : s === "BT" ? (k = u.x + u.width / 2, E = d ? u.y : u.y + u.height, Z = d ? "top" : "bottom") : s === "RL" ? (k = d ? u.x : u.x + u.width, E = u.y + u.height / 2, Z = d ? "left" : "right") : (k = d ? u.x + u.width : u.x, E = u.y + u.height / 2, Z = d ? "right" : "left"), { x: k, y: E, side: Z, valid: !0, entityId: e };
+    if (!!r.containers[t]) {
+      const y = g.containers[t];
+      if (!y) return { x: 0, y: 0, side: l ? "right" : "left", valid: !1, entityId: t };
+      let H, Y, L;
+      return d === "TB" ? (H = y.x + y.width / 2, Y = l ? y.y + y.height : y.y, L = l ? "bottom" : "top") : d === "BT" ? (H = y.x + y.width / 2, Y = l ? y.y : y.y + y.height, L = l ? "top" : "bottom") : d === "RL" ? (H = l ? y.x : y.x + y.width, Y = y.y + y.height / 2, L = l ? "left" : "right") : (H = l ? y.x + y.width : y.x, Y = y.y + y.height / 2, L = l ? "right" : "left"), { x: H, y: Y, side: L, valid: !0, entityId: t };
     }
-    const m = i.nodes[e], p = g.nodes[e];
-    if (!m || !p)
-      return { x: 0, y: 0, side: d ? "right" : "left", valid: !1, entityId: e };
-    const W = Nt(
-      m,
+    const p = r.nodes[t], G = g.nodes[t];
+    if (!p || !G)
+      return { x: 0, y: 0, side: l ? "right" : "left", valid: !1, entityId: t };
+    const T = Nt(
       p,
-      s,
-      i.edges,
-      c
-    ).get(t);
-    if (W)
-      return { x: W.worldX, y: W.worldY, side: W.side, valid: !0, entityId: e };
-    let P, L, X;
-    return s === "TB" ? (P = p.x + p.width / 2, L = d ? p.y + p.height : p.y, X = d ? "bottom" : "top") : s === "BT" ? (P = p.x + p.width / 2, L = d ? p.y : p.y + p.height, X = d ? "top" : "bottom") : s === "RL" ? (P = d ? p.x : p.x + p.width, L = p.y + p.height / 2, X = d ? "left" : "right") : (P = d ? p.x + p.width : p.x, L = p.y + p.height / 2, X = d ? "right" : "left"), { x: P, y: L, side: X, valid: !0, entityId: e };
-  }, y = (e, t) => {
-    const d = (e.x + t.x) / 2, w = (e.y + t.y) / 2;
-    if (e.side === "right" && t.side === "left") {
-      if (t.x >= e.x + 20)
+      G,
+      d,
+      r.edges,
+      C
+    ).get(e);
+    if (T)
+      return { x: T.worldX, y: T.worldY, side: T.side, valid: !0, entityId: t };
+    let Z, P, W;
+    return d === "TB" ? (Z = G.x + G.width / 2, P = l ? G.y + G.height : G.y, W = l ? "bottom" : "top") : d === "BT" ? (Z = G.x + G.width / 2, P = l ? G.y : G.y + G.height, W = l ? "top" : "bottom") : d === "RL" ? (Z = l ? G.x : G.x + G.width, P = G.y + G.height / 2, W = l ? "left" : "right") : (Z = l ? G.x + G.width : G.x, P = G.y + G.height / 2, W = l ? "right" : "left"), { x: Z, y: P, side: W, valid: !0, entityId: t };
+  }, B = (t, e) => {
+    const l = (t.x + e.x) / 2, m = (t.y + e.y) / 2;
+    if (t.side === "right" && e.side === "left") {
+      if (e.x >= t.x + 20)
         return {
-          pathStr: `M ${e.x} ${e.y} L ${d} ${e.y} L ${d} ${t.y} L ${t.x} ${t.y}`,
-          center: { x: d, y: w }
+          pathStr: `M ${t.x} ${t.y} L ${l} ${t.y} L ${l} ${e.y} L ${e.x} ${e.y}`,
+          center: { x: l, y: m }
         };
       {
-        const B = t.y >= e.y ? e.y - 40 : e.y + 40;
+        const w = e.y >= t.y ? t.y - 40 : t.y + 40;
         return {
-          pathStr: `M ${e.x} ${e.y} L ${e.x + 20} ${e.y} L ${e.x + 20} ${B} L ${t.x - 20} ${B} L ${t.x - 20} ${t.y} L ${t.x} ${t.y}`,
-          center: { x: d, y: B }
+          pathStr: `M ${t.x} ${t.y} L ${t.x + 20} ${t.y} L ${t.x + 20} ${w} L ${e.x - 20} ${w} L ${e.x - 20} ${e.y} L ${e.x} ${e.y}`,
+          center: { x: l, y: w }
         };
       }
     }
-    if (e.side === "left" && t.side === "right") {
-      if (t.x <= e.x - 20)
+    if (t.side === "left" && e.side === "right") {
+      if (e.x <= t.x - 20)
         return {
-          pathStr: `M ${e.x} ${e.y} L ${d} ${e.y} L ${d} ${t.y} L ${t.x} ${t.y}`,
-          center: { x: d, y: w }
+          pathStr: `M ${t.x} ${t.y} L ${l} ${t.y} L ${l} ${e.y} L ${e.x} ${e.y}`,
+          center: { x: l, y: m }
         };
       {
-        const B = t.y >= e.y ? e.y - 40 : e.y + 40;
+        const w = e.y >= t.y ? t.y - 40 : t.y + 40;
         return {
-          pathStr: `M ${e.x} ${e.y} L ${e.x - 20} ${e.y} L ${e.x - 20} ${B} L ${t.x + 20} ${B} L ${t.x + 20} ${t.y} L ${t.x} ${t.y}`,
-          center: { x: d, y: B }
+          pathStr: `M ${t.x} ${t.y} L ${t.x - 20} ${t.y} L ${t.x - 20} ${w} L ${e.x + 20} ${w} L ${e.x + 20} ${e.y} L ${e.x} ${e.y}`,
+          center: { x: l, y: w }
         };
       }
     }
-    if (e.side === "bottom" && t.side === "top") {
-      if (t.y >= e.y + 16)
+    if (t.side === "bottom" && e.side === "top") {
+      if (e.y >= t.y + 16)
         return {
-          pathStr: `M ${e.x} ${e.y} L ${e.x} ${w} L ${t.x} ${w} L ${t.x} ${t.y}`,
-          center: { x: d, y: w }
+          pathStr: `M ${t.x} ${t.y} L ${t.x} ${m} L ${e.x} ${m} L ${e.x} ${e.y}`,
+          center: { x: l, y: m }
         };
       {
-        const B = t.x >= e.x ? e.x + 50 : e.x - 50;
+        const w = e.x >= t.x ? t.x + 50 : t.x - 50;
         return {
-          pathStr: `M ${e.x} ${e.y} L ${e.x} ${e.y + 20} L ${B} ${e.y + 20} L ${B} ${t.y - 20} L ${t.x} ${t.y - 20} L ${t.x} ${t.y}`,
-          center: { x: B, y: w }
+          pathStr: `M ${t.x} ${t.y} L ${t.x} ${t.y + 20} L ${w} ${t.y + 20} L ${w} ${e.y - 20} L ${e.x} ${e.y - 20} L ${e.x} ${e.y}`,
+          center: { x: w, y: m }
         };
       }
     }
-    if (e.side === "top" && t.side === "bottom") {
-      if (t.y <= e.y - 16)
+    if (t.side === "top" && e.side === "bottom") {
+      if (e.y <= t.y - 16)
         return {
-          pathStr: `M ${e.x} ${e.y} L ${e.x} ${w} L ${t.x} ${w} L ${t.x} ${t.y}`,
-          center: { x: d, y: w }
+          pathStr: `M ${t.x} ${t.y} L ${t.x} ${m} L ${e.x} ${m} L ${e.x} ${e.y}`,
+          center: { x: l, y: m }
         };
       {
-        const B = t.x >= e.x ? e.x + 50 : e.x - 50;
+        const w = e.x >= t.x ? t.x + 50 : t.x - 50;
         return {
-          pathStr: `M ${e.x} ${e.y} L ${e.x} ${e.y - 20} L ${B} ${e.y - 20} L ${B} ${t.y + 20} L ${t.x} ${t.y + 20} L ${t.x} ${t.y}`,
-          center: { x: B, y: w }
+          pathStr: `M ${t.x} ${t.y} L ${t.x} ${t.y - 20} L ${w} ${t.y - 20} L ${w} ${e.y + 20} L ${e.x} ${e.y + 20} L ${e.x} ${e.y}`,
+          center: { x: w, y: m }
         };
       }
     }
     return {
-      pathStr: `M ${e.x} ${e.y} L ${d} ${e.y} L ${d} ${t.y} L ${t.x} ${t.y}`,
-      center: { x: d, y: w }
+      pathStr: `M ${t.x} ${t.y} L ${l} ${t.y} L ${l} ${e.y} L ${e.x} ${e.y}`,
+      center: { x: l, y: m }
     };
-  }, a = (e, t) => {
-    const d = t.x - e.x, w = t.y - e.y;
-    let B = e.x, S = e.y, m = t.x, p = t.y;
-    if (e.side === "bottom" && t.side === "top")
-      if (w > 0) {
-        const P = Math.min(28, w * 0.4);
-        S = e.y + Math.max(P, w * 0.5), p = t.y - Math.max(P, w * 0.5);
+  }, n = (t, e) => {
+    const l = e.x - t.x, m = e.y - t.y;
+    let w = t.x, u = t.y, p = e.x, G = e.y;
+    if (t.side === "bottom" && e.side === "top")
+      if (m > 0) {
+        const Z = Math.min(28, m * 0.4);
+        u = t.y + Math.max(Z, m * 0.5), G = e.y - Math.max(Z, m * 0.5);
       } else {
-        const P = d >= 0 ? 1 : -1, L = Math.max(40, Math.abs(d) * 0.2);
-        B = e.x + L * P, S = e.y + 40, m = t.x + L * P, p = t.y - 40;
+        const Z = l >= 0 ? 1 : -1, P = Math.max(40, Math.abs(l) * 0.2);
+        w = t.x + P * Z, u = t.y + 40, p = e.x + P * Z, G = e.y - 40;
       }
-    else if (e.side === "top" && t.side === "bottom")
-      if (w < 0) {
-        const P = Math.min(28, Math.abs(w) * 0.4);
-        S = e.y - Math.max(P, Math.abs(w) * 0.5), p = t.y + Math.max(P, Math.abs(w) * 0.5);
+    else if (t.side === "top" && e.side === "bottom")
+      if (m < 0) {
+        const Z = Math.min(28, Math.abs(m) * 0.4);
+        u = t.y - Math.max(Z, Math.abs(m) * 0.5), G = e.y + Math.max(Z, Math.abs(m) * 0.5);
       } else {
-        const P = d >= 0 ? 1 : -1, L = Math.max(40, Math.abs(d) * 0.2);
-        B = e.x + L * P, S = e.y - 40, m = t.x + L * P, p = t.y + 40;
+        const Z = l >= 0 ? 1 : -1, P = Math.max(40, Math.abs(l) * 0.2);
+        w = t.x + P * Z, u = t.y - 40, p = e.x + P * Z, G = e.y + 40;
       }
-    else if (e.side === "right" && t.side === "left")
-      d > 0 ? (B = e.x + d * 0.5, m = t.x - d * 0.5) : (B = e.x + 50, S = e.y - 50, m = t.x - 50, p = t.y - 50);
-    else if (e.side === "left" && t.side === "right")
-      d < 0 ? (B = e.x + d * 0.5, m = t.x - d * 0.5) : (B = e.x - 50, S = e.y - 50, m = t.x + 50, p = t.y - 50);
+    else if (t.side === "right" && e.side === "left")
+      l > 0 ? (w = t.x + l * 0.5, p = e.x - l * 0.5) : (w = t.x + 50, u = t.y - 50, p = e.x - 50, G = e.y - 50);
+    else if (t.side === "left" && e.side === "right")
+      l < 0 ? (w = t.x + l * 0.5, p = e.x - l * 0.5) : (w = t.x - 50, u = t.y - 50, p = e.x + 50, G = e.y - 50);
     else {
-      const P = {
+      const Z = {
         left: { x: -1, y: 0 },
         right: { x: 1, y: 0 },
         top: { x: 0, y: -1 },
         bottom: { x: 0, y: 1 }
-      }, L = P[e.side] || { x: 0, y: 1 }, X = P[t.side] || { x: 0, y: -1 }, V = Math.min(60, Math.hypot(d, w) * 0.35);
-      B = e.x + L.x * V, S = e.y + L.y * V, m = t.x + X.x * V, p = t.y + X.y * V;
+      }, P = Z[t.side] || { x: 0, y: 1 }, W = Z[e.side] || { x: 0, y: -1 }, V = Math.min(60, Math.hypot(l, m) * 0.35);
+      w = t.x + P.x * V, u = t.y + P.y * V, p = e.x + W.x * V, G = e.y + W.y * V;
     }
-    const H = 0.125 * e.x + 0.375 * B + 0.375 * m + 0.125 * t.x, W = 0.125 * e.y + 0.375 * S + 0.375 * p + 0.125 * t.y;
+    const v = 0.125 * t.x + 0.375 * w + 0.375 * p + 0.125 * e.x, T = 0.125 * t.y + 0.375 * u + 0.375 * G + 0.125 * e.y;
     return {
-      pathStr: `M ${e.x} ${e.y} C ${B} ${S} ${m} ${p} ${t.x} ${t.y}`,
-      center: { x: H, y: W }
+      pathStr: `M ${t.x} ${t.y} C ${w} ${u} ${p} ${G} ${e.x} ${e.y}`,
+      center: { x: v, y: T }
     };
   };
   return /* @__PURE__ */ $("svg", { className: "sysflow-edge-layer", children: [
     /* @__PURE__ */ $("defs", { children: [
-      /* @__PURE__ */ N(
+      /* @__PURE__ */ D(
         "marker",
         {
           id: "sysflow-arrow",
@@ -1371,10 +1408,10 @@ const Ge = ({
           markerWidth: "6",
           markerHeight: "6",
           orient: "auto-start-reverse",
-          children: /* @__PURE__ */ N("path", { d: "M 0 1 L 10 5 L 0 9 z", fill: "var(--sysflow-edge-stroke)" })
+          children: /* @__PURE__ */ D("path", { d: "M 0 1 L 10 5 L 0 9 z", fill: "var(--sysflow-edge-stroke)" })
         }
       ),
-      /* @__PURE__ */ N(
+      /* @__PURE__ */ D(
         "marker",
         {
           id: "sysflow-arrow-selected",
@@ -1384,57 +1421,57 @@ const Ge = ({
           markerWidth: "6",
           markerHeight: "6",
           orient: "auto-start-reverse",
-          children: /* @__PURE__ */ N("path", { d: "M 0 1 L 10 5 L 0 9 z", fill: "var(--sysflow-edge-selected)" })
+          children: /* @__PURE__ */ D("path", { d: "M 0 1 L 10 5 L 0 9 z", fill: "var(--sysflow-edge-selected)" })
         }
       )
     ] }),
-    Object.values(i.edges).map((e) => {
-      const t = b(e.sourceId, e.sourcePortId, !0), d = b(e.targetId, e.targetPortId, !1);
-      if (!t.valid || !d.valid || t.entityId === d.entityId) return null;
-      const w = n.includes(e.id), B = h === e.id, { pathStr: S, center: m } = f ? y(t, d) : a(t, d);
+    Object.values(r.edges).map((t) => {
+      const e = b(t.sourceId, t.sourcePortId, !0), l = b(t.targetId, t.targetPortId, !1);
+      if (!e.valid || !l.valid || e.entityId === l.entityId) return null;
+      const m = o.includes(t.id), w = h === t.id, { pathStr: u, center: p } = f ? B(e, l) : n(e, l);
       return /* @__PURE__ */ $(
         "g",
         {
-          onMouseEnter: () => A(e.id),
+          onMouseEnter: () => A(t.id),
           onMouseLeave: () => A(null),
           children: [
-            /* @__PURE__ */ N(
+            /* @__PURE__ */ D(
               "path",
               {
-                d: S,
+                d: u,
                 fill: "none",
                 stroke: "transparent",
                 strokeWidth: 24,
                 style: { cursor: "pointer", pointerEvents: "stroke" },
-                onClick: (p) => {
-                  p.stopPropagation(), o == null || o(e.id);
+                onClick: (G) => {
+                  G.stopPropagation(), i == null || i(t.id);
                 }
               }
             ),
-            /* @__PURE__ */ N(
+            /* @__PURE__ */ D(
               "path",
               {
-                d: S,
+                d: u,
                 fill: "none",
-                stroke: w ? "var(--sysflow-edge-selected)" : B ? "var(--sysflow-edge-hover, #38bdf8)" : "var(--sysflow-edge-stroke)",
-                strokeWidth: w ? 2.5 : B ? 2.25 : 1.75,
+                stroke: m ? "var(--sysflow-edge-selected)" : w ? "var(--sysflow-edge-hover, #38bdf8)" : "var(--sysflow-edge-stroke)",
+                strokeWidth: m ? 2.5 : w ? 2.25 : 1.75,
                 strokeLinejoin: "round",
                 strokeLinecap: "round",
                 style: { pointerEvents: "none" },
-                markerEnd: I ? w ? "url(#sysflow-arrow-selected)" : "url(#sysflow-arrow)" : void 0
+                markerEnd: I ? m ? "url(#sysflow-arrow-selected)" : "url(#sysflow-arrow)" : void 0
               }
             ),
-            l && B && C && /* @__PURE__ */ N("g", { transform: `translate(${m.x}, ${m.y})`, children: /* @__PURE__ */ $(
+            a && w && c && /* @__PURE__ */ D("g", { transform: `translate(${p.x}, ${p.y})`, children: /* @__PURE__ */ $(
               "g",
               {
                 className: "sysflow-edge-quick-add",
                 style: { pointerEvents: "all", cursor: "pointer" },
-                onClick: (p) => {
-                  p.preventDefault(), p.stopPropagation(), C(e);
+                onClick: (G) => {
+                  G.preventDefault(), G.stopPropagation(), c(t);
                 },
                 children: [
-                  /* @__PURE__ */ N("circle", { r: 16, fill: "transparent" }),
-                  /* @__PURE__ */ N(
+                  /* @__PURE__ */ D("circle", { r: 16, fill: "transparent" }),
+                  /* @__PURE__ */ D(
                     "circle",
                     {
                       r: 10,
@@ -1444,7 +1481,7 @@ const Ge = ({
                       strokeWidth: 1.5
                     }
                   ),
-                  /* @__PURE__ */ N(
+                  /* @__PURE__ */ D(
                     "text",
                     {
                       x: 0,
@@ -1463,144 +1500,144 @@ const Ge = ({
             ) })
           ]
         },
-        e.id
+        t.id
       );
     })
   ] });
 }, Se = ({
-  entity: i,
+  entity: r,
   layout: g,
-  direction: n = "LR",
-  edges: s,
+  direction: o = "LR",
+  edges: d,
   portOptions: I,
-  onPortPointerDown: r,
-  onPortPointerUp: c
+  onPortPointerDown: s,
+  onPortPointerUp: C
 }) => {
-  if (!i.ports || i.ports.length === 0)
+  if (!r.ports || r.ports.length === 0)
     return null;
-  const l = Nt(
-    i,
+  const a = Nt(
+    r,
     g,
-    n,
-    s,
+    o,
+    d,
     I
   );
-  return /* @__PURE__ */ N(Et, { children: i.ports.map((o) => {
-    const C = l.get(o.id);
-    return C ? /* @__PURE__ */ N(
+  return /* @__PURE__ */ D(Et, { children: r.ports.map((i) => {
+    const c = a.get(i.id);
+    return c ? /* @__PURE__ */ D(
       "div",
       {
-        className: `sysflow-port-anchor sysflow-port-${C.side}`,
+        className: `sysflow-port-anchor sysflow-port-${c.side}`,
         style: {
           position: "absolute",
-          left: `${C.localX}px`,
-          top: `${C.localY}px`,
+          left: `${c.localX}px`,
+          top: `${c.localY}px`,
           transform: "translate(-50%, -50%)",
           cursor: "crosshair",
           zIndex: 10
         },
-        title: `${o.label} (${C.side})`,
+        title: `${i.label} (${c.side})`,
         onPointerDown: (h) => {
-          h.stopPropagation(), r == null || r(i.id, o.id, !0, h);
+          h.stopPropagation(), s == null || s(r.id, i.id, !0, h);
         },
         onPointerUp: (h) => {
-          h.stopPropagation(), c == null || c(i.id, o.id, !1);
+          h.stopPropagation(), C == null || C(r.id, i.id, !1);
         }
       },
-      o.id
+      i.id
     ) : null;
   }) });
 }, pe = ({
-  node: i,
+  node: r,
   layout: g,
-  selected: n = !1,
-  direction: s = "LR",
+  selected: o = !1,
+  direction: d = "LR",
   edges: I,
-  portOptions: r,
-  enableQuickAdd: c = !1,
-  onAddConnectedNode: l,
-  onPointerDown: o,
-  onMouseEnter: C,
+  portOptions: s,
+  enableQuickAdd: C = !1,
+  onAddConnectedNode: a,
+  onPointerDown: i,
+  onMouseEnter: c,
   onMouseLeave: h,
   onClick: A,
   onPortPointerDown: f,
   onPortPointerUp: b,
-  customRenderer: y
+  customRenderer: B
 }) => {
-  const [a, e] = et(!1);
+  const [n, t] = et(!1);
   return /* @__PURE__ */ $(
     "div",
     {
-      className: `sysflow-node ${n ? "sysflow-selected" : ""} ${i.className || ""}`,
+      className: `sysflow-node ${o ? "sysflow-selected" : ""} ${r.className || ""}`,
       style: {
         transform: `translate(${g.x}px, ${g.y}px)`,
         width: `${g.width}px`,
         height: `${g.height}px`
       },
-      onPointerDown: (t) => o == null ? void 0 : o(i, t),
+      onPointerDown: (e) => i == null ? void 0 : i(r, e),
       onMouseEnter: () => {
-        e(!0), C == null || C(i.id);
+        t(!0), c == null || c(r.id);
       },
       onMouseLeave: () => {
-        e(!1), h == null || h(i.id);
+        t(!1), h == null || h(r.id);
       },
       onClick: A,
       children: [
-        c && a && /* @__PURE__ */ $(Et, { children: [
-          /* @__PURE__ */ N("div", { className: "sysflow-hover-bridge sysflow-hover-bridge-top" }),
-          /* @__PURE__ */ N("div", { className: "sysflow-hover-bridge sysflow-hover-bridge-bottom" })
+        C && n && /* @__PURE__ */ $(Et, { children: [
+          /* @__PURE__ */ D("div", { className: "sysflow-hover-bridge sysflow-hover-bridge-top" }),
+          /* @__PURE__ */ D("div", { className: "sysflow-hover-bridge sysflow-hover-bridge-bottom" })
         ] }),
-        c && a && l && /* @__PURE__ */ N(
+        C && n && a && /* @__PURE__ */ D(
           "button",
           {
             type: "button",
             className: "sysflow-quick-add-btn sysflow-quick-add-top",
             title: "Add connected node above",
-            onPointerDown: (t) => {
-              t.stopPropagation();
+            onPointerDown: (e) => {
+              e.stopPropagation();
             },
-            onPointerUp: (t) => {
-              t.stopPropagation();
+            onPointerUp: (e) => {
+              e.stopPropagation();
             },
-            onClick: (t) => {
-              t.preventDefault(), t.stopPropagation(), l(i, "top");
+            onClick: (e) => {
+              e.preventDefault(), e.stopPropagation(), a(r, "top");
             },
             children: "+"
           }
         ),
-        /* @__PURE__ */ N(
+        /* @__PURE__ */ D(
           Se,
           {
-            entity: i,
+            entity: r,
             layout: g,
-            direction: s,
+            direction: d,
             edges: I,
-            portOptions: r,
+            portOptions: s,
             onPortPointerDown: f,
             onPortPointerUp: b
           }
         ),
-        y ? /* @__PURE__ */ N(y, { node: i, selected: n }) : /* @__PURE__ */ $("div", { style: { padding: "10px 14px" }, children: [
-          /* @__PURE__ */ N("div", { style: { fontWeight: 600, fontSize: "13px" }, children: i.label }),
-          i.ports.length > 0 && /* @__PURE__ */ $("div", { style: { fontSize: "11px", opacity: 0.6, marginTop: "4px" }, children: [
-            i.ports.length,
+        B ? /* @__PURE__ */ D(B, { node: r, selected: o }) : /* @__PURE__ */ $("div", { style: { padding: "10px 14px" }, children: [
+          /* @__PURE__ */ D("div", { style: { fontWeight: 600, fontSize: "13px" }, children: r.label }),
+          r.ports.length > 0 && /* @__PURE__ */ $("div", { style: { fontSize: "11px", opacity: 0.6, marginTop: "4px" }, children: [
+            r.ports.length,
             " Port",
-            i.ports.length > 1 ? "s" : ""
+            r.ports.length > 1 ? "s" : ""
           ] })
         ] }),
-        c && a && l && /* @__PURE__ */ N(
+        C && n && a && /* @__PURE__ */ D(
           "button",
           {
             className: "sysflow-quick-add-btn sysflow-quick-add-bottom",
             title: "Add connected node below",
-            onPointerDown: (t) => {
-              t.stopPropagation();
+            onPointerDown: (e) => {
+              e.stopPropagation();
             },
-            onPointerUp: (t) => {
-              t.stopPropagation();
+            onPointerUp: (e) => {
+              e.stopPropagation();
             },
-            onClick: (t) => {
-              t.preventDefault(), t.stopPropagation(), l(i, "bottom");
+            onClick: (e) => {
+              e.preventDefault(), e.stopPropagation(), a(r, "bottom");
             },
             children: "+"
           }
@@ -1609,136 +1646,136 @@ const Ge = ({
     }
   );
 }, Le = ({
-  container: i,
+  container: r,
   layout: g,
-  selected: n,
-  isHovered: s = !1,
+  selected: o,
+  isHovered: d = !1,
   hasChildren: I = !1,
-  onToggleCollapse: r,
-  onPointerDown: c,
-  onMouseEnter: l,
-  onMouseLeave: o,
-  onClick: C,
+  onToggleCollapse: s,
+  onPointerDown: C,
+  onMouseEnter: a,
+  onMouseLeave: i,
+  onClick: c,
   customRenderer: h
-}) => /* @__PURE__ */ N(
+}) => /* @__PURE__ */ D(
   "div",
   {
-    className: `sysflow-container ${n ? "sysflow-selected" : ""} ${s ? "sysflow-hovered" : ""} ${i.className || ""}`,
+    className: `sysflow-container ${o ? "sysflow-selected" : ""} ${d ? "sysflow-hovered" : ""} ${r.className || ""}`,
     style: {
       transform: `translate(${g.x}px, ${g.y}px)`,
       width: `${g.width}px`,
       height: `${g.height}px`
     },
-    onPointerDown: (A) => c(i, A),
-    onMouseEnter: l,
-    onMouseLeave: o,
-    onClick: C,
-    children: h ? /* @__PURE__ */ N(h, { container: i, selected: n }) : /* @__PURE__ */ $(Et, { children: [
+    onPointerDown: (A) => C(r, A),
+    onMouseEnter: a,
+    onMouseLeave: i,
+    onClick: c,
+    children: h ? /* @__PURE__ */ D(h, { container: r, selected: o }) : /* @__PURE__ */ $(Et, { children: [
       /* @__PURE__ */ $("div", { className: "sysflow-container-header", children: [
-        /* @__PURE__ */ N("span", { className: "sysflow-container-title", title: i.label, children: i.label }),
-        /* @__PURE__ */ N(
+        /* @__PURE__ */ D("span", { className: "sysflow-container-title", title: r.label, children: r.label }),
+        /* @__PURE__ */ D(
           "button",
           {
             className: "sysflow-collapse-btn",
             onPointerDown: (A) => A.stopPropagation(),
             onPointerUp: (A) => A.stopPropagation(),
             onClick: (A) => {
-              A.stopPropagation(), r(i.id, !i.collapsed);
+              A.stopPropagation(), s(r.id, !r.collapsed);
             },
-            children: i.collapsed ? "Expand ⊞" : "Collapse ⊟"
+            children: r.collapsed ? "Expand ⊞" : "Collapse ⊟"
           }
         )
       ] }),
-      !i.collapsed && !I && /* @__PURE__ */ N("div", { className: "sysflow-container-empty-hint", children: "Drop tasks here" })
+      !r.collapsed && !I && /* @__PURE__ */ D("div", { className: "sysflow-container-empty-hint", children: "Drop tasks here" })
     ] })
   }
 ), Ze = new fe(), Ne = ({
-  graph: i,
+  graph: r,
   onChange: g,
-  layoutEngine: n,
-  interactionStrategy: s = Ze,
+  layoutEngine: o,
+  interactionStrategy: d = Ze,
   direction: I = "TB",
-  layoutOptions: r,
-  portPlacementMode: c,
-  routing: l,
-  showEdgeArrows: o = !0,
-  nodeTypes: C,
+  layoutOptions: s,
+  portPlacementMode: C,
+  routing: a,
+  showEdgeArrows: i = !0,
+  nodeTypes: c,
   containerTypes: h,
   zoomBounds: A,
   className: f = "",
   selectedIds: b = [],
-  theme: y = "dark",
-  enableQuickAdd: a,
-  enableEdgeQuickAdd: e
+  theme: B = "dark",
+  enableQuickAdd: n,
+  enableEdgeQuickAdd: t
 }) => {
   var Yt, vt;
-  const t = Ct(null), d = Ct(null);
-  !n && !d.current && (d.current = new Be());
-  const w = n || d.current, {
-    transform: B,
-    screenToWorld: S,
-    onWheel: m,
-    startPan: p,
-    updatePan: H,
-    endPan: W,
-    resetTransform: P,
-    zoomIn: L,
-    zoomOut: X,
+  const e = Ct(null), l = Ct(null);
+  !o && !l.current && (l.current = new Be());
+  const m = o || l.current, {
+    transform: w,
+    screenToWorld: u,
+    onWheel: p,
+    startPan: G,
+    updatePan: v,
+    endPan: T,
+    resetTransform: Z,
+    zoomIn: P,
+    zoomOut: W,
     zoomToFit: V,
     isPanning: Q
-  } = we(t, A), { measurements: G, registerMeasureElement: D } = be(i), [u, k] = et({ nodes: {}, containers: {} }), E = Ce(() => ({
+  } = we(e, A), { measurements: K, registerMeasureElement: k } = be(r), [y, H] = et({ nodes: {}, containers: {} }), Y = ie(() => ({
     direction: I,
-    mode: c ?? (I === "TB" || I === "BT" ? "strict-flow" : "perimeter-optimized"),
-    nodeLayouts: u.nodes
-  }), [I, c, u.nodes]), [Z, J] = et(null), [T, z] = et(null), U = Ct(!1), {
+    mode: C ?? (I === "TB" || I === "BT" ? "strict-flow" : "perimeter-optimized"),
+    nodeLayouts: y.nodes
+  }), [I, C, y.nodes]), [L, F] = et(null), [X, j] = et(null), U = Ct(!1), {
     dragState: R,
     hoveredContainerId: _,
     handlePointerDown: it,
     handlePointerMove: dt,
     handlePointerUp: ht
-  } = me(i, u, s, S, g);
+  } = me(r, y, d, u, g);
   Dt(() => {
-    const K = (x) => {
+    const S = (x) => {
       if (x.target instanceof HTMLInputElement || x.target instanceof HTMLTextAreaElement)
         return;
       if (x.key === "Escape") {
-        x.preventDefault(), z(null), g({ type: "SELECTION_CHANGE", payload: { selectedIds: [] } });
+        x.preventDefault(), j(null), g({ type: "SELECTION_CHANGE", payload: { selectedIds: [] } });
         return;
       }
       if (x.code === "Space" && (U.current = !0), x.key.toLowerCase() === "f" && !x.ctrlKey && !x.metaKey) {
-        x.preventDefault(), V(u);
+        x.preventDefault(), V(y);
         return;
       }
       if ((x.ctrlKey || x.metaKey) && x.key.toLowerCase() === "a") {
         x.preventDefault();
-        const j = [
-          ...Object.keys(i.nodes),
-          ...Object.keys(i.containers)
+        const J = [
+          ...Object.keys(r.nodes),
+          ...Object.keys(r.containers)
         ];
-        g({ type: "SELECTION_CHANGE", payload: { selectedIds: j } });
+        g({ type: "SELECTION_CHANGE", payload: { selectedIds: J } });
         return;
       }
-      const Y = Object.keys(i.nodes);
-      if (Y.length !== 0) {
+      const E = Object.keys(r.nodes);
+      if (E.length !== 0) {
         if (x.key === "Tab") {
           x.preventDefault();
-          const j = b.length > 0 ? Y.indexOf(b[0]) : -1;
-          let F;
-          x.shiftKey ? F = j <= 0 ? Y.length - 1 : j - 1 : F = (j + 1) % Y.length, g({ type: "SELECTION_CHANGE", payload: { selectedIds: [Y[F]] } });
+          const J = b.length > 0 ? E.indexOf(b[0]) : -1;
+          let z;
+          x.shiftKey ? z = J <= 0 ? E.length - 1 : J - 1 : z = (J + 1) % E.length, g({ type: "SELECTION_CHANGE", payload: { selectedIds: [E[z]] } });
           return;
         }
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(x.key)) {
           x.preventDefault();
-          const j = b[0] || Y[0], F = u.nodes[j] || u.containers[j];
-          if (!F) return;
+          const J = b[0] || E[0], z = y.nodes[J] || y.containers[J];
+          if (!z) return;
           const gt = {
-            x: F.x + F.width / 2,
-            y: F.y + F.height / 2
+            x: z.x + z.width / 2,
+            y: z.y + z.height / 2
           };
           let O = null, At = 1 / 0;
-          for (const yt of Y) {
-            if (yt === j) continue;
-            const ct = u.nodes[yt];
+          for (const yt of E) {
+            if (yt === J) continue;
+            const ct = y.nodes[yt];
             if (!ct) continue;
             const bt = {
               x: ct.x + ct.width / 2,
@@ -1753,61 +1790,61 @@ const Ge = ({
           O && g({ type: "SELECTION_CHANGE", payload: { selectedIds: [O] } });
         }
       }
-    }, v = (x) => {
+    }, N = (x) => {
       x.code === "Space" && (U.current = !1);
     };
-    return window.addEventListener("keydown", K), window.addEventListener("keyup", v), () => {
-      window.removeEventListener("keydown", K), window.removeEventListener("keyup", v);
+    return window.addEventListener("keydown", S), window.addEventListener("keyup", N), () => {
+      window.removeEventListener("keydown", S), window.removeEventListener("keyup", N);
     };
-  }, [i, u, b, V, g]), Dt(() => {
-    let K = !1, v = 16 / 9;
-    if (t.current) {
-      const Y = t.current.getBoundingClientRect();
-      Y.width > 0 && Y.height > 0 && (v = Y.width / Y.height);
+  }, [r, y, b, V, g]), Dt(() => {
+    let S = !1, N = 16 / 9;
+    if (e.current) {
+      const E = e.current.getBoundingClientRect();
+      E.width > 0 && E.height > 0 && (N = E.width / E.height);
     }
     const x = {
       direction: I,
-      aspectRatio: v,
-      ...r
+      aspectRatio: N,
+      ...s
     };
-    return w.execute(i, G, x).then((Y) => {
-      K || k(Y);
+    return m.execute(r, K, x).then((E) => {
+      S || H(E);
     }), () => {
-      K = !0;
+      S = !0;
     };
-  }, [i, G, w, I, r]);
-  const pt = (K, v, x, Y) => {
-    const j = i.nodes[K] || i.containers[K], F = u.nodes[K] || u.containers[K];
-    if (!j || !F) return;
+  }, [r, K, m, I, s]);
+  const pt = (S, N, x, E) => {
+    const J = r.nodes[S] || r.containers[S], z = y.nodes[S] || y.containers[S];
+    if (!J || !z) return;
     const O = Nt(
-      j,
-      F,
+      J,
+      z,
       I,
-      i.edges,
-      E
-    ).get(v), At = O ? { x: O.worldX, y: O.worldY } : { x: F.x + F.width, y: F.y + F.height / 2 };
-    J({
-      sourceId: K,
-      sourcePortId: v,
+      r.edges,
+      Y
+    ).get(N), At = O ? { x: O.worldX, y: O.worldY } : { x: z.x + z.width, y: z.y + z.height / 2 };
+    F({
+      sourceId: S,
+      sourcePortId: N,
       startWorldPos: At,
-      currentWorldPos: S(Y.clientX, Y.clientY)
+      currentWorldPos: u(E.clientX, E.clientY)
     });
-  }, Rt = (K, v, x) => {
-    var Y, j, F, gt, O, At, yt, ct, bt, Bt;
-    if (Z && Z.sourceId !== K) {
-      const at = i.nodes[Z.sourceId] || i.containers[Z.sourceId], ot = i.nodes[K] || i.containers[K], q = (Y = at == null ? void 0 : at.ports) == null ? void 0 : Y.find((ft) => ft.id === Z.sourcePortId), tt = (j = ot == null ? void 0 : ot.ports) == null ? void 0 : j.find((ft) => ft.id === v);
-      let mt = Z.sourceId, Lt = Z.sourcePortId, Gt = K, Zt = v;
-      const qt = ((F = q == null ? void 0 : q.label) == null ? void 0 : F.toLowerCase().includes("in")) || (q == null ? void 0 : q.side) === (I === "BT" ? "bottom" : "top"), te = ((gt = q == null ? void 0 : q.label) == null ? void 0 : gt.toLowerCase().includes("out")) || (q == null ? void 0 : q.side) === (I === "BT" ? "top" : "bottom"), ee = ((O = tt == null ? void 0 : tt.label) == null ? void 0 : O.toLowerCase().includes("in")) || (tt == null ? void 0 : tt.side) === (I === "BT" ? "bottom" : "top"), ge = ((At = tt == null ? void 0 : tt.label) == null ? void 0 : At.toLowerCase().includes("out")) || (tt == null ? void 0 : tt.side) === (I === "BT" ? "top" : "bottom");
-      if (qt && ge)
-        mt = K, Lt = v, Gt = Z.sourceId, Zt = Z.sourcePortId;
-      else if (te && ee)
-        mt = Z.sourceId, Lt = Z.sourcePortId, Gt = K, Zt = v;
-      else if (u.nodes[Z.sourceId] && u.nodes[K]) {
-        const ft = u.nodes[Z.sourceId], Tt = u.nodes[K], Ie = I === "BT" && ft.y < Tt.y, oe = I === "TB" && ft.y > Tt.y;
-        if (Ie || oe) {
-          mt = K, Gt = Z.sourceId;
-          const kt = i.nodes[mt], xt = i.nodes[Gt];
-          Lt = ((ct = (yt = kt == null ? void 0 : kt.ports) == null ? void 0 : yt.find((Kt) => Kt.label.includes("out") || Kt.side === (I === "BT" ? "top" : "bottom"))) == null ? void 0 : ct.id) || v, Zt = ((Bt = (bt = xt == null ? void 0 : xt.ports) == null ? void 0 : bt.find((Kt) => Kt.label.includes("in") || Kt.side === (I === "BT" ? "bottom" : "top"))) == null ? void 0 : Bt.id) || Z.sourcePortId;
+  }, Ot = (S, N, x) => {
+    var E, J, z, gt, O, At, yt, ct, bt, Bt;
+    if (L && L.sourceId !== S) {
+      const at = r.nodes[L.sourceId] || r.containers[L.sourceId], ot = r.nodes[S] || r.containers[S], q = (E = at == null ? void 0 : at.ports) == null ? void 0 : E.find((ft) => ft.id === L.sourcePortId), tt = (J = ot == null ? void 0 : ot.ports) == null ? void 0 : J.find((ft) => ft.id === N);
+      let mt = L.sourceId, Lt = L.sourcePortId, Gt = S, Zt = N;
+      const te = ((z = q == null ? void 0 : q.label) == null ? void 0 : z.toLowerCase().includes("in")) || (q == null ? void 0 : q.side) === (I === "BT" ? "bottom" : "top"), ee = ((gt = q == null ? void 0 : q.label) == null ? void 0 : gt.toLowerCase().includes("out")) || (q == null ? void 0 : q.side) === (I === "BT" ? "top" : "bottom"), ge = ((O = tt == null ? void 0 : tt.label) == null ? void 0 : O.toLowerCase().includes("in")) || (tt == null ? void 0 : tt.side) === (I === "BT" ? "bottom" : "top"), Ie = ((At = tt == null ? void 0 : tt.label) == null ? void 0 : At.toLowerCase().includes("out")) || (tt == null ? void 0 : tt.side) === (I === "BT" ? "top" : "bottom");
+      if (te && Ie)
+        mt = S, Lt = N, Gt = L.sourceId, Zt = L.sourcePortId;
+      else if (ee && ge)
+        mt = L.sourceId, Lt = L.sourcePortId, Gt = S, Zt = N;
+      else if (y.nodes[L.sourceId] && y.nodes[S]) {
+        const ft = y.nodes[L.sourceId], Tt = y.nodes[S], oe = I === "BT" && ft.y < Tt.y, se = I === "TB" && ft.y > Tt.y;
+        if (oe || se) {
+          mt = S, Gt = L.sourceId;
+          const kt = r.nodes[mt], xt = r.nodes[Gt];
+          Lt = ((ct = (yt = kt == null ? void 0 : kt.ports) == null ? void 0 : yt.find((Kt) => Kt.label.includes("out") || Kt.side === (I === "BT" ? "top" : "bottom"))) == null ? void 0 : ct.id) || N, Zt = ((Bt = (bt = xt == null ? void 0 : xt.ports) == null ? void 0 : bt.find((Kt) => Kt.label.includes("in") || Kt.side === (I === "BT" ? "bottom" : "top"))) == null ? void 0 : Bt.id) || L.sourcePortId;
         }
       }
       g({
@@ -1822,107 +1859,107 @@ const Ge = ({
         }
       });
     }
-    J(null);
-  }, Ot = (K) => {
-    if (K.button === 1 || U.current) {
-      p(K.clientX, K.clientY);
+    F(null);
+  }, Ft = (S) => {
+    if (S.button === 1 || U.current) {
+      G(S.clientX, S.clientY);
       return;
     }
-    const v = K.target, x = v === t.current || v.classList.contains("sysflow-viewport") || v.classList.contains("sysflow-dom-layer") || v.tagName.toLowerCase() === "svg";
-    if (K.button === 0 && x) {
-      K.currentTarget.setPointerCapture(K.pointerId);
-      const Y = S(K.clientX, K.clientY);
-      z({
-        startX: Y.x,
-        startY: Y.y,
-        currentX: Y.x,
-        currentY: Y.y
+    const N = S.target, x = N === e.current || N.classList.contains("sysflow-viewport") || N.classList.contains("sysflow-dom-layer") || N.tagName.toLowerCase() === "svg";
+    if (S.button === 0 && x) {
+      S.currentTarget.setPointerCapture(S.pointerId);
+      const E = u(S.clientX, S.clientY);
+      j({
+        startX: E.x,
+        startY: E.y,
+        currentX: E.x,
+        currentY: E.y
       }), g({ type: "SELECTION_CHANGE", payload: { selectedIds: [] } });
     }
-  }, Ft = (K) => {
+  }, zt = (S) => {
     if (Q.current)
-      H(K.clientX, K.clientY);
-    else if (T) {
-      const v = S(K.clientX, K.clientY);
-      z((x) => x ? { ...x, currentX: v.x, currentY: v.y } : null);
-    } else R ? dt(K) : Z && J(
-      (v) => v ? { ...v, currentWorldPos: S(K.clientX, K.clientY) } : null
+      v(S.clientX, S.clientY);
+    else if (X) {
+      const N = u(S.clientX, S.clientY);
+      j((x) => x ? { ...x, currentX: N.x, currentY: N.y } : null);
+    } else R ? dt(S) : L && F(
+      (N) => N ? { ...N, currentWorldPos: u(S.clientX, S.clientY) } : null
     );
-  }, zt = (K) => {
-    if (K.currentTarget.hasPointerCapture(K.pointerId) && K.currentTarget.releasePointerCapture(K.pointerId), Q.current && W(), T) {
-      const v = Math.min(T.startX, T.currentX), x = Math.min(T.startY, T.currentY), Y = Math.max(T.startX, T.currentX), j = Math.max(T.startY, T.currentY);
-      if (Y - v > 4 || j - x > 4) {
-        const F = [];
-        for (const [gt, O] of Object.entries(u.nodes))
-          O.x < Y && O.x + O.width > v && O.y < j && O.y + O.height > x && F.push(gt);
-        for (const [gt, O] of Object.entries(u.containers))
-          O.x < Y && O.x + O.width > v && O.y < j && O.y + O.height > x && F.push(gt);
-        g({ type: "SELECTION_CHANGE", payload: { selectedIds: F } });
+  }, jt = (S) => {
+    if (S.currentTarget.hasPointerCapture(S.pointerId) && S.currentTarget.releasePointerCapture(S.pointerId), Q.current && T(), X) {
+      const N = Math.min(X.startX, X.currentX), x = Math.min(X.startY, X.currentY), E = Math.max(X.startX, X.currentX), J = Math.max(X.startY, X.currentY);
+      if (E - N > 4 || J - x > 4) {
+        const z = [];
+        for (const [gt, O] of Object.entries(y.nodes))
+          O.x < E && O.x + O.width > N && O.y < J && O.y + O.height > x && z.push(gt);
+        for (const [gt, O] of Object.entries(y.containers))
+          O.x < E && O.x + O.width > N && O.y < J && O.y + O.height > x && z.push(gt);
+        g({ type: "SELECTION_CHANGE", payload: { selectedIds: z } });
       }
-      z(null);
+      j(null);
     }
-    R && ht(K), Z && J(null);
-  }, jt = a ?? (r == null ? void 0 : r.mode) === "flow", Jt = M(
-    (K, v) => {
-      const x = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, Y = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    R && ht(S), L && F(null);
+  }, Jt = n ?? (s == null ? void 0 : s.mode) === "flow", Ut = M(
+    (S, N) => {
+      const x = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, E = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       g({
         type: "NODE_ADD_CONNECTED",
         payload: {
-          sourceNode: K,
-          position: v,
+          sourceNode: S,
+          position: N,
           direction: I,
           suggestedNewNodeId: x,
-          suggestedNewEdgeId: Y
+          suggestedNewEdgeId: E
         }
       });
     },
     [I, g]
-  ), Ut = e ?? a ?? (r == null ? void 0 : r.mode) === "flow", $t = M(
-    (K) => {
-      const v = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, x = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, Y = `edge_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`;
+  ), $t = t ?? n ?? (s == null ? void 0 : s.mode) === "flow", _t = M(
+    (S) => {
+      const N = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, x = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, E = `edge_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`;
       g({
         type: "EDGE_SPLIT_INSERT_NODE",
         payload: {
-          edge: K,
+          edge: S,
           direction: I,
-          suggestedNewNodeId: v,
+          suggestedNewNodeId: N,
           suggestedNewEdge1Id: x,
-          suggestedNewEdge2Id: Y
+          suggestedNewEdge2Id: E
         }
       }), g({
         type: "SELECTION_CHANGE",
-        payload: { selectedIds: [v] }
+        payload: { selectedIds: [N] }
       });
     },
     [I, g]
-  ), _t = Object.values(i.containers);
+  ), qt = Object.values(r.containers);
   return /* @__PURE__ */ $(
     "div",
     {
-      ref: t,
-      className: `sysflow-canvas ${y === "light" ? "sysflow-theme-light" : "sysflow-theme-dark"} ${f}`,
-      "data-theme": y,
-      onWheel: m,
-      onPointerDown: Ot,
-      onPointerMove: Ft,
-      onPointerUp: zt,
+      ref: e,
+      className: `sysflow-canvas ${B === "light" ? "sysflow-theme-light" : "sysflow-theme-dark"} ${f}`,
+      "data-theme": B,
+      onWheel: p,
+      onPointerDown: Ft,
+      onPointerMove: zt,
+      onPointerUp: jt,
       tabIndex: 0,
       style: { outline: "none" },
       children: [
-        /* @__PURE__ */ N(
+        /* @__PURE__ */ D(
           Ge,
           {
-            graph: i,
-            registerMeasureElement: D,
-            nodeTypes: C,
+            graph: r,
+            registerMeasureElement: k,
+            nodeTypes: c,
             containerTypes: h
           }
         ),
         /* @__PURE__ */ $("div", { className: "sysflow-controls-panel", children: [
-          /* @__PURE__ */ N("button", { onClick: L, className: "sysflow-control-btn", title: "Zoom In (+)", children: "+" }),
-          /* @__PURE__ */ N("button", { onClick: X, className: "sysflow-control-btn", title: "Zoom Out (-)", children: "−" }),
-          /* @__PURE__ */ $("button", { onClick: P, className: "sysflow-control-btn", title: "Reset Zoom (0)", children: [
-            Math.round(B.zoom * 100),
+          /* @__PURE__ */ D("button", { onClick: P, className: "sysflow-control-btn", title: "Zoom In (+)", children: "+" }),
+          /* @__PURE__ */ D("button", { onClick: W, className: "sysflow-control-btn", title: "Zoom Out (-)", children: "−" }),
+          /* @__PURE__ */ $("button", { onClick: Z, className: "sysflow-control-btn", title: "Reset Zoom (0)", children: [
+            Math.round(w.zoom * 100),
             "%"
           ] })
         ] }),
@@ -1931,18 +1968,18 @@ const Ge = ({
           {
             className: "sysflow-viewport",
             style: {
-              transform: `translate(${B.x}px, ${B.y}px) scale(${B.zoom})`
+              transform: `translate(${w.x}px, ${w.y}px) scale(${w.zoom})`
             },
             children: [
-              T && /* @__PURE__ */ N(
+              X && /* @__PURE__ */ D(
                 "div",
                 {
                   style: {
                     position: "absolute",
-                    left: `${Math.min(T.startX, T.currentX)}px`,
-                    top: `${Math.min(T.startY, T.currentY)}px`,
-                    width: `${Math.abs(T.currentX - T.startX)}px`,
-                    height: `${Math.abs(T.currentY - T.startY)}px`,
+                    left: `${Math.min(X.startX, X.currentX)}px`,
+                    top: `${Math.min(X.startY, X.currentY)}px`,
+                    width: `${Math.abs(X.currentX - X.startX)}px`,
+                    height: `${Math.abs(X.currentY - X.startY)}px`,
                     backgroundColor: "rgba(56, 189, 248, 0.12)",
                     border: "1px dashed #38bdf8",
                     borderRadius: "2px",
@@ -1951,100 +1988,100 @@ const Ge = ({
                   }
                 }
               ),
-              Z && /* @__PURE__ */ N("svg", { className: "sysflow-edge-layer", style: { pointerEvents: "none" }, children: /* @__PURE__ */ N(
+              L && /* @__PURE__ */ D("svg", { className: "sysflow-edge-layer", style: { pointerEvents: "none" }, children: /* @__PURE__ */ D(
                 "line",
                 {
-                  x1: Z.startWorldPos.x,
-                  y1: Z.startWorldPos.y,
-                  x2: Z.currentWorldPos.x,
-                  y2: Z.currentWorldPos.y,
+                  x1: L.startWorldPos.x,
+                  y1: L.startWorldPos.y,
+                  x2: L.currentWorldPos.x,
+                  y2: L.currentWorldPos.y,
                   stroke: "#38bdf8",
                   strokeWidth: 2,
                   strokeDasharray: "4 4"
                 }
               ) }),
-              /* @__PURE__ */ N("div", { className: "sysflow-containers-layer", style: { position: "absolute", zIndex: 1, pointerEvents: "none" }, children: _t.map((K) => {
-                const v = u.containers[K.id];
-                if (!v) return null;
-                const x = Object.values(i.nodes).some((Y) => Y.parentId === K.id) || Object.values(i.containers).some((Y) => Y.parentId === K.id);
-                return /* @__PURE__ */ N(
+              /* @__PURE__ */ D("div", { className: "sysflow-containers-layer", style: { position: "absolute", zIndex: 1, pointerEvents: "none" }, children: qt.map((S) => {
+                const N = y.containers[S.id];
+                if (!N) return null;
+                const x = Object.values(r.nodes).some((E) => E.parentId === S.id) || Object.values(r.containers).some((E) => E.parentId === S.id);
+                return /* @__PURE__ */ D(
                   Le,
                   {
-                    container: K,
-                    layout: v,
-                    selected: b.includes(K.id),
-                    isHovered: _ === K.id,
+                    container: S,
+                    layout: N,
+                    selected: b.includes(S.id),
+                    isHovered: _ === S.id,
                     hasChildren: x,
-                    customRenderer: K.type ? h == null ? void 0 : h[K.type] : void 0,
-                    onToggleCollapse: (Y, j) => g({
+                    customRenderer: S.type ? h == null ? void 0 : h[S.type] : void 0,
+                    onToggleCollapse: (E, J) => g({
                       type: "CONTAINER_TOGGLE_COLLAPSE",
-                      payload: { containerId: Y, collapsed: j }
+                      payload: { containerId: E, collapsed: J }
                     }),
                     onPointerDown: it,
                     onMouseEnter: () => {
                     },
                     onMouseLeave: () => {
                     },
-                    onClick: (Y) => {
-                      Y.stopPropagation(), g({ type: "SELECTION_CHANGE", payload: { selectedIds: [K.id] } });
+                    onClick: (E) => {
+                      E.stopPropagation(), g({ type: "SELECTION_CHANGE", payload: { selectedIds: [S.id] } });
                     }
                   },
-                  K.id
+                  S.id
                 );
               }) }),
-              /* @__PURE__ */ N(
+              /* @__PURE__ */ D(
                 Ke,
                 {
-                  graph: i,
-                  layout: u,
+                  graph: r,
+                  layout: y,
                   selectedIds: b,
                   direction: I,
-                  showArrows: o,
-                  routing: l,
-                  portOptions: E,
-                  enableEdgeQuickAdd: Ut,
-                  onInsertNodeOnEdge: $t,
-                  onEdgeClick: (K) => g({ type: "SELECTION_CHANGE", payload: { selectedIds: [K] } })
+                  showArrows: i,
+                  routing: a,
+                  portOptions: Y,
+                  enableEdgeQuickAdd: $t,
+                  onInsertNodeOnEdge: _t,
+                  onEdgeClick: (S) => g({ type: "SELECTION_CHANGE", payload: { selectedIds: [S] } })
                 }
               ),
-              /* @__PURE__ */ N("div", { className: "sysflow-nodes-layer", style: { position: "absolute", zIndex: 10, pointerEvents: "none" }, children: Object.values(i.nodes).map((K) => {
-                const v = u.nodes[K.id];
-                return v ? /* @__PURE__ */ N(
+              /* @__PURE__ */ D("div", { className: "sysflow-nodes-layer", style: { position: "absolute", zIndex: 10, pointerEvents: "none" }, children: Object.values(r.nodes).map((S) => {
+                const N = y.nodes[S.id];
+                return N ? /* @__PURE__ */ D(
                   pe,
                   {
-                    node: K,
-                    layout: v,
+                    node: S,
+                    layout: N,
                     direction: I,
-                    edges: i.edges,
-                    portOptions: E,
-                    selected: b.includes(K.id),
-                    customRenderer: K.type ? C == null ? void 0 : C[K.type] : void 0,
-                    enableQuickAdd: jt,
-                    onAddConnectedNode: Jt,
+                    edges: r.edges,
+                    portOptions: Y,
+                    selected: b.includes(S.id),
+                    customRenderer: S.type ? c == null ? void 0 : c[S.type] : void 0,
+                    enableQuickAdd: Jt,
+                    onAddConnectedNode: Ut,
                     onPointerDown: it,
                     onMouseEnter: () => {
                     },
                     onMouseLeave: () => {
                     },
                     onClick: (x) => {
-                      x.stopPropagation(), g({ type: "SELECTION_CHANGE", payload: { selectedIds: [K.id] } });
+                      x.stopPropagation(), g({ type: "SELECTION_CHANGE", payload: { selectedIds: [S.id] } });
                     },
                     onPortPointerDown: pt,
-                    onPortPointerUp: Rt
+                    onPortPointerUp: Ot
                   },
-                  K.id
+                  S.id
                 ) : null;
               }) }),
-              R && /* @__PURE__ */ N(
+              R && /* @__PURE__ */ D(
                 "div",
                 {
                   className: "sysflow-node sysflow-ghost-node",
                   style: {
                     transform: `translate(${R.ghostPosition.x}px, ${R.ghostPosition.y}px)`,
-                    width: `${((Yt = G.get(R.draggedEntity.id)) == null ? void 0 : Yt.width) || 200}px`,
-                    height: `${((vt = G.get(R.draggedEntity.id)) == null ? void 0 : vt.height) || 64}px`
+                    width: `${((Yt = K.get(R.draggedEntity.id)) == null ? void 0 : Yt.width) || 200}px`,
+                    height: `${((vt = K.get(R.draggedEntity.id)) == null ? void 0 : vt.height) || 64}px`
                   },
-                  children: /* @__PURE__ */ N("div", { style: { padding: "8px 12px", fontWeight: 600 }, children: R.draggedEntity.label })
+                  children: /* @__PURE__ */ D("div", { style: { padding: "8px 12px", fontWeight: 600 }, children: R.draggedEntity.label })
                 }
               )
             ]
@@ -2065,8 +2102,8 @@ export {
   Ne as SysFlowCanvas,
   Be as WorkerBridge,
   Nt as computeEntityPortLocations,
-  ce as pruneDanglingEdges,
-  Vt as resolveEffectiveEntityId,
+  Wt as pruneDanglingEdges,
+  Qt as resolveEffectiveEntityId,
   we as useCanvasTransform,
   me as useDragGesture,
   Ee as useGraphHistory,
