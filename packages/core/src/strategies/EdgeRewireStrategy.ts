@@ -4,6 +4,9 @@ import { InteractionStrategy, DragContext } from './InteractionStrategy';
 import { GraphAction, NodeEntity, ContainerEntity } from '../models';
 
 export class EdgeRewireStrategy implements InteractionStrategy {
+  // Distance threshold (in world coordinates) required to trigger extraction
+  private readonly dragOffThreshold = 60;
+
   public canDrag(): boolean {
     return true;
   }
@@ -13,7 +16,7 @@ export class EdgeRewireStrategy implements InteractionStrategy {
   }
 
   public onDragEnd(context: DragContext): GraphAction | null {
-    const { draggedEntity, hoveredEdge, hoveredEntity, graph } = context;
+    const { draggedEntity, hoveredEdge, hoveredEntity, cursorWorld, startWorldPos, graph } = context;
 
     // 1. Reparenting: Dropped onto a container
     if (hoveredEntity && graph.containers[hoveredEntity.id]) {
@@ -29,8 +32,39 @@ export class EdgeRewireStrategy implements InteractionStrategy {
       return null;
     }
 
-    // 2. Unparenting: Dropped onto empty root canvas while having a parent
+    // 2. Drag Off Edge: Dropped onto empty canvas away from original position
     if (!hoveredEntity && !hoveredEdge) {
+      const incomingEdges = Object.values(graph.edges).filter(
+        (e) => e.targetId === draggedEntity.id
+      );
+      const outgoingEdges = Object.values(graph.edges).filter(
+        (e) => e.sourceId === draggedEntity.id
+      );
+
+      // Check if candidate for extraction: exactly 1 in and 1 out edge, connecting distinct nodes
+      if (
+        incomingEdges.length === 1 &&
+        outgoingEdges.length === 1 &&
+        incomingEdges[0].sourceId !== outgoingEdges[0].targetId
+      ) {
+        const dragDist = Math.hypot(
+          cursorWorld.x - startWorldPos.x,
+          cursorWorld.y - startWorldPos.y
+        );
+
+        if (dragDist >= this.dragOffThreshold) {
+          return {
+            type: 'NODE_EXTRACT',
+            payload: {
+              nodeId: draggedEntity.id,
+              incomingEdgeId: incomingEdges[0].id,
+              outgoingEdgeId: outgoingEdges[0].id
+            }
+          };
+        }
+      }
+
+      // Fallback: unparenting if had a parent
       if (draggedEntity.parentId !== null && draggedEntity.parentId !== undefined) {
         return {
           type: 'ENTITY_REPARENT',

@@ -2,6 +2,7 @@ import { InteractionStrategy, DragContext } from './InteractionStrategy';
 import { GraphAction } from '../models';
 
 export declare class EdgeRewireStrategy implements InteractionStrategy {
+    private readonly dragOffThreshold;
     canDrag(): boolean;
     onDragMove(context: DragContext): {
         x: number;

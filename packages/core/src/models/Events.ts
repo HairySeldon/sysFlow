@@ -9,6 +9,14 @@ export type GraphAction =
   | { type: 'EDGE_CREATE'; payload: { edge: Omit<EdgeEntity, 'id'>; id?: ID } }
   | { type: 'EDGE_DELETE'; payload: { edgeId: ID } }
   | { type: 'EDGE_REWIRE'; payload: { edgeId: ID; newSourceId?: ID; newTargetId?: ID; newSourcePortId?: ID; newTargetPortId?: ID } }
+  | {
+      type: 'NODE_EXTRACT';
+      payload: {
+        nodeId: ID;
+        incomingEdgeId: ID;
+        outgoingEdgeId: ID;
+      };
+    }
   | { type: 'CONTAINER_TOGGLE_COLLAPSE'; payload: { containerId: ID; collapsed: boolean } }
   | { type: 'SELECTION_CHANGE'; payload: { selectedIds: ID[] } }
   | {

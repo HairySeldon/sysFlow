@@ -12,6 +12,10 @@ export declare function useDragGesture(graph: LogicalGraph, layout: LayoutResult
             x: number;
             y: number;
         };
+        startPosition: {
+            x: number;
+            y: number;
+        };
     } | null;
     hoveredContainerId: string | null;
     handlePointerDown: (entity: NodeEntity | ContainerEntity, e: React.PointerEvent) => void;

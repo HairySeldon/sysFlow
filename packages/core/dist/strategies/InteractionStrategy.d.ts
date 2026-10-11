@@ -1,4 +1,5 @@
 import { NodeEntity, ContainerEntity, EdgeEntity, LogicalGraph, GraphAction } from '../models';
+import { LayoutResult } from '../layout/LayoutEngine';
 
 export interface DragContext {
     draggedEntity: NodeEntity | ContainerEntity;
@@ -6,9 +7,14 @@ export interface DragContext {
         x: number;
         y: number;
     };
+    startWorldPos: {
+        x: number;
+        y: number;
+    };
     hoveredEntity: NodeEntity | ContainerEntity | null;
     hoveredEdge: EdgeEntity | null;
     graph: LogicalGraph;
+    layout?: LayoutResult;
 }
 export interface InteractionStrategy {
     canDrag?(entity: NodeEntity | ContainerEntity, graph: LogicalGraph): boolean;

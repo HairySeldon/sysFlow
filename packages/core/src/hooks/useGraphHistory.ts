@@ -119,6 +119,30 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
           nodes: { ...prev.nodes, [suggestedNewNodeId]: newNode },
           edges: nextEdges
         });
+    } else if (action.type === 'NODE_EXTRACT') {
+      const { nodeId, incomingEdgeId, outgoingEdgeId } = action.payload;
+      const inEdge = prev.edges[incomingEdgeId];
+      const outEdge = prev.edges[outgoingEdgeId];
+
+      if (!inEdge || !outEdge) return;
+
+      const nextEdges = { ...prev.edges };
+
+      // Bypass the extracted node: bridge inEdge source directly to outEdge target
+      nextEdges[incomingEdgeId] = {
+        ...inEdge,
+        targetId: outEdge.targetId,
+        targetPortId: outEdge.targetPortId
+      };
+
+      // Remove the second edge
+      delete nextEdges[outgoingEdgeId];
+
+      // Note: prev.nodes[nodeId] is preserved, retaining the node on the canvas
+      pushState({
+        ...prev,
+        edges: nextEdges
+      });
     } else if (action.type === 'NODE_ADD_CONNECTED') {
       const { sourceNode, position, direction, suggestedNewNodeId, suggestedNewEdgeId } = action.payload;
       const isBT = direction === 'BT';

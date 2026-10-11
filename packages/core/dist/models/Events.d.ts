@@ -29,6 +29,13 @@ export type GraphAction = {
         newTargetPortId?: ID;
     };
 } | {
+    type: 'NODE_EXTRACT';
+    payload: {
+        nodeId: ID;
+        incomingEdgeId: ID;
+        outgoingEdgeId: ID;
+    };
+} | {
     type: 'CONTAINER_TOGGLE_COLLAPSE';
     payload: {
         containerId: ID;

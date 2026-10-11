@@ -13,6 +13,7 @@ export function useDragGesture(
   const [dragState, setDragState] = useState<{
     draggedEntity: NodeEntity | ContainerEntity;
     ghostPosition: { x: number; y: number };
+    startPosition: { x: number; y: number };
   } | null>(null);
 
   const [hoveredContainerId, setHoveredContainerId] = useState<string | null>(null);
@@ -108,7 +109,8 @@ export function useDragGesture(
       const worldPos = screenToWorld(e.clientX, e.clientY);
       setDragState({
         draggedEntity: entity,
-        ghostPosition: worldPos
+        ghostPosition: worldPos,
+        startPosition: worldPos
       });
     },
     [graph, strategy, screenToWorld]
@@ -135,9 +137,11 @@ export function useDragGesture(
         ? strategy.onDragMove({
             draggedEntity: dragState.draggedEntity,
             cursorWorld,
+            startWorldPos: dragState.startPosition,
             hoveredEntity,
             hoveredEdge,
-            graph
+            graph,
+            layout
           })
         : cursorWorld;
 
@@ -145,7 +149,7 @@ export function useDragGesture(
         setDragState((prev) => (prev ? { ...prev, ghostPosition: ghostPos } : null));
       }
     },
-    [dragState, screenToWorld, strategy, graph, findEntityAtWorld, findEdgeNearWorld]
+    [dragState, screenToWorld, strategy, graph, layout, findEntityAtWorld, findEdgeNearWorld]
   );
 
   const handlePointerUp = useCallback(
@@ -159,9 +163,11 @@ export function useDragGesture(
       const action = strategy.onDragEnd({
         draggedEntity: dragState.draggedEntity,
         cursorWorld,
+        startWorldPos: dragState.startPosition,
         hoveredEntity,
         hoveredEdge,
-        graph
+        graph,
+        layout
       });
 
       if (action) {
@@ -173,7 +179,7 @@ export function useDragGesture(
       activeHoveredEntity.current = null;
       activeHoveredEdge.current = null;
     },
-    [dragState, screenToWorld, strategy, graph, findEntityAtWorld, findEdgeNearWorld, onChange]
+    [dragState, screenToWorld, strategy, graph, layout, findEntityAtWorld, findEdgeNearWorld, onChange]
   );
 
   return {
