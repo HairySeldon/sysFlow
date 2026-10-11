@@ -14,14 +14,14 @@ function ie(i, g, n, s) {
   };
   ["left", "right"].forEach((r) => {
     i[r].sort((c, l) => {
-      var h, a;
-      const o = ((h = I(c.id)) == null ? void 0 : h.y) ?? 0, C = ((a = I(l.id)) == null ? void 0 : a.y) ?? 0;
+      var h, A;
+      const o = ((h = I(c.id)) == null ? void 0 : h.y) ?? 0, C = ((A = I(l.id)) == null ? void 0 : A.y) ?? 0;
       return o - C;
     });
   }), ["top", "bottom"].forEach((r) => {
     i[r].sort((c, l) => {
-      var h, a;
-      const o = ((h = I(c.id)) == null ? void 0 : h.x) ?? 0, C = ((a = I(l.id)) == null ? void 0 : a.x) ?? 0;
+      var h, A;
+      const o = ((h = I(c.id)) == null ? void 0 : h.x) ?? 0, C = ((A = I(l.id)) == null ? void 0 : A.x) ?? 0;
       return o - C;
     });
   });
@@ -30,7 +30,7 @@ function de(i, g, n, s, I, r) {
   if (!I || !r)
     return n ? "left" : "right";
   const c = s.find(
-    (a) => n ? a.targetId === i && a.targetPortId === g : a.sourceId === i && a.sourcePortId === g
+    (A) => n ? A.targetId === i && A.targetPortId === g : A.sourceId === i && A.sourcePortId === g
   );
   if (!c) return n ? "left" : "right";
   const l = n ? c.sourceId : c.targetId, o = I[l];
@@ -47,7 +47,7 @@ function Nt(i, g, n = "LR", s, I) {
     right: [],
     top: [],
     bottom: []
-  }, a = new Set(
+  }, A = new Set(
     C.filter((b) => b.targetId === i.id).map((b) => b.targetPortId)
   );
   new Set(
@@ -59,27 +59,27 @@ function Nt(i, g, n = "LR", s, I) {
       return;
     }
     if (o === "strict-flow") {
-      const A = a.has(b.id) || b.label.toLowerCase().includes("in");
+      const a = A.has(b.id) || b.label.toLowerCase().includes("in");
       switch (c) {
         case "BT":
-          y = A ? "bottom" : "top";
+          y = a ? "bottom" : "top";
           break;
         case "TB":
-          y = A ? "top" : "bottom";
+          y = a ? "top" : "bottom";
           break;
         case "RL":
-          y = A ? "right" : "left";
+          y = a ? "right" : "left";
           break;
         case "LR":
         default:
-          y = A ? "left" : "right";
+          y = a ? "left" : "right";
           break;
       }
     } else
       y = de(
         i.id,
         b.id,
-        a.has(b.id),
+        A.has(b.id),
         C,
         I == null ? void 0 : I.nodeLayouts,
         g
@@ -87,10 +87,10 @@ function Nt(i, g, n = "LR", s, I) {
     h[y].push(b);
   }), o === "perimeter-optimized" && (I != null && I.nodeLayouts) && ie(h, i.id, C, I.nodeLayouts);
   const f = (b, y) => {
-    const A = b.length;
+    const a = b.length;
     b.forEach((e, t) => {
       let d = 0, w = 0;
-      y === "left" || y === "right" ? (w = g.height / (A + 1) * (t + 1), d = y === "left" ? 0 : g.width) : (d = g.width / (A + 1) * (t + 1), w = y === "top" ? 0 : g.height), r.set(e.id, {
+      y === "left" || y === "right" ? (w = g.height / (a + 1) * (t + 1), d = y === "left" ? 0 : g.width) : (d = g.width / (a + 1) * (t + 1), w = y === "top" ? 0 : g.height), r.set(e.id, {
         portId: e.id,
         side: y,
         localX: d,
@@ -128,8 +128,8 @@ class re {
     const r = /* @__PURE__ */ new Set(), c = /* @__PURE__ */ new Set(), l = /* @__PURE__ */ new Set(), o = (C) => {
       r.add(C), c.add(C);
       const h = Array.from(s.get(C) || []);
-      for (const a of h)
-        r.has(a) ? c.has(a) && (s.get(C).delete(a), s.get(a).add(C), l.add(`${C}->${a}`)) : o(a);
+      for (const A of h)
+        r.has(A) ? c.has(A) && (s.get(C).delete(A), s.get(A).add(C), l.add(`${C}->${A}`)) : o(A);
       c.delete(C);
     };
     for (const C of n)
@@ -157,9 +157,9 @@ class le {
       const o = r.shift();
       c.add(o);
       const C = I.get(o) || 0, h = n.get(o) || /* @__PURE__ */ new Set();
-      for (const a of h) {
-        const f = I.get(a) ?? 0;
-        I.set(a, Math.max(f, C + 1)), s.set(a, (s.get(a) || 1) - 1), s.get(a) === 0 && r.push(a);
+      for (const A of h) {
+        const f = I.get(A) ?? 0;
+        I.set(A, Math.max(f, C + 1)), s.set(A, (s.get(A) || 1) - 1), s.get(A) === 0 && r.push(A);
       }
     }
     for (const o of g)
@@ -183,22 +183,22 @@ class nt {
       l.set(o, [...C]);
     for (let o = 0; o < s; o++) {
       for (let C = 1; C < r.length; C++) {
-        const h = l.get(r[C - 1]), a = l.get(r[C]), f = /* @__PURE__ */ new Map();
-        h.forEach((b, y) => f.set(b, y)), nt.sortLayerNodes(a, c, f, I);
+        const h = l.get(r[C - 1]), A = l.get(r[C]), f = /* @__PURE__ */ new Map();
+        h.forEach((b, y) => f.set(b, y)), nt.sortLayerNodes(A, c, f, I);
       }
       for (let C = r.length - 2; C >= 0; C--) {
-        const h = l.get(r[C + 1]), a = l.get(r[C]), f = /* @__PURE__ */ new Map();
-        h.forEach((b, y) => f.set(b, y)), nt.sortLayerNodes(a, n, f, I);
+        const h = l.get(r[C + 1]), A = l.get(r[C]), f = /* @__PURE__ */ new Map();
+        h.forEach((b, y) => f.set(b, y)), nt.sortLayerNodes(A, n, f, I);
       }
     }
     return l;
   }
   static sortLayerNodes(g, n, s, I) {
-    var C, h, a;
+    var C, h, A;
     if (!I || Object.keys(I.containers).length === 0) {
       g.sort((f, b) => {
-        const y = nt.getBarycenter(f, n, s), A = nt.getBarycenter(b, n, s);
-        return y - A;
+        const y = nt.getBarycenter(f, n, s), a = nt.getBarycenter(b, n, s);
+        return y - a;
       });
       return;
     }
@@ -210,7 +210,7 @@ class nt {
       const b = r.get(f) ?? 0;
       let y = ((C = I.nodes[f]) == null ? void 0 : C.parentId) ?? ((h = I.containers[f]) == null ? void 0 : h.parentId);
       for (; y; )
-        c.set(y, (c.get(y) || 0) + b), l.set(y, (l.get(y) || 0) + 1), y = (a = I.containers[y]) == null ? void 0 : a.parentId;
+        c.set(y, (c.get(y) || 0) + b), l.set(y, (l.get(y) || 0) + 1), y = (A = I.containers[y]) == null ? void 0 : A.parentId;
     }
     const o = (f) => {
       if (I.containers[f]) {
@@ -220,11 +220,11 @@ class nt {
       return r.get(f) ?? 0;
     };
     g.sort((f, b) => {
-      const y = nt.getAncestorPath(f, I), A = nt.getAncestorPath(b, I);
+      const y = nt.getAncestorPath(f, I), a = nt.getAncestorPath(b, I);
       let e = 0;
-      for (; e < y.length && e < A.length && y[e] === A[e]; )
+      for (; e < y.length && e < a.length && y[e] === a[e]; )
         e++;
-      const t = y[e] ?? f, d = A[e] ?? b, w = o(t) - o(d);
+      const t = y[e] ?? f, d = a[e] ?? b, w = o(t) - o(d);
       return Math.abs(w) > 1e-5 ? w : t.localeCompare(d);
     });
   }
@@ -248,10 +248,10 @@ class nt {
 const st = 32, Pt = 24, ut = 22, rt = 18, lt = 38, wt = 210, Ht = 36, Ae = 180, ae = 54, Wt = 260, Xt = 160;
 class It {
   static assignCoordinates(g, n, s, I = { direction: "TB", mode: "auto", aspectRatio: 1.55 }) {
-    const r = I.direction ?? "TB", c = r === "TB" || r === "BT", l = r === "BT" || r === "RL", o = I.aspectRatio ?? 1.55, C = Object.keys(g.containers).length, h = I.mode && I.mode !== "auto" ? I.mode : C > 0 ? "concurrent" : "flow", a = {}, f = {}, b = (y) => {
+    const r = I.direction ?? "TB", c = r === "TB" || r === "BT", l = r === "BT" || r === "RL", o = I.aspectRatio ?? 1.55, C = Object.keys(g.containers).length, h = I.mode && I.mode !== "auto" ? I.mode : C > 0 ? "concurrent" : "flow", A = {}, f = {}, b = (y) => {
       var t, d, w, B, S;
-      const A = !!g.containers[y], e = !!((t = g.containers[y]) != null && t.collapsed);
-      return A && e ? { width: wt, height: Ht } : A && !e ? {
+      const a = !!g.containers[y], e = !!((t = g.containers[y]) != null && t.collapsed);
+      return a && e ? { width: wt, height: Ht } : a && !e ? {
         width: ((d = s.get(y)) == null ? void 0 : d.width) || Wt,
         height: ((w = s.get(y)) == null ? void 0 : w.height) || Xt
       } : {
@@ -263,7 +263,7 @@ class It {
       g,
       b,
       o,
-      a,
+      A,
       f
     ) : It.layoutFlowTree(
       g,
@@ -272,9 +272,9 @@ class It {
       c,
       l,
       I,
-      a,
+      A,
       f
-    ), It.assignDynamicPortSides(g, a, f), { nodes: a, containers: f };
+    ), It.assignDynamicPortSides(g, A, f), { nodes: A, containers: f };
   }
   // ===========================================================================
   // CONCURRENT COMPOUND PACKING WITH SKYLINE 2D BIN PACKING
@@ -282,28 +282,28 @@ class It {
   static layoutConcurrentHierarchy(g, n, s, I, r) {
     var y;
     const c = /* @__PURE__ */ new Map();
-    for (const [A, e] of Object.entries(g.nodes)) {
+    for (const [a, e] of Object.entries(g.nodes)) {
       const t = e.parentId ?? null;
-      c.has(t) || c.set(t, []), c.get(t).push(A);
+      c.has(t) || c.set(t, []), c.get(t).push(a);
     }
-    for (const [A, e] of Object.entries(g.containers)) {
+    for (const [a, e] of Object.entries(g.containers)) {
       const t = e.parentId ?? null;
-      c.has(t) || c.set(t, []), c.get(t).push(A);
+      c.has(t) || c.set(t, []), c.get(t).push(a);
     }
     const l = It.getContainerDepths(g), o = Object.keys(g.containers).sort(
-      (A, e) => (l.get(e) || 0) - (l.get(A) || 0)
+      (a, e) => (l.get(e) || 0) - (l.get(a) || 0)
     ), C = /* @__PURE__ */ new Map(), h = /* @__PURE__ */ new Map();
-    for (const A of o) {
-      if (!!((y = g.containers[A]) != null && y.collapsed)) {
-        C.set(A, {
+    for (const a of o) {
+      if (!!((y = g.containers[a]) != null && y.collapsed)) {
+        C.set(a, {
           width: wt,
           height: Ht
         });
         continue;
       }
-      const t = c.get(A) || [];
+      const t = c.get(a) || [];
       if (t.length === 0) {
-        C.set(A, {
+        C.set(a, {
           width: wt,
           height: lt + rt * 2
         });
@@ -316,27 +316,27 @@ class It {
       for (const m of w.boxes)
         h.set(m.id, m);
       const B = Math.max(w.width + ut * 2, wt), S = w.height + lt + rt * 2;
-      C.set(A, { width: B, height: S });
+      C.set(a, { width: B, height: S });
     }
-    const a = c.get(null) || [];
+    const A = c.get(null) || [];
     let f = [];
-    if (a.length > 0) {
-      const A = a.map((t) => {
+    if (A.length > 0) {
+      const a = A.map((t) => {
         const d = C.get(t) || n(t);
         return { id: t, width: d.width, height: d.height };
       });
-      f = It.findBestTightPacking(A, s).boxes.map((t) => ({
+      f = It.findBestTightPacking(a, s).boxes.map((t) => ({
         ...t,
         localX: t.localX + 60,
         localY: t.localY + 60
       }));
     }
-    const b = (A, e, t, d, w) => {
+    const b = (a, e, t, d, w) => {
       var m;
-      const B = !!g.containers[A], S = { id: A, x: e, y: t, width: d, height: w };
+      const B = !!g.containers[a], S = { id: a, x: e, y: t, width: d, height: w };
       if (B) {
-        if (r[A] = S, (m = g.containers[A]) != null && m.collapsed) return;
-        const p = e + ut, H = t + lt + rt, W = c.get(A) || [];
+        if (r[a] = S, (m = g.containers[a]) != null && m.collapsed) return;
+        const p = e + ut, H = t + lt + rt, W = c.get(a) || [];
         for (const P of W) {
           const L = h.get(P);
           L && b(
@@ -348,10 +348,10 @@ class It {
           );
         }
       } else
-        I[A] = S;
+        I[a] = S;
     };
-    for (const A of f)
-      b(A.id, A.localX, A.localY, A.width, A.height);
+    for (const a of f)
+      b(a.id, a.localX, a.localY, a.width, a.height);
   }
   static findBestTightPacking(g, n) {
     if (g.length === 1)
@@ -361,20 +361,20 @@ class It {
         boxes: [{ id: g[0].id, localX: 0, localY: 0, width: g[0].width, height: g[0].height }],
         score: 0
       };
-    const s = g.reduce((a, f) => a + f.width * f.height, 0), I = Math.max(...g.map((a) => a.width)), r = [...g].sort((a, f) => f.width - a.width), c = /* @__PURE__ */ new Set(), l = g.reduce((a, f) => a + f.width, 0) + (g.length - 1) * st;
+    const s = g.reduce((A, f) => A + f.width * f.height, 0), I = Math.max(...g.map((A) => A.width)), r = [...g].sort((A, f) => f.width - A.width), c = /* @__PURE__ */ new Set(), l = g.reduce((A, f) => A + f.width, 0) + (g.length - 1) * st;
     c.add(l), c.add(I);
     const o = Math.max(I, Math.sqrt(s * n));
     c.add(o), c.add(o * 0.85), c.add(o * 1.15);
     const C = Math.min(g.length, 6);
-    for (let a = 2; a <= C; a++) {
+    for (let A = 2; A <= C; A++) {
       let f = 0;
-      for (let b = 0; b < a && b < r.length; b++)
+      for (let b = 0; b < A && b < r.length; b++)
         f += r[b].width;
-      f += (a - 1) * st, f >= I && c.add(f);
+      f += (A - 1) * st, f >= I && c.add(f);
     }
     let h = null;
-    for (const a of c) {
-      const f = It.simulateSkylinePacking(g, a), b = f.width * f.height, y = Math.max(0, b - s), A = f.width / Math.max(1, f.height), e = Math.abs(Math.log(A / n)), t = y / s * 2 + e * 0.25;
+    for (const A of c) {
+      const f = It.simulateSkylinePacking(g, A), b = f.width * f.height, y = Math.max(0, b - s), a = f.width / Math.max(1, f.height), e = Math.abs(Math.log(a / n)), t = y / s * 2 + e * 0.25;
       f.score = t, (!h || t < h.score) && (h = f);
     }
     return h;
@@ -405,22 +405,22 @@ class It {
         });
         continue;
       }
-      const a = I[h].x, f = C === 0 ? 0 : C + Pt;
+      const A = I[h].x, f = C === 0 ? 0 : C + Pt;
       r.push({
         id: o.id,
-        localX: a,
+        localX: A,
         localY: f,
         width: o.width,
         height: o.height
       });
-      const b = o.width + st, y = f + o.height, A = { x: a, width: b, y }, e = [];
+      const b = o.width + st, y = f + o.height, a = { x: A, width: b, y }, e = [];
       for (const t of I)
-        t.x + t.width <= a || t.x >= a + b ? e.push(t) : (t.x < a && e.push({ x: t.x, width: a - t.x, y: t.y }), t.x + t.width > a + b && e.push({
-          x: a + b,
-          width: t.x + t.width - (a + b),
+        t.x + t.width <= A || t.x >= A + b ? e.push(t) : (t.x < A && e.push({ x: t.x, width: A - t.x, y: t.y }), t.x + t.width > A + b && e.push({
+          x: A + b,
+          width: t.x + t.width - (A + b),
           y: t.y
         }));
-      e.push(A), e.sort((t, d) => t.x - d.x), I.length = 0, I.push(...e);
+      e.push(a), e.sort((t, d) => t.x - d.x), I.length = 0, I.push(...e);
     }
     const c = Math.max(...r.map((o) => o.localX + o.width), 0), l = Math.max(...r.map((o) => o.localY + o.height), 0);
     return { width: c, height: l, boxes: r, score: 0 };
@@ -431,16 +431,16 @@ class It {
   static layoutFlowTree(g, n, s, I, r, c, l, o) {
     var Q;
     const C = Array.from(n.keys()).sort((G, D) => G - D), h = /* @__PURE__ */ new Map();
-    let a = 80;
-    const f = I ? lt + rt * 2 : ut * 2, b = (I ? Pt * 1.5 : st * 1.5) + f, y = I ? st : Pt, A = r ? [...C].reverse() : [...C];
-    for (const G of A) {
+    let A = 80;
+    const f = I ? lt + rt * 2 : ut * 2, b = (I ? Pt * 1.5 : st * 1.5) + f, y = I ? st : Pt, a = r ? [...C].reverse() : [...C];
+    for (const G of a) {
       const D = n.get(G) || [];
       let u = 0;
       for (const k of D) {
         const E = s(k), Z = I ? E.height : E.width;
         u = Math.max(u, Z);
       }
-      h.set(G, a), a += u + b;
+      h.set(G, A), A += u + b;
     }
     const e = /* @__PURE__ */ new Map(), t = /* @__PURE__ */ new Map();
     for (const G of Object.values(g.edges))
@@ -561,9 +561,9 @@ class It {
     for (const l of Object.values(g.edges)) {
       const o = I(l.sourceId), C = I(l.targetId);
       if (!o || !C) continue;
-      const h = g.nodes[l.sourceId] || g.containers[l.sourceId], a = g.nodes[l.targetId] || g.containers[l.targetId], f = C.x + C.width / 2 - (o.x + o.width / 2), b = C.y + C.height / 2 - (o.y + o.height / 2), y = Math.abs(f) > Math.abs(b) * 1.25, A = (r = h == null ? void 0 : h.ports) == null ? void 0 : r.find((t) => t.id === l.sourcePortId);
-      A && (!A.side || A.side === "auto") && (y ? A.side = f >= 0 ? "right" : "left" : A.side = b >= 0 ? "bottom" : "top");
-      const e = (c = a == null ? void 0 : a.ports) == null ? void 0 : c.find((t) => t.id === l.targetPortId);
+      const h = g.nodes[l.sourceId] || g.containers[l.sourceId], A = g.nodes[l.targetId] || g.containers[l.targetId], f = C.x + C.width / 2 - (o.x + o.width / 2), b = C.y + C.height / 2 - (o.y + o.height / 2), y = Math.abs(f) > Math.abs(b) * 1.25, a = (r = h == null ? void 0 : h.ports) == null ? void 0 : r.find((t) => t.id === l.sourcePortId);
+      a && (!a.side || a.side === "auto") && (y ? a.side = f >= 0 ? "right" : "left" : a.side = b >= 0 ? "bottom" : "top");
+      const e = (c = A == null ? void 0 : A.ports) == null ? void 0 : c.find((t) => t.id === l.targetPortId);
       e && (!e.side || e.side === "auto") && (y ? e.side = f >= 0 ? "left" : "right" : e.side = b >= 0 ? "top" : "bottom");
     }
   }
@@ -595,22 +595,22 @@ class ue {
       I.filter((y) => !!y.collapsed).map((y) => y.id)
     ), l = (y) => {
       var e;
-      let A = y;
-      for (; A; ) {
-        if (c.has(A)) return !0;
-        A = (e = g.containers[A]) == null ? void 0 : e.parentId;
+      let a = y;
+      for (; a; ) {
+        if (c.has(a)) return !0;
+        a = (e = g.containers[a]) == null ? void 0 : e.parentId;
       }
       return !1;
     }, o = /* @__PURE__ */ new Set();
-    for (const [y, A] of Object.entries(g.nodes))
-      l(A.parentId) || o.add(y);
-    for (const [y, A] of Object.entries(g.containers))
-      A.collapsed ? l(A.parentId) || o.add(y) : !(r.some((t) => t.parentId === y) || I.some((t) => t.parentId === y)) && !l(A.parentId) && o.add(y);
+    for (const [y, a] of Object.entries(g.nodes))
+      l(a.parentId) || o.add(y);
+    for (const [y, a] of Object.entries(g.containers))
+      a.collapsed ? l(a.parentId) || o.add(y) : !(r.some((t) => t.parentId === y) || I.some((t) => t.parentId === y)) && !l(a.parentId) && o.add(y);
     const C = {};
-    for (const [y, A] of Object.entries(g.edges)) {
-      const e = Vt(A.sourceId, g, c), t = Vt(A.targetId, g, c);
+    for (const [y, a] of Object.entries(g.edges)) {
+      const e = Vt(a.sourceId, g, c), t = Vt(a.targetId, g, c);
       e !== t && o.has(e) && o.has(t) && (C[y] = {
-        ...A,
+        ...a,
         sourceId: e,
         targetId: t
       });
@@ -618,7 +618,7 @@ class ue {
     const h = {
       ...g,
       edges: C
-    }, a = re.decouple(h, o), f = le.assignLayers(a.allEntityIds, a.adjList), b = nt.minimizeCrossings(f, a.adjList, 4, h);
+    }, A = re.decouple(h, o), f = le.assignLayers(A.allEntityIds, A.adjList), b = nt.minimizeCrossings(f, A.adjList, 4, h);
     return It.assignCoordinates(h, b, n, s);
   }
 }
@@ -725,9 +725,9 @@ class De {
       } : null;
     if (!I && !s) {
       const C = Object.values(l.edges).filter(
-        (a) => a.targetId === n.id
+        (A) => A.targetId === n.id
       ), h = Object.values(l.edges).filter(
-        (a) => a.sourceId === n.id
+        (A) => A.sourceId === n.id
       );
       if (C.length === 1 && h.length === 1 && C[0].sourceId !== h[0].targetId && Math.hypot(
         r.x - c.x,
@@ -753,9 +753,9 @@ class De {
     const o = (C) => {
       const h = l.nodes[C.id] || C;
       if (!h.ports || h.ports.length === 0) return "";
-      const a = Object.values(l.edges).find((y) => y.targetId === C.id);
-      if (a) {
-        const y = h.ports.find((A) => A.id === a.targetPortId);
+      const A = Object.values(l.edges).find((y) => y.targetId === C.id);
+      if (A) {
+        const y = h.ports.find((a) => a.id === A.targetPortId);
         if (y) return y.id;
       }
       const f = new Set(
@@ -793,21 +793,21 @@ class De {
 }
 function we(i, g = { min: 0.15, max: 3 }) {
   const [n, s] = et({ x: 80, y: 80, zoom: 1 }), I = Ct(!1), r = Ct({ x: 0, y: 0 }), c = M(
-    (A, e) => {
-      if (!i.current) return { x: A, y: e };
+    (a, e) => {
+      if (!i.current) return { x: a, y: e };
       const t = i.current.getBoundingClientRect();
       return {
-        x: (A - t.left - n.x) / n.zoom,
+        x: (a - t.left - n.x) / n.zoom,
         y: (e - t.top - n.y) / n.zoom
       };
     },
     [n, i]
   ), l = M(
-    (A) => {
+    (a) => {
       if (!i.current) return;
       const e = [
-        ...Object.values(A.nodes),
-        ...Object.values(A.containers)
+        ...Object.values(a.nodes),
+        ...Object.values(a.containers)
       ];
       if (e.length === 0) {
         s({ x: 80, y: 80, zoom: 1 });
@@ -828,43 +828,43 @@ function we(i, g = { min: 0.15, max: 3 }) {
     },
     [i, g]
   ), o = M(
-    (A) => {
-      if (A.preventDefault(), !!i.current)
-        if (A.ctrlKey || A.metaKey) {
-          const e = i.current.getBoundingClientRect(), t = A.clientX - e.left, d = A.clientY - e.top, w = A.deltaY < 0 ? 1.08 : 0.92, B = Math.min(Math.max(n.zoom * w, g.min), g.max), S = t - (t - n.x) * (B / n.zoom), m = d - (d - n.y) * (B / n.zoom);
+    (a) => {
+      if (a.preventDefault(), !!i.current)
+        if (a.ctrlKey || a.metaKey) {
+          const e = i.current.getBoundingClientRect(), t = a.clientX - e.left, d = a.clientY - e.top, w = a.deltaY < 0 ? 1.08 : 0.92, B = Math.min(Math.max(n.zoom * w, g.min), g.max), S = t - (t - n.x) * (B / n.zoom), m = d - (d - n.y) * (B / n.zoom);
           s({ x: S, y: m, zoom: B });
         } else
           s((e) => ({
             ...e,
-            x: e.x - A.deltaX,
-            y: e.y - A.deltaY
+            x: e.x - a.deltaX,
+            y: e.y - a.deltaY
           }));
     },
     [n, g, i]
   ), C = M(
-    (A, e) => {
-      I.current = !0, r.current = { x: A - n.x, y: e - n.y };
+    (a, e) => {
+      I.current = !0, r.current = { x: a - n.x, y: e - n.y };
     },
     [n]
-  ), h = M((A, e) => {
+  ), h = M((a, e) => {
     I.current && s((t) => ({
       ...t,
-      x: A - r.current.x,
+      x: a - r.current.x,
       y: e - r.current.y
     }));
-  }, []), a = M(() => {
+  }, []), A = M(() => {
     I.current = !1;
   }, []), f = M(() => {
     s({ x: 80, y: 80, zoom: 1 });
   }, []), b = M(() => {
-    s((A) => ({
-      ...A,
-      zoom: Math.min(A.zoom * 1.2, g.max)
+    s((a) => ({
+      ...a,
+      zoom: Math.min(a.zoom * 1.2, g.max)
     }));
   }, [g]), y = M(() => {
-    s((A) => ({
-      ...A,
-      zoom: Math.max(A.zoom / 1.2, g.min)
+    s((a) => ({
+      ...a,
+      zoom: Math.max(a.zoom / 1.2, g.min)
     }));
   }, [g]);
   return {
@@ -874,7 +874,7 @@ function we(i, g = { min: 0.15, max: 3 }) {
     onWheel: o,
     startPan: C,
     updatePan: h,
-    endPan: a,
+    endPan: A,
     resetTransform: f,
     zoomIn: b,
     zoomOut: y,
@@ -897,8 +897,8 @@ function be(i) {
       for (const C of c) {
         const h = C.target.getAttribute("data-sysflow-measure-id");
         if (!h) continue;
-        const a = Math.ceil(C.contentRect.width), f = Math.ceil(C.contentRect.height), b = o.get(h);
-        (!b || b.width !== a || b.height !== f) && (o.set(h, { width: a, height: f }), l = !0);
+        const A = Math.ceil(C.contentRect.width), f = Math.ceil(C.contentRect.height), b = o.get(h);
+        (!b || b.width !== A || b.height !== f) && (o.set(h, { width: A, height: f }), l = !0);
       }
       l && n(o);
     });
@@ -908,7 +908,7 @@ function be(i) {
   }, [i]), { measurements: g, registerMeasureElement: I };
 }
 function me(i, g, n, s, I) {
-  const [r, c] = et(null), [l, o] = et(null), C = Ct(null), h = Ct(null), a = M(
+  const [r, c] = et(null), [l, o] = et(null), C = Ct(null), h = Ct(null), A = M(
     (e, t) => {
       let d = null, w = 1 / 0;
       for (const [B, S] of Object.entries(g.containers))
@@ -954,7 +954,7 @@ function me(i, g, n, s, I) {
   ), y = M(
     (e) => {
       if (!r) return;
-      const t = s(e.clientX, e.clientY), d = a(t, r.draggedEntity.id), w = f(t, r.draggedEntity.id);
+      const t = s(e.clientX, e.clientY), d = A(t, r.draggedEntity.id), w = f(t, r.draggedEntity.id);
       C.current = d, h.current = w, d && i.containers[d.id] ? o(d.id) : o(null);
       const B = n.onDragMove ? n.onDragMove({
         draggedEntity: r.draggedEntity,
@@ -967,11 +967,11 @@ function me(i, g, n, s, I) {
       }) : t;
       B && c((S) => S ? { ...S, ghostPosition: B } : null);
     },
-    [r, s, n, i, g, a, f]
-  ), A = M(
+    [r, s, n, i, g, A, f]
+  ), a = M(
     (e) => {
       if (!r) return;
-      const t = s(e.clientX, e.clientY), d = a(t, r.draggedEntity.id), w = f(t, r.draggedEntity.id), B = n.onDragEnd({
+      const t = s(e.clientX, e.clientY), d = A(t, r.draggedEntity.id), w = f(t, r.draggedEntity.id), B = n.onDragEnd({
         draggedEntity: r.draggedEntity,
         cursorWorld: t,
         startWorldPos: r.startPosition,
@@ -982,14 +982,14 @@ function me(i, g, n, s, I) {
       });
       B && I(B), c(null), o(null), C.current = null, h.current = null;
     },
-    [r, s, n, i, g, a, f, I]
+    [r, s, n, i, g, A, f, I]
   );
   return {
     dragState: r,
     hoveredContainerId: l,
     handlePointerDown: b,
     handlePointerMove: y,
-    handlePointerUp: A
+    handlePointerUp: a
   };
 }
 function Ee(i) {
@@ -1000,7 +1000,7 @@ function Ee(i) {
     s > 0 && I((e) => e - 1);
   }, [s]), h = M(() => {
     s < g.length - 1 && I((e) => e + 1);
-  }, [s, g.length]), a = M((e) => {
+  }, [s, g.length]), A = M((e) => {
     var d, w, B, S;
     const t = g[s];
     if (e.type === "ENTITY_REPARENT") {
@@ -1144,7 +1144,7 @@ function Ee(i) {
       ...l,
       nodes: { ...l.nodes, [t]: d }
     });
-  }, [r, l, o]), A = M((e) => {
+  }, [r, l, o]), a = M((e) => {
     if (e.length === 0) return;
     const t = { ...l.nodes }, d = { ...l.containers }, w = { ...l.edges };
     for (const B of e)
@@ -1159,13 +1159,13 @@ function Ee(i) {
   return {
     graph: l,
     setGraphDirect: o,
-    applyAction: a,
+    applyAction: A,
     undo: C,
     redo: h,
     copyEntity: f,
     cutEntity: b,
     pasteEntity: y,
-    deleteSelection: A,
+    deleteSelection: a,
     canUndo: s > 0,
     canRedo: s < g.length - 1
   };
@@ -1225,7 +1225,7 @@ const Ge = ({
   onEdgeClick: o,
   onInsertNodeOnEdge: C
 }) => {
-  const [h, a] = et(null), f = r === "step" || r === "auto" && (s === "LR" || s === "RL"), b = (e, t, d) => {
+  const [h, A] = et(null), f = r === "step" || r === "auto" && (s === "LR" || s === "RL"), b = (e, t, d) => {
     var V, Q, G, D;
     let w = e, B = null;
     for ((V = i.containers[e]) != null && V.collapsed && (B = i.containers[e]); w; ) {
@@ -1321,7 +1321,7 @@ const Ge = ({
       pathStr: `M ${e.x} ${e.y} L ${d} ${e.y} L ${d} ${t.y} L ${t.x} ${t.y}`,
       center: { x: d, y: w }
     };
-  }, A = (e, t) => {
+  }, a = (e, t) => {
     const d = t.x - e.x, w = t.y - e.y;
     let B = e.x, S = e.y, m = t.x, p = t.y;
     if (e.side === "bottom" && t.side === "top")
@@ -1391,12 +1391,12 @@ const Ge = ({
     Object.values(i.edges).map((e) => {
       const t = b(e.sourceId, e.sourcePortId, !0), d = b(e.targetId, e.targetPortId, !1);
       if (!t.valid || !d.valid || t.entityId === d.entityId) return null;
-      const w = n.includes(e.id), B = h === e.id, { pathStr: S, center: m } = f ? y(t, d) : A(t, d);
+      const w = n.includes(e.id), B = h === e.id, { pathStr: S, center: m } = f ? y(t, d) : a(t, d);
       return /* @__PURE__ */ $(
         "g",
         {
-          onMouseEnter: () => a(e.id),
-          onMouseLeave: () => a(null),
+          onMouseEnter: () => A(e.id),
+          onMouseLeave: () => A(null),
           children: [
             /* @__PURE__ */ N(
               "path",
@@ -1522,12 +1522,12 @@ const Ge = ({
   onPointerDown: o,
   onMouseEnter: C,
   onMouseLeave: h,
-  onClick: a,
+  onClick: A,
   onPortPointerDown: f,
   onPortPointerUp: b,
   customRenderer: y
 }) => {
-  const [A, e] = et(!1);
+  const [a, e] = et(!1);
   return /* @__PURE__ */ $(
     "div",
     {
@@ -1544,13 +1544,13 @@ const Ge = ({
       onMouseLeave: () => {
         e(!1), h == null || h(i.id);
       },
-      onClick: a,
+      onClick: A,
       children: [
-        c && A && /* @__PURE__ */ $(Et, { children: [
+        c && a && /* @__PURE__ */ $(Et, { children: [
           /* @__PURE__ */ N("div", { className: "sysflow-hover-bridge sysflow-hover-bridge-top" }),
           /* @__PURE__ */ N("div", { className: "sysflow-hover-bridge sysflow-hover-bridge-bottom" })
         ] }),
-        c && A && l && /* @__PURE__ */ N(
+        c && a && l && /* @__PURE__ */ N(
           "button",
           {
             type: "button",
@@ -1588,7 +1588,7 @@ const Ge = ({
             i.ports.length > 1 ? "s" : ""
           ] })
         ] }),
-        c && A && l && /* @__PURE__ */ N(
+        c && a && l && /* @__PURE__ */ N(
           "button",
           {
             className: "sysflow-quick-add-btn sysflow-quick-add-bottom",
@@ -1629,7 +1629,7 @@ const Ge = ({
       width: `${g.width}px`,
       height: `${g.height}px`
     },
-    onPointerDown: (a) => c(i, a),
+    onPointerDown: (A) => c(i, A),
     onMouseEnter: l,
     onMouseLeave: o,
     onClick: C,
@@ -1640,8 +1640,10 @@ const Ge = ({
           "button",
           {
             className: "sysflow-collapse-btn",
-            onClick: (a) => {
-              a.stopPropagation(), r(i.id, !i.collapsed);
+            onPointerDown: (A) => A.stopPropagation(),
+            onPointerUp: (A) => A.stopPropagation(),
+            onClick: (A) => {
+              A.stopPropagation(), r(i.id, !i.collapsed);
             },
             children: i.collapsed ? "Expand ⊞" : "Collapse ⊟"
           }
@@ -1662,11 +1664,11 @@ const Ge = ({
   showEdgeArrows: o = !0,
   nodeTypes: C,
   containerTypes: h,
-  zoomBounds: a,
+  zoomBounds: A,
   className: f = "",
   selectedIds: b = [],
   theme: y = "dark",
-  enableQuickAdd: A,
+  enableQuickAdd: a,
   enableEdgeQuickAdd: e
 }) => {
   var Yt, vt;
@@ -1684,7 +1686,7 @@ const Ge = ({
     zoomOut: X,
     zoomToFit: V,
     isPanning: Q
-  } = we(t, a), { measurements: G, registerMeasureElement: D } = be(i), [u, k] = et({ nodes: {}, containers: {} }), E = Ce(() => ({
+  } = we(t, A), { measurements: G, registerMeasureElement: D } = be(i), [u, k] = et({ nodes: {}, containers: {} }), E = Ce(() => ({
     direction: I,
     mode: c ?? (I === "TB" || I === "BT" ? "strict-flow" : "perimeter-optimized"),
     nodeLayouts: u.nodes
@@ -1860,7 +1862,7 @@ const Ge = ({
       z(null);
     }
     R && ht(K), Z && J(null);
-  }, jt = A ?? (r == null ? void 0 : r.mode) === "flow", Jt = M(
+  }, jt = a ?? (r == null ? void 0 : r.mode) === "flow", Jt = M(
     (K, v) => {
       const x = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, Y = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       g({
@@ -1875,7 +1877,7 @@ const Ge = ({
       });
     },
     [I, g]
-  ), Ut = e ?? A ?? (r == null ? void 0 : r.mode) === "flow", $t = M(
+  ), Ut = e ?? a ?? (r == null ? void 0 : r.mode) === "flow", $t = M(
     (K) => {
       const v = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, x = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, Y = `edge_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`;
       g({

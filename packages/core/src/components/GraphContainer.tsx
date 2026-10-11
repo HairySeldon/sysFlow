@@ -54,6 +54,8 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
             </span>
             <button
               className="sysflow-collapse-btn"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleCollapse(container.id, !container.collapsed);
