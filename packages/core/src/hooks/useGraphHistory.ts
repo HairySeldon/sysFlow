@@ -38,19 +38,64 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
   const applyAction = useCallback((action: GraphAction) => {
     const prev = history[index];
 
-    if (action.type === 'ENTITY_REPARENT') {
-      const { entityId, newParentId } = action.payload;
-      const next: LogicalGraph = {
-        ...prev,
-        nodes: { ...prev.nodes },
-        containers: { ...prev.containers }
+      if (action.type === 'ENTITY_REPARENT') {
+        const { entityId, newParentId } = action.payload;
+        const next: LogicalGraph = {
+          ...prev,
+          nodes: { ...prev.nodes },
+          containers: { ...prev.containers }
+        };
+        if (next.nodes[entityId]) {
+          next.nodes[entityId] = { ...next.nodes[entityId], parentId: newParentId };
+        } else if (next.containers[entityId]) {
+          next.containers[entityId] = { ...next.containers[entityId], parentId: newParentId };
+        }
+        pushState(next);
+    } else if (action.type === 'NODE_ADD_CONNECTED') {
+      const { sourceNode, position, direction, suggestedNewNodeId, suggestedNewEdgeId } = action.payload;
+      const isBT = direction === 'BT';
+      const inPortId = `p_in_${Date.now()}`;
+      const outPortId = `p_out_${Date.now()}`;
+
+      const newNode: NodeEntity = {
+        id: suggestedNewNodeId,
+        label: `Node ${Object.keys(prev.nodes).length + 1}`,
+        type: sourceNode.type,
+        ports: [
+          { id: inPortId, label: 'in', side: isBT ? 'bottom' : 'top' },
+          { id: outPortId, label: 'out', side: isBT ? 'top' : 'bottom' }
+        ]
       };
-      if (next.nodes[entityId]) {
-        next.nodes[entityId] = { ...next.nodes[entityId], parentId: newParentId };
-      } else if (next.containers[entityId]) {
-        next.containers[entityId] = { ...next.containers[entityId], parentId: newParentId };
+
+      const currentInPort = sourceNode.ports.find((p) => p.label === 'in') || sourceNode.ports[0];
+      const currentOutPort = sourceNode.ports.find((p) => p.label === 'out') || sourceNode.ports[sourceNode.ports.length - 1];
+
+      let newEdge: EdgeEntity;
+      const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
+
+      if (isPrepending) {
+        newEdge = {
+          id: suggestedNewEdgeId,
+          sourceId: suggestedNewNodeId,
+          sourcePortId: outPortId,
+          targetId: sourceNode.id,
+          targetPortId: currentInPort?.id || 'in'
+        };
+      } else {
+        newEdge = {
+          id: suggestedNewEdgeId,
+          sourceId: sourceNode.id,
+          sourcePortId: currentOutPort?.id || 'out',
+          targetId: suggestedNewNodeId,
+          targetPortId: inPortId
+        };
       }
-      pushState(next);
+
+      pushState({
+        ...prev,
+        nodes: { ...prev.nodes, [suggestedNewNodeId]: newNode },
+        edges: { ...prev.edges, [suggestedNewEdgeId]: newEdge }
+      });
     } else if (action.type === 'CONTAINER_TOGGLE_COLLAPSE') {
       const { containerId, collapsed } = action.payload;
       if (prev.containers[containerId]) {

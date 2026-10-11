@@ -1,5 +1,6 @@
-import { ID } from './Entity';
+import { ID, NodeEntity } from './Entity';
 import { EdgeEntity } from './Edge';
+import { LayoutDirection } from './Graph';
 
 export type GraphAction =
   | { type: 'ENTITY_REPARENT'; payload: { entityId: ID; newParentId: ID | null } }
@@ -7,4 +8,14 @@ export type GraphAction =
   | { type: 'EDGE_DELETE'; payload: { edgeId: ID } }
   | { type: 'EDGE_REWIRE'; payload: { edgeId: ID; newSourceId?: ID; newTargetId?: ID; newSourcePortId?: ID; newTargetPortId?: ID } }
   | { type: 'CONTAINER_TOGGLE_COLLAPSE'; payload: { containerId: ID; collapsed: boolean } }
-  | { type: 'SELECTION_CHANGE'; payload: { selectedIds: ID[] } };
+  | { type: 'SELECTION_CHANGE'; payload: { selectedIds: ID[] } }
+  | {
+      type: 'NODE_ADD_CONNECTED';
+      payload: {
+        sourceNode: NodeEntity;
+        position: 'top' | 'bottom' | 'left' | 'right';
+        direction: LayoutDirection;
+        suggestedNewNodeId: ID;
+        suggestedNewEdgeId: ID;
+      };
+    };

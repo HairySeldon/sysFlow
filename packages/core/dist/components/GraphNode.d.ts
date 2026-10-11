@@ -13,6 +13,8 @@ export interface GraphNodeProps {
         selected: boolean;
     }>;
     portOptions?: ComputePortOptions;
+    enableQuickAdd?: boolean;
+    onAddConnectedNode?: (node: NodeEntity, position: 'top' | 'bottom') => void;
     onPointerDown?: (entity: NodeEntity | ContainerEntity, e: React.PointerEvent) => void;
     onMouseEnter?: (entityId: ID) => void;
     onMouseLeave?: (entityId: ID) => void;

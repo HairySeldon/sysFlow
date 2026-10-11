@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NodeEntity, ContainerEntity, EdgeEntity, ID, ComputePortOptions } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 import { GraphPortLayer } from './GraphPortLayer';
@@ -11,6 +11,8 @@ export interface GraphNodeProps {
   selected?: boolean;
   customRenderer?: React.ComponentType<{ node: NodeEntity; selected: boolean }>;
   portOptions?: ComputePortOptions;
+  enableQuickAdd?: boolean;
+  onAddConnectedNode?: (node: NodeEntity, position: 'top' | 'bottom') => void;
   onPointerDown?: (entity: NodeEntity | ContainerEntity, e: React.PointerEvent) => void;
   onMouseEnter?: (entityId: ID) => void;
   onMouseLeave?: (entityId: ID) => void;
@@ -26,6 +28,8 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
   direction = 'LR',
   edges,
   portOptions,
+  enableQuickAdd = false,
+  onAddConnectedNode,
   onPointerDown,
   onMouseEnter,
   onMouseLeave,
@@ -34,6 +38,8 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
   onPortPointerUp,
   customRenderer: CustomRenderer
 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div
       className={`sysflow-node ${selected ? 'sysflow-selected' : ''} ${node.className || ''}`}
@@ -43,10 +49,47 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
         height: `${layout.height}px`
       }}
       onPointerDown={(e) => onPointerDown?.(node, e)}
-      onMouseEnter={() => onMouseEnter?.(node.id)}
-      onMouseLeave={() => onMouseLeave?.(node.id)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        onMouseEnter?.(node.id);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        onMouseLeave?.(node.id);
+      }}
       onClick={onClick}
     >
+      {/* Native Hitbox Extender Bridges */}
+      {enableQuickAdd && isHovered && (
+        <>
+          <div className="sysflow-hover-bridge sysflow-hover-bridge-top" />
+          <div className="sysflow-hover-bridge sysflow-hover-bridge-bottom" />
+        </>
+      )}
+
+      {/* Top Quick-Add (+) */}
+      {enableQuickAdd && isHovered && onAddConnectedNode && (
+        <button
+          type="button"
+          className="sysflow-quick-add-btn sysflow-quick-add-top"
+          title="Add connected node above"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onPointerUp={(e) => {
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAddConnectedNode(node, 'top');
+          }}
+        >
+          +
+        </button>
+      )}
+
+      {/* Port Anchors */}
       <GraphPortLayer
         entity={node}
         layout={layout}
@@ -56,6 +99,8 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
         onPortPointerDown={onPortPointerDown}
         onPortPointerUp={onPortPointerUp}
       />
+
+      {/* Node Content (Custom or Default Fallback) */}
       {CustomRenderer ? (
         <CustomRenderer node={node} selected={selected} />
       ) : (
@@ -67,6 +112,27 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Bottom Quick-Add (+) */}
+      {enableQuickAdd && isHovered && onAddConnectedNode && (
+        <button
+          className="sysflow-quick-add-btn sysflow-quick-add-bottom"
+          title="Add connected node below"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onPointerUp={(e) => {
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onAddConnectedNode(node, 'bottom');
+          }}
+        >
+          +
+        </button>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   LogicalGraph,
   ID,
@@ -35,7 +35,8 @@ export interface SysFlowCanvasProps {
   selectedIds?: ID[];
   portPlacementMode?: 'strict-flow' | 'perimeter-optimized';
   routing?: 'bezier' | 'step' | 'auto';
-  theme?: 'dark' | 'light'; // <-- Added
+  theme?: 'dark' | 'light';
+  enableQuickAdd?: boolean;
 }
 
 const DEFAULT_STRATEGY = new ReparentStrategy();
@@ -55,7 +56,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   zoomBounds,
   className = '',
   selectedIds = [],
-  theme = 'dark' 
+  theme = 'dark',
+  enableQuickAdd
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const internalEngineRef = useRef<LayoutEngine | null>(null);
@@ -461,6 +463,28 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     }
   };
 
+  const shouldEnableQuickAdd =
+    enableQuickAdd ?? (layoutOptions?.mode === 'flow');
+
+  const handleAddConnectedNode = useCallback(
+    (currentNode: NodeEntity, position: 'top' | 'bottom') => {
+      const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newEdgeId = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+      onChange({
+        type: 'NODE_ADD_CONNECTED',
+        payload: {
+          sourceNode: currentNode,
+          position,
+          direction,
+          suggestedNewNodeId: newNodeId,
+          suggestedNewEdgeId: newEdgeId,
+        },
+      });
+    },
+    [direction, onChange]
+  );
+
   const containersList = Object.values(graph.containers) as ContainerEntity[];
   const themeClass = theme === 'light' ? 'sysflow-theme-light' : 'sysflow-theme-dark';
 
@@ -599,6 +623,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 portOptions={resolvedPortOptions}
                 selected={selectedIds.includes(node.id)}
                 customRenderer={node.type ? nodeTypes?.[node.type] : undefined}
+                enableQuickAdd={shouldEnableQuickAdd}
+                onAddConnectedNode={handleAddConnectedNode}
                 onPointerDown={onEntityPointerDown}
                 onMouseEnter={() => {}}
                 onMouseLeave={() => {}}

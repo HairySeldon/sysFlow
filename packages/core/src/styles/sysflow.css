@@ -259,3 +259,68 @@
   pointer-events: none;
   opacity: 0.6;
 }
+
+/* --- Quick-Add Buttons & Hitbox Bridges --- */
+.sysflow-node {
+  overflow: visible; /* Ensure buttons can render outside the bounding box */
+}
+
+.sysflow-hover-bridge {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 30;
+}
+
+.sysflow-hover-bridge-top {
+  top: -32px;
+  left: 0;
+  right: 0;
+  height: 32px;
+}
+
+.sysflow-hover-bridge-bottom {
+  bottom: -32px;
+  left: 0;
+  right: 0;
+  height: 32px;
+}
+
+.sysflow-quick-add-btn {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  border: 1px solid #e0f2fe;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 40;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, background 0.15s ease;
+  pointer-events: auto;
+  user-select: none;
+  line-height: 1;
+  padding: 0;
+}
+
+.sysflow-quick-add-btn:hover {
+  background: #0284c7;
+  transform: translateX(-50%) scale(1.15) !important;
+}
+
+.sysflow-quick-add-top {
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.sysflow-quick-add-bottom {
+  bottom: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+}

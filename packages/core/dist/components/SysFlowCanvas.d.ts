@@ -28,6 +28,7 @@ export interface SysFlowCanvasProps {
     portPlacementMode?: 'strict-flow' | 'perimeter-optimized';
     routing?: 'bezier' | 'step' | 'auto';
     theme?: 'dark' | 'light';
+    enableQuickAdd?: boolean;
 }
 export declare const SysFlowCanvas: React.FC<SysFlowCanvasProps>;
 //# sourceMappingURL=SysFlowCanvas.d.ts.map

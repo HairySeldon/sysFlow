@@ -1,5 +1,6 @@
-import { ID } from './Entity';
+import { ID, NodeEntity } from './Entity';
 import { EdgeEntity } from './Edge';
+import { LayoutDirection } from './Graph';
 
 export type GraphAction = {
     type: 'ENTITY_REPARENT';
@@ -37,6 +38,15 @@ export type GraphAction = {
     type: 'SELECTION_CHANGE';
     payload: {
         selectedIds: ID[];
+    };
+} | {
+    type: 'NODE_ADD_CONNECTED';
+    payload: {
+        sourceNode: NodeEntity;
+        position: 'top' | 'bottom' | 'left' | 'right';
+        direction: LayoutDirection;
+        suggestedNewNodeId: ID;
+        suggestedNewEdgeId: ID;
     };
 };
 //# sourceMappingURL=Events.d.ts.map

@@ -7,6 +7,7 @@ interface GraphContainerProps {
     layout: NodeLayoutResult;
     selected: boolean;
     isHovered?: boolean;
+    hasChildren?: boolean;
     onToggleCollapse: (containerId: string, currentCollapsed: boolean) => void;
     onPointerDown: (container: ContainerEntity, e: React.PointerEvent) => void;
     onMouseEnter: () => void;
