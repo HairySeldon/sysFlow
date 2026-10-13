@@ -4,7 +4,7 @@ import { ID, LogicalGraph } from '../../models';
 import { ChildArranger, ContainerArrangement, LocalBox } from '../CompoundArranger';
 import { LayoutOptions } from '../LayoutEngine';
 
-const PRIMARY_GAP = 20;
+const PRIMARY_GAP = 36;
 const SECONDARY_GAP = 28;
 
 export class FlowArranger implements ChildArranger {
@@ -26,9 +26,7 @@ export class FlowArranger implements ChildArranger {
 
     const childSet = new Set(childIds);
 
-    // 1. Cross-Hierarchy Edge Lifting:
-    // Any edge connecting to/from a descendant inside a child container
-    // is lifted to represent that child container in this scope.
+    // 1. Cross-Hierarchy Edge Lifting
     const liftedEdges: Array<{ sourceId: ID; targetId: ID }> = [];
     const seenEdges = new Set<string>();
 
@@ -45,15 +43,19 @@ export class FlowArranger implements ChildArranger {
       }
     }
 
-    // 2. DAG Layering on direct children
+    // 2. DAG Layering
     const inDegree = new Map<ID, number>();
     const outgoing = new Map<ID, ID[]>();
+    const incoming = new Map<ID, ID[]>();
+
     for (const id of childIds) {
       inDegree.set(id, 0);
       outgoing.set(id, []);
+      incoming.set(id, []);
     }
     for (const e of liftedEdges) {
       outgoing.get(e.sourceId)!.push(e.targetId);
+      incoming.get(e.targetId)!.push(e.sourceId);
       inDegree.set(e.targetId, (inDegree.get(e.targetId) || 0) + 1);
     }
 
@@ -75,14 +77,12 @@ export class FlowArranger implements ChildArranger {
       }
     }
 
-    // Handle disconnected entities or remaining cycle nodes
     for (const id of childIds) {
       if (!processed.has(id)) {
         rankMap.set(id, 0);
       }
     }
 
-    // Group into ranks
     const layers = new Map<number, ID[]>();
     for (const [id, rank] of rankMap.entries()) {
       if (!layers.has(rank)) layers.set(rank, []);
@@ -92,23 +92,93 @@ export class FlowArranger implements ChildArranger {
     const sortedRankKeys = Array.from(layers.keys()).sort((a, b) => a - b);
     const placementRanks = isReverse ? [...sortedRankKeys].reverse() : sortedRankKeys;
 
-    // 3. Calculate secondary breadth for centering ranks
-    const rankSecondaryBreadths = new Map<number, number>();
-    let maxTotalSecondary = 0;
+    // 3. Parent-Centered Secondary Axis Positioning
+    const secondaryPos = new Map<ID, number>();
 
-    for (const rank of placementRanks) {
-      const entities = layers.get(rank)!;
-      let totalSec = 0;
-      for (let i = 0; i < entities.length; i++) {
-        const dim = getItemDim(entities[i]);
-        const sb = isVertical ? dim.width : dim.height;
-        totalSec += sb + (i > 0 ? SECONDARY_GAP : 0);
+    const getBreadth = (id: ID) => {
+      const dim = getItemDim(id);
+      return isVertical ? dim.width : dim.height;
+    };
+
+    // Forward pass: Align children directly to the center of their parent(s)
+    for (const rank of sortedRankKeys) {
+      const entities = layers.get(rank) || [];
+      let prevEnd = -Infinity;
+
+      for (const id of entities) {
+        const breadth = getBreadth(id);
+        const parents = incoming.get(id) || [];
+
+        let idealCenter: number | null = null;
+        if (parents.length > 0) {
+          const parentCenters = parents
+            .map((p) => {
+              const pPos = secondaryPos.get(p);
+              if (pPos === undefined) return null;
+              return pPos + getBreadth(p) / 2;
+            })
+            .filter((v): v is number => v !== null);
+
+          if (parentCenters.length > 0) {
+            idealCenter = parentCenters.reduce((a, b) => a + b, 0) / parentCenters.length;
+          }
+        }
+
+        let startPos = idealCenter !== null ? idealCenter - breadth / 2 : 0;
+        if (startPos < prevEnd + SECONDARY_GAP) {
+          startPos = prevEnd === -Infinity ? 0 : prevEnd + SECONDARY_GAP;
+        }
+
+        secondaryPos.set(id, startPos);
+        prevEnd = startPos + breadth;
       }
-      rankSecondaryBreadths.set(rank, totalSec);
-      maxTotalSecondary = Math.max(maxTotalSecondary, totalSec);
     }
 
-    // 4. Coordinate Assignment with centering
+    // Backward pass: Align parents directly over their children's center
+    for (let i = sortedRankKeys.length - 1; i >= 0; i--) {
+      const rank = sortedRankKeys[i];
+      const entities = layers.get(rank) || [];
+
+      for (const id of entities) {
+        const children = outgoing.get(id) || [];
+        if (children.length === 0) continue;
+
+        const childCenters = children
+          .map((c) => {
+            const cPos = secondaryPos.get(c);
+            if (cPos === undefined) return null;
+            return cPos + getBreadth(c) / 2;
+          })
+          .filter((v): v is number => v !== null);
+
+        if (childCenters.length > 0) {
+          const avgChildCenter = childCenters.reduce((a, b) => a + b, 0) / childCenters.length;
+          const breadth = getBreadth(id);
+          secondaryPos.set(id, avgChildCenter - breadth / 2);
+        }
+      }
+
+      // Re-pack to resolve any newly created sibling overlaps
+      let prevEnd = -Infinity;
+      for (const id of entities) {
+        const breadth = getBreadth(id);
+        let pos = secondaryPos.get(id) ?? 0;
+        if (pos < prevEnd + SECONDARY_GAP) {
+          pos = prevEnd === -Infinity ? 0 : prevEnd + SECONDARY_GAP;
+          secondaryPos.set(id, pos);
+        }
+        prevEnd = pos + breadth;
+      }
+    }
+
+    // Normalize secondary axis to start at 0
+    let minSecondary = Infinity;
+    for (const pos of secondaryPos.values()) {
+      minSecondary = Math.min(minSecondary, pos);
+    }
+    const secShift = minSecondary < 0 ? -minSecondary : 0;
+
+    // 4. Primary-Axis Layout & Local Coordinate Assignment
     const boxes: LocalBox[] = [];
     let curPrimary = 0;
 
@@ -116,20 +186,16 @@ export class FlowArranger implements ChildArranger {
       const entities = layers.get(rank)!;
       let maxPrimaryBreadth = 0;
 
-      const rankBreadth = rankSecondaryBreadths.get(rank) || 0;
-      let curSecondary = Math.max(0, (maxTotalSecondary - rankBreadth) / 2);
-
       for (const id of entities) {
         const dim = getItemDim(id);
         const pb = isVertical ? dim.height : dim.width;
-        const sb = isVertical ? dim.width : dim.height;
+        const sPos = (secondaryPos.get(id) ?? 0) + secShift;
 
-        const x = isVertical ? curSecondary : curPrimary;
-        const y = isVertical ? curPrimary : curSecondary;
+        const x = isVertical ? sPos : curPrimary;
+        const y = isVertical ? curPrimary : sPos;
 
         boxes.push({ id, localX: x, localY: y, width: dim.width, height: dim.height });
 
-        curSecondary += sb + SECONDARY_GAP;
         maxPrimaryBreadth = Math.max(maxPrimaryBreadth, pb);
       }
 
@@ -142,10 +208,6 @@ export class FlowArranger implements ChildArranger {
     return { width: overallW, height: overallH, boxes };
   }
 
-  /**
-   * Ascends the entity hierarchy to locate the direct child in this scope
-   * that owns or is the target entity.
-   */
   private resolveToDirectChild(
     entityId: ID,
     directChildSet: Set<ID>,
