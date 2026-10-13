@@ -4,8 +4,8 @@ import { ID, LogicalGraph } from '../../models';
 import { ChildArranger, ContainerArrangement, LocalBox } from '../CompoundArranger';
 import { LayoutOptions } from '../LayoutEngine';
 
-const PRIMARY_GAP = 80;
-const SECONDARY_GAP = 50;
+const PRIMARY_GAP = 70;
+const SECONDARY_GAP = 28;
 
 export class FlowArranger implements ChildArranger {
   constructor(private options: LayoutOptions = {}) {}
@@ -26,19 +26,33 @@ export class FlowArranger implements ChildArranger {
 
     const childSet = new Set(childIds);
 
-    // 1. Filter local edges among these direct children
-    const localEdges = Object.values(graph.edges).filter(
-      (e) => childSet.has(e.sourceId) && childSet.has(e.targetId)
-    );
+    // 1. Cross-Hierarchy Edge Lifting:
+    // Any edge connecting to/from a descendant inside a child container
+    // is lifted to represent that child container in this scope.
+    const liftedEdges: Array<{ sourceId: ID; targetId: ID }> = [];
+    const seenEdges = new Set<string>();
 
-    // 2. Local rank assignment (Longest-path DAG layering)
+    for (const edge of Object.values(graph.edges)) {
+      const effectiveSrc = this.resolveToDirectChild(edge.sourceId, childSet, graph);
+      const effectiveTgt = this.resolveToDirectChild(edge.targetId, childSet, graph);
+
+      if (effectiveSrc && effectiveTgt && effectiveSrc !== effectiveTgt) {
+        const edgeKey = `${effectiveSrc}->${effectiveTgt}`;
+        if (!seenEdges.has(edgeKey)) {
+          seenEdges.add(edgeKey);
+          liftedEdges.push({ sourceId: effectiveSrc, targetId: effectiveTgt });
+        }
+      }
+    }
+
+    // 2. DAG Layering on direct children
     const inDegree = new Map<ID, number>();
     const outgoing = new Map<ID, ID[]>();
     for (const id of childIds) {
       inDegree.set(id, 0);
       outgoing.set(id, []);
     }
-    for (const e of localEdges) {
+    for (const e of liftedEdges) {
       outgoing.get(e.sourceId)!.push(e.targetId);
       inDegree.set(e.targetId, (inDegree.get(e.targetId) || 0) + 1);
     }
@@ -61,7 +75,7 @@ export class FlowArranger implements ChildArranger {
       }
     }
 
-    // Handle disconnected entities or cycles
+    // Handle disconnected entities or remaining cycle nodes
     for (const id of childIds) {
       if (!processed.has(id)) {
         rankMap.set(id, 0);
@@ -78,14 +92,32 @@ export class FlowArranger implements ChildArranger {
     const sortedRankKeys = Array.from(layers.keys()).sort((a, b) => a - b);
     const placementRanks = isReverse ? [...sortedRankKeys].reverse() : sortedRankKeys;
 
-    // 3. Compute local coordinates with spacing
+    // 3. Calculate secondary breadth for centering ranks
+    const rankSecondaryBreadths = new Map<number, number>();
+    let maxTotalSecondary = 0;
+
+    for (const rank of placementRanks) {
+      const entities = layers.get(rank)!;
+      let totalSec = 0;
+      for (let i = 0; i < entities.length; i++) {
+        const dim = getItemDim(entities[i]);
+        const sb = isVertical ? dim.width : dim.height;
+        totalSec += sb + (i > 0 ? SECONDARY_GAP : 0);
+      }
+      rankSecondaryBreadths.set(rank, totalSec);
+      maxTotalSecondary = Math.max(maxTotalSecondary, totalSec);
+    }
+
+    // 4. Coordinate Assignment with centering
     const boxes: LocalBox[] = [];
     let curPrimary = 0;
 
     for (const rank of placementRanks) {
       const entities = layers.get(rank)!;
       let maxPrimaryBreadth = 0;
-      let curSecondary = 0;
+
+      const rankBreadth = rankSecondaryBreadths.get(rank) || 0;
+      let curSecondary = Math.max(0, (maxTotalSecondary - rankBreadth) / 2);
 
       for (const id of entities) {
         const dim = getItemDim(id);
@@ -108,5 +140,22 @@ export class FlowArranger implements ChildArranger {
     const overallH = Math.max(...boxes.map((b) => b.localY + b.height), 0);
 
     return { width: overallW, height: overallH, boxes };
+  }
+
+  /**
+   * Ascends the entity hierarchy to locate the direct child in this scope
+   * that owns or is the target entity.
+   */
+  private resolveToDirectChild(
+    entityId: ID,
+    directChildSet: Set<ID>,
+    graph: LogicalGraph
+  ): ID | null {
+    let curr: ID | null = entityId;
+    while (curr) {
+      if (directChildSet.has(curr)) return curr;
+      curr = graph.nodes[curr]?.parentId ?? graph.containers[curr]?.parentId ?? null;
+    }
+    return null;
   }
 }

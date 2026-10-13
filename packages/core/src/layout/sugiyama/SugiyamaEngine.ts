@@ -35,12 +35,13 @@ export class SugiyamaEngine implements LayoutEngine {
       containers.filter((c) => Boolean(c.collapsed)).map((c) => c.id)
     );
 
-    // Remap edge endpoints connected to elements inside collapsed containers
+    // Remap endpoints only when connected to elements inside collapsed containers
     const effectiveEdges: Record<ID, EdgeEntity> = {};
     for (const [edgeId, edge] of Object.entries(graph.edges)) {
       const effectiveSource = resolveEffectiveEntityId(edge.sourceId, graph, collapsedContainerIds);
       const effectiveTarget = resolveEffectiveEntityId(edge.targetId, graph, collapsedContainerIds);
 
+      // Exclude internal edges whose endpoints collapse into the same container
       if (effectiveSource !== effectiveTarget) {
         effectiveEdges[edgeId] = {
           ...edge,
