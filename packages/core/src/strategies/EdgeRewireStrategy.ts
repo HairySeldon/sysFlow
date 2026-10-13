@@ -4,7 +4,6 @@ import { InteractionStrategy, DragContext } from './InteractionStrategy';
 import { GraphAction, NodeEntity, ContainerEntity } from '../models';
 
 export class EdgeRewireStrategy implements InteractionStrategy {
-  // Distance threshold (in world coordinates) required to trigger extraction
   private readonly dragOffThreshold = 60;
 
   public canDrag(): boolean {
@@ -18,7 +17,12 @@ export class EdgeRewireStrategy implements InteractionStrategy {
   public onDragEnd(context: DragContext): GraphAction | null {
     const { draggedEntity, hoveredEdge, hoveredEntity, cursorWorld, startWorldPos, graph } = context;
 
-    // 1. Reparenting: Dropped onto a container
+    const dragDist = Math.hypot(
+      cursorWorld.x - startWorldPos.x,
+      cursorWorld.y - startWorldPos.y
+    );
+
+    // 1. Reparenting: Dropped explicitly onto another container
     if (hoveredEntity && graph.containers[hoveredEntity.id]) {
       if (hoveredEntity.id !== draggedEntity.id && draggedEntity.parentId !== hoveredEntity.id) {
         return {
@@ -47,11 +51,6 @@ export class EdgeRewireStrategy implements InteractionStrategy {
         outgoingEdges.length === 1 &&
         incomingEdges[0].sourceId !== outgoingEdges[0].targetId
       ) {
-        const dragDist = Math.hypot(
-          cursorWorld.x - startWorldPos.x,
-          cursorWorld.y - startWorldPos.y
-        );
-
         if (dragDist >= this.dragOffThreshold) {
           return {
             type: 'NODE_EXTRACT',
@@ -64,8 +63,13 @@ export class EdgeRewireStrategy implements InteractionStrategy {
         }
       }
 
-      // Fallback: unparenting if had a parent
-      if (draggedEntity.parentId !== null && draggedEntity.parentId !== undefined) {
+      // FIX: Only unparent if explicitly dragged past dragOffThreshold!
+      // Prevents clicks, button taps, and micro-movements from dropping parenting.
+      if (
+        dragDist >= this.dragOffThreshold &&
+        draggedEntity.parentId !== null &&
+        draggedEntity.parentId !== undefined
+      ) {
         return {
           type: 'ENTITY_REPARENT',
           payload: {
@@ -74,9 +78,10 @@ export class EdgeRewireStrategy implements InteractionStrategy {
           }
         };
       }
+
+      return null;
     }
 
-    // Helper to find the best input port on the target
     const findTargetPort = (entity: NodeEntity | ContainerEntity): string => {
       const node = graph.nodes[entity.id] || (entity as NodeEntity);
       if (!node.ports || node.ports.length === 0) return '';
