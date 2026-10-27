@@ -535,10 +535,23 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   const shouldEnableQuickAdd =
     enableQuickAdd ?? (layoutOptions?.mode === 'flow');
 
+  // Helper to guarantee standard UUIDv4 format
+  const generateId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback UUID RFC4122 generator if running in non-crypto environment
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
   const handleAddConnectedNode = useCallback(
     (currentNode: NodeEntity, position: 'top' | 'bottom') => {
-      const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const newEdgeId = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newNodeId = generateId();
+      const newEdgeId = generateId();
 
       onChange({
         type: 'NODE_ADD_CONNECTED',
@@ -559,9 +572,9 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
 
   const handleInsertNodeOnEdge = useCallback(
     (edge: EdgeEntity) => {
-      const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const newEdge1Id = `edge_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const newEdge2Id = `edge_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`;
+      const newNodeId = generateId();
+      const newEdge1Id = generateId();
+      const newEdge2Id = generateId();
 
       onChange({
         type: 'EDGE_SPLIT_INSERT_NODE',
@@ -574,7 +587,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         }
       });
 
-      // Automatically select the newly created node
       onChange({
         type: 'SELECTION_CHANGE',
         payload: { selectedIds: [newNodeId] }

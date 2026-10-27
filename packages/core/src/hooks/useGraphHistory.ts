@@ -194,6 +194,17 @@ export function useGraphHistory(
     [currentGraph, pushState]
   );
 
+  const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
   const applyAction = useCallback(
     (action: GraphAction) => {
       const prev = currentGraph;
@@ -407,7 +418,7 @@ export function useGraphHistory(
           return;
         }
 
-        const id = (action.payload as any).id || (edge as any).id || `E_${Date.now()}`;
+        const id = (action.payload as any).id || (edge as any).id || generateUUID();
         pushState({
           ...prev,
           edges: {
@@ -468,7 +479,7 @@ export function useGraphHistory(
           targetPortId: targetPort,
         };
 
-        const secondEdgeId = `REWIRE_${Date.now()}`;
+      const secondEdgeId = generateUUID();
         nextEdges[secondEdgeId] = {
           id: secondEdgeId,
           sourceId: splicedNodeId,
