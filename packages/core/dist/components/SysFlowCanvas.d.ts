@@ -3,9 +3,21 @@ import { LogicalGraph, ID, NodeEntity, ContainerEntity, GraphAction } from '../m
 import { LayoutEngine, LayoutOptions } from '../layout/LayoutEngine';
 import { InteractionStrategy } from '../strategies/InteractionStrategy';
 
+export interface SysFlowHistoryControls {
+    undo: () => void;
+    redo: () => void;
+    copyEntity?: (id: ID) => void;
+    cutEntity?: (id: ID) => void;
+    pasteEntity?: () => void;
+    deleteSelection?: (selectedIds: ID[]) => void;
+}
 export interface SysFlowCanvasProps {
     graph: LogicalGraph;
     onChange: (action: GraphAction) => void;
+    history?: SysFlowHistoryControls;
+    enableShortcuts?: boolean;
+    onNodeClick?: (nodeId: ID, node: NodeEntity) => void;
+    onEdgeClick?: (edgeId: ID) => void;
     layoutEngine?: LayoutEngine;
     interactionStrategy?: InteractionStrategy;
     direction?: 'LR' | 'TB' | 'RL' | 'BT';

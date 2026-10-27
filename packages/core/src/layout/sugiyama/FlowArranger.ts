@@ -4,7 +4,7 @@ import { ID, LogicalGraph } from '../../models';
 import { ChildArranger, ContainerArrangement, LocalBox } from '../CompoundArranger';
 import { LayoutOptions } from '../LayoutEngine';
 
-const PRIMARY_GAP = 36;
+const PRIMARY_GAP = 70;
 const SECONDARY_GAP = 28;
 
 export class FlowArranger implements ChildArranger {

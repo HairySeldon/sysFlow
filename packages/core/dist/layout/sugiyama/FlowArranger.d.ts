@@ -9,10 +9,6 @@ export declare class FlowArranger implements ChildArranger {
         width: number;
         height: number;
     }): ContainerArrangement;
-    /**
-     * Ascends the entity hierarchy to locate the direct child in this scope
-     * that owns or is the target entity.
-     */
     private resolveToDirectChild;
 }
 //# sourceMappingURL=FlowArranger.d.ts.map

@@ -21,9 +21,22 @@ import { GraphEdgeLayer } from './GraphEdgeLayer';
 import { GraphNode } from './GraphNode';
 import { GraphContainer } from './GraphContainer';
 
+export interface SysFlowHistoryControls {
+  undo: () => void;
+  redo: () => void;
+  copyEntity?: (id: ID) => void;
+  cutEntity?: (id: ID) => void;
+  pasteEntity?: () => void;
+  deleteSelection?: (selectedIds: ID[]) => void;
+}
+
 export interface SysFlowCanvasProps {
   graph: LogicalGraph;
   onChange: (action: GraphAction) => void;
+  history?: SysFlowHistoryControls;
+  enableShortcuts?: boolean;
+  onNodeClick?: (nodeId: ID, node: NodeEntity) => void;
+  onEdgeClick?: (edgeId: ID) => void;
   layoutEngine?: LayoutEngine;
   interactionStrategy?: InteractionStrategy;
   direction?: 'LR' | 'TB' | 'RL' | 'BT';
@@ -46,6 +59,10 @@ const DEFAULT_STRATEGY = new ReparentStrategy();
 export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   graph,
   onChange,
+  history,
+  enableShortcuts = true,
+  onNodeClick,
+  onEdgeClick,
   layoutEngine,
   interactionStrategy = DEFAULT_STRATEGY,
   direction = 'TB',
@@ -120,11 +137,59 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     handlePointerUp: onEntityPointerUp
   } = useDragGesture(graph, layout, interactionStrategy, screenToWorld, onChange);
 
-  // Keyboard Navigation: Tab, Arrow keys, 'F' (zoom-to-fit), Ctrl+A (select all)
+  // Keyboard Navigation: Tab, Arrow keys, 'F' (zoom-to-fit), Ctrl+A, Undo/Redo, Copy/Paste/Delete
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable)
+      ) {
         return;
+      }
+
+      const isMod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      // Built-in History & Clipboard shortcuts
+      if (enableShortcuts !== false && history) {
+        if (isMod && key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) history.redo();
+          else history.undo();
+          return;
+        }
+
+        if (isMod && key === 'y') {
+          e.preventDefault();
+          history.redo();
+          return;
+        }
+
+        if (isMod && key === 'c' && selectedIds[0]) {
+          e.preventDefault();
+          history.copyEntity?.(selectedIds[0]);
+          return;
+        }
+
+        if (isMod && key === 'x' && selectedIds[0]) {
+          e.preventDefault();
+          history.cutEntity?.(selectedIds[0]);
+          return;
+        }
+
+        if (isMod && key === 'v') {
+          e.preventDefault();
+          history.pasteEntity?.();
+          return;
+        }
+
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          history.deleteSelection?.(selectedIds);
+          onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
+          return;
+        }
       }
 
       // Escape Key: Deselect all and cancel active marquee
@@ -140,14 +205,14 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       }
 
       // 'F' Key: Zoom to fit
-      if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey) {
+      if (e.key.toLowerCase() === 'f' && !isMod) {
         e.preventDefault();
         zoomToFit(layout);
         return;
       }
 
-      // Ctrl+A / Cmd+A: Select all nodes
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      // Ctrl+A / Cmd+A: Select all
+      if (isMod && key === 'a') {
         e.preventDefault();
         const allIds = [
           ...Object.keys(graph.nodes),
@@ -157,6 +222,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         return;
       }
 
+      // Tab & Spatial navigation
       const nodeIds = Object.keys(graph.nodes);
       if (nodeIds.length === 0) return;
 
@@ -591,41 +657,41 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           </svg>
         )}
 
-          {/* 1. Container Layer (z-index: 1) */}
-          <div className="sysflow-containers-layer" style={{ position: 'absolute', zIndex: 1, pointerEvents: 'none' }}>
-            {containersList.map((container: ContainerEntity) => {
-              const containerLayout = layout.containers[container.id];
-              if (!containerLayout) return null;
+        {/* 1. Container Layer */}
+        <div className="sysflow-containers-layer" style={{ position: 'absolute', zIndex: 1, pointerEvents: 'none' }}>
+          {containersList.map((container: ContainerEntity) => {
+            const containerLayout = layout.containers[container.id];
+            if (!containerLayout) return null;
 
-              const hasChildren =
-                Object.values(graph.nodes).some((n) => n.parentId === container.id) ||
-                Object.values(graph.containers).some((c) => c.parentId === container.id);
+            const hasChildren =
+              Object.values(graph.nodes).some((n) => n.parentId === container.id) ||
+              Object.values(graph.containers).some((c) => c.parentId === container.id);
 
-              return (
-                <GraphContainer
-                  key={container.id}
-                  container={container}
-                  layout={containerLayout}
-                  selected={selectedIds.includes(container.id)}
-                  isHovered={hoveredContainerId === container.id}
-                  hasChildren={hasChildren}
-                  customRenderer={container.type ? containerTypes?.[container.type] : undefined}
-                  onToggleCollapse={(cId, collapsed) =>
-                    onChange({
-                      type: 'CONTAINER_TOGGLE_COLLAPSE',
-                      payload: { containerId: cId, collapsed }
-                    })
-                  }
-                  onPointerDown={onEntityPointerDown}
-                  onMouseEnter={() => {}}
-                  onMouseLeave={() => {}}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [container.id] } });
-                  }}
-                />
-              );
-            })}
+            return (
+              <GraphContainer
+                key={container.id}
+                container={container}
+                layout={containerLayout}
+                selected={selectedIds.includes(container.id)}
+                isHovered={hoveredContainerId === container.id}
+                hasChildren={hasChildren}
+                customRenderer={container.type ? containerTypes?.[container.type] : undefined}
+                onToggleCollapse={(cId, collapsed) =>
+                  onChange({
+                    type: 'CONTAINER_TOGGLE_COLLAPSE',
+                    payload: { containerId: cId, collapsed }
+                  })
+                }
+                onPointerDown={onEntityPointerDown}
+                onMouseEnter={() => {}}
+                onMouseLeave={() => {}}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [container.id] } });
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* 2. Edges Layer (z-index: 5) */}
@@ -644,7 +710,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           }
         />
 
-          {/* 3. Node Layer (z-index: 10) */}
+        {/* 3. Node Layer */}
         <div className="sysflow-nodes-layer" style={{ position: 'absolute', zIndex: 10, pointerEvents: 'none' }}>
           {Object.values(graph.nodes).map((node) => {
             const nodeLayout = layout.nodes[node.id];
@@ -668,6 +734,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [node.id] } });
+                  onNodeClick?.(node.id, node);
                 }}
                 onPortPointerDown={handlePortPointerDown}
                 onPortPointerUp={handlePortPointerUp}

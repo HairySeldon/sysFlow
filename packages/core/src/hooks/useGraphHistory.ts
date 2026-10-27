@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react';
+// packages/core/src/hooks/useGraphHistory.ts
+
+import { useState, useCallback, useRef } from 'react';
 import {
   LogicalGraph,
   ID,
@@ -19,19 +21,110 @@ interface HistoryState {
   index: number;
 }
 
-export function useGraphHistory(initialGraph: LogicalGraph) {
+export interface CreateNodeContext {
+  sourceNode?: NodeEntity;
+  edge?: EdgeEntity;
+  direction?: 'LR' | 'TB' | 'RL' | 'BT';
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  suggestedType?: string;
+}
+
+export interface GraphMutationDiff {
+  createdNodes: NodeEntity[];
+  updatedNodes: NodeEntity[];
+  deletedNodes: ID[];
+  createdEdges: EdgeEntity[];
+  deletedEdges: EdgeEntity[];
+}
+
+export interface GraphHistoryOptions {
+  createNodeEntity?: (context: CreateNodeContext) => Partial<NodeEntity>;
+  canConnect?: (
+    sourceId: ID,
+    targetId: ID,
+    sourcePortId?: ID,
+    targetPortId?: ID
+  ) => boolean;
+  canDelete?: (entityIds: ID[]) => ID[] | boolean;
+  onMutate?: (diff: GraphMutationDiff) => void;
+}
+
+function computeGraphDiff(
+  prev: LogicalGraph,
+  next: LogicalGraph
+): GraphMutationDiff {
+  const createdNodes: NodeEntity[] = [];
+  const updatedNodes: NodeEntity[] = [];
+  const deletedNodes: ID[] = [];
+
+  const createdEdges: EdgeEntity[] = [];
+  const deletedEdges: EdgeEntity[] = [];
+
+  // Nodes diff
+  for (const [id, node] of Object.entries(next.nodes)) {
+    if (!prev.nodes[id]) {
+      createdNodes.push(node);
+    } else if (prev.nodes[id] !== node) {
+      updatedNodes.push(node);
+    }
+  }
+  for (const id of Object.keys(prev.nodes)) {
+    if (!next.nodes[id]) {
+      deletedNodes.push(id);
+    }
+  }
+
+  // Edges diff
+  for (const [id, edge] of Object.entries(next.edges)) {
+    if (!prev.edges[id]) {
+      createdEdges.push(edge);
+    }
+  }
+  for (const [id, edge] of Object.entries(prev.edges)) {
+    if (!next.edges[id]) {
+      deletedEdges.push(edge);
+    }
+  }
+
+  return { createdNodes, updatedNodes, deletedNodes, createdEdges, deletedEdges };
+}
+
+function hasDiff(diff: GraphMutationDiff): boolean {
+  return (
+    diff.createdNodes.length > 0 ||
+    diff.updatedNodes.length > 0 ||
+    diff.deletedNodes.length > 0 ||
+    diff.createdEdges.length > 0 ||
+    diff.deletedEdges.length > 0
+  );
+}
+
+export function useGraphHistory(
+  initialGraph: LogicalGraph,
+  options?: GraphHistoryOptions
+) {
   const [state, setState] = useState<HistoryState>({
     history: [initialGraph],
     index: 0,
   });
   const [clipboard, setClipboard] = useState<GraphClipboardState | null>(null);
 
-  // Fallback chain guarantees graph is never undefined
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
   const currentGraph = state.history[state.index] ?? state.history[0] ?? initialGraph;
 
-  // Atomically append a new state and prune dangling edges
+  // Atomically append a new state and emit mutation diff
   const pushState = useCallback((next: LogicalGraph) => {
     const cleanGraph = pruneDanglingEdges(next);
+
+    if (optionsRef.current?.onMutate) {
+      const diff = computeGraphDiff(currentGraph, cleanGraph);
+      if (hasDiff(diff)) {
+        optionsRef.current.onMutate(diff);
+      }
+    }
+
     setState((prev) => {
       const trimmed = prev.history.slice(0, prev.index + 1);
       return {
@@ -39,9 +132,9 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
         index: trimmed.length,
       };
     });
-  }, []);
+  }, [currentGraph]);
 
-  // Set/reset graph directly without pushing duplicate history entries
+  // Set/reset graph directly without pushing duplicate history entries or emitting mutations
   const setGraphDirect = useCallback((next: LogicalGraph) => {
     const cleanGraph = pruneDanglingEdges(next);
     setState({
@@ -64,9 +157,47 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
     }));
   }, []);
 
+  // deleteSelection declared before applyAction so it can be called safely
+  const deleteSelection = useCallback(
+    (selectedIds: ID[]) => {
+      if (!selectedIds || selectedIds.length === 0) return;
+
+      let safeIds = selectedIds;
+      if (optionsRef.current?.canDelete) {
+        const allowed = optionsRef.current.canDelete(selectedIds);
+        if (typeof allowed === 'boolean') {
+          if (!allowed) return;
+        } else if (Array.isArray(allowed)) {
+          safeIds = allowed;
+        }
+      }
+
+      if (safeIds.length === 0) return;
+
+      const nextNodes = { ...currentGraph.nodes };
+      const nextContainers = { ...currentGraph.containers };
+      const nextEdges = { ...currentGraph.edges };
+
+      for (const id of safeIds) {
+        delete nextNodes[id];
+        delete nextContainers[id];
+        delete nextEdges[id];
+      }
+
+      pushState({
+        ...currentGraph,
+        nodes: nextNodes,
+        containers: nextContainers,
+        edges: nextEdges,
+      });
+    },
+    [currentGraph, pushState]
+  );
+
   const applyAction = useCallback(
     (action: GraphAction) => {
       const prev = currentGraph;
+      const opts = optionsRef.current;
 
       if (action.type === 'ENTITY_REPARENT') {
         const { entityId, newParentId } = action.payload;
@@ -87,9 +218,20 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
         const oldEdge = prev.edges[edge.id];
         if (!oldEdge) return;
 
+        const sourceNode = prev.nodes[oldEdge.sourceId];
+
+        // Guardrail: cycle check before splitting
+        if (opts?.canConnect) {
+          if (
+            !opts.canConnect(oldEdge.sourceId, suggestedNewNodeId) ||
+            !opts.canConnect(suggestedNewNodeId, oldEdge.targetId)
+          ) {
+            return;
+          }
+        }
+
         const isBT = direction === 'BT';
         const isTB = direction === 'TB';
-
         const inPortId = `p_in_${Date.now()}`;
         const outPortId = `p_out_${Date.now()}`;
 
@@ -107,29 +249,36 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
           outSide = 'left';
         }
 
-        const sourceNode = prev.nodes[oldEdge.sourceId];
+        const customProps = opts?.createNodeEntity?.({
+          edge: oldEdge,
+          direction,
+          suggestedType: sourceNode?.type || 'FlowTask',
+        });
+
         const newNode: NodeEntity = {
-          id: suggestedNewNodeId,
-          label: `Node ${Object.keys(prev.nodes).length + 1}`,
-          type: sourceNode?.type || 'FlowTask',
-          parentId: sourceNode?.parentId ?? null,
-          ports: [
+          id: customProps?.id || suggestedNewNodeId,
+          label: customProps?.label || `Node ${Object.keys(prev.nodes).length + 1}`,
+          type: customProps?.type || sourceNode?.type || 'FlowTask',
+          parentId: customProps?.parentId ?? sourceNode?.parentId ?? null,
+          ports: customProps?.ports || [
             { id: inPortId, label: 'in', side: inSide },
             { id: outPortId, label: 'out', side: outSide },
           ],
+          data: customProps?.data || {},
+          ...customProps,
         };
 
         const edge1: EdgeEntity = {
           id: suggestedNewEdge1Id,
           sourceId: oldEdge.sourceId,
           sourcePortId: oldEdge.sourcePortId,
-          targetId: suggestedNewNodeId,
+          targetId: newNode.id,
           targetPortId: inPortId,
         };
 
         const edge2: EdgeEntity = {
           id: suggestedNewEdge2Id,
-          sourceId: suggestedNewNodeId,
+          sourceId: newNode.id,
           sourcePortId: outPortId,
           targetId: oldEdge.targetId,
           targetPortId: oldEdge.targetPortId,
@@ -142,7 +291,7 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
 
         pushState({
           ...prev,
-          nodes: { ...prev.nodes, [suggestedNewNodeId]: newNode },
+          nodes: { ...prev.nodes, [newNode.id]: newNode },
           edges: nextEdges,
         });
       } else if (action.type === 'NODE_EXTRACT') {
@@ -152,14 +301,16 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
 
         if (!inEdge || !outEdge) return;
 
-        const nextEdges = { ...prev.edges };
+        if (opts?.canConnect && !opts.canConnect(inEdge.sourceId, outEdge.targetId)) {
+          return;
+        }
 
+        const nextEdges = { ...prev.edges };
         nextEdges[incomingEdgeId] = {
           ...inEdge,
           targetId: outEdge.targetId,
           targetPortId: outEdge.targetPortId,
         };
-
         delete nextEdges[outgoingEdgeId];
 
         pushState({
@@ -173,14 +324,32 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
         const inPortId = `p_in_${Date.now()}`;
         const outPortId = `p_out_${Date.now()}`;
 
+        const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
+        const sourceId = isPrepending ? suggestedNewNodeId : sourceNode.id;
+        const targetId = isPrepending ? sourceNode.id : suggestedNewNodeId;
+
+        if (opts?.canConnect && !opts.canConnect(sourceId, targetId)) {
+          return;
+        }
+
+        const customProps = opts?.createNodeEntity?.({
+          sourceNode,
+          position,
+          direction,
+          suggestedType: sourceNode.type,
+        });
+
         const newNode: NodeEntity = {
-          id: suggestedNewNodeId,
-          label: `Node ${Object.keys(prev.nodes).length + 1}`,
-          type: sourceNode.type,
-          ports: [
+          id: customProps?.id || suggestedNewNodeId,
+          label: customProps?.label || `Node ${Object.keys(prev.nodes).length + 1}`,
+          type: customProps?.type || sourceNode.type,
+          ports: customProps?.ports || [
             { id: inPortId, label: 'in', side: isBT ? 'bottom' : 'top' },
             { id: outPortId, label: 'out', side: isBT ? 'top' : 'bottom' },
           ],
+          data: customProps?.data || {},
+          parentId: customProps?.parentId ?? sourceNode?.parentId ?? null,
+          ...customProps,
         };
 
         const currentInPort =
@@ -190,12 +359,10 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
           sourceNode.ports[sourceNode.ports.length - 1];
 
         let newEdge: EdgeEntity;
-        const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
-
         if (isPrepending) {
           newEdge = {
             id: suggestedNewEdgeId,
-            sourceId: suggestedNewNodeId,
+            sourceId: newNode.id,
             sourcePortId: outPortId,
             targetId: sourceNode.id,
             targetPortId: currentInPort?.id || 'in',
@@ -205,14 +372,14 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
             id: suggestedNewEdgeId,
             sourceId: sourceNode.id,
             sourcePortId: currentOutPort?.id || 'out',
-            targetId: suggestedNewNodeId,
+            targetId: newNode.id,
             targetPortId: inPortId,
           };
         }
 
         pushState({
           ...prev,
-          nodes: { ...prev.nodes, [suggestedNewNodeId]: newNode },
+          nodes: { ...prev.nodes, [newNode.id]: newNode },
           edges: { ...prev.edges, [suggestedNewEdgeId]: newEdge },
         });
       } else if (action.type === 'CONTAINER_TOGGLE_COLLAPSE') {
@@ -227,17 +394,31 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
           });
         }
       } else if (action.type === 'EDGE_CREATE') {
-        const id = action.payload.id || `E_${Date.now()}`;
+        const edge = action.payload.edge;
+        const edgeSourceId = edge.sourceId;
+        const edgeTargetId = edge.targetId;
+        const edgeSourcePortId = edge.sourcePortId;
+        const edgeTargetPortId = edge.targetPortId;
+
+        if (
+          opts?.canConnect &&
+          !opts.canConnect(edgeSourceId, edgeTargetId, edgeSourcePortId, edgeTargetPortId)
+        ) {
+          return;
+        }
+
+        const id = (action.payload as any).id || (edge as any).id || `E_${Date.now()}`;
         pushState({
           ...prev,
           edges: {
             ...prev.edges,
-            [id]: { id, ...action.payload.edge },
+            [id]: { id, ...edge } as EdgeEntity,
           },
         });
       } else if (action.type === 'EDGE_DELETE') {
+        const edgeId = action.payload.edgeId || (action.payload as any).id;
         const nextEdges = { ...prev.edges };
-        delete nextEdges[action.payload.edgeId];
+        delete nextEdges[edgeId];
         pushState({ ...prev, edges: nextEdges });
       } else if (action.type === 'EDGE_REWIRE') {
         const { edgeId, newTargetId } = action.payload;
@@ -245,21 +426,38 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
 
         const splicedNodeId = newTargetId;
         const oldEdge = prev.edges[edgeId];
+        const origSource = oldEdge.sourceId;
         const origTarget = oldEdge.targetId;
+
+        if (splicedNodeId === origSource || splicedNodeId === origTarget) return;
 
         const oldIn = Object.values(prev.edges).find((e) => e.targetId === splicedNodeId);
         const oldOut = Object.values(prev.edges).find((e) => e.sourceId === splicedNodeId);
+        const shouldBridge = oldIn && oldOut && oldIn.sourceId !== oldOut.targetId;
+
+        // Guardrails
+        if (opts?.canConnect) {
+          if (shouldBridge && !opts.canConnect(oldIn.sourceId, oldOut.targetId)) return;
+          if (!opts.canConnect(origSource, splicedNodeId)) return;
+          if (!opts.canConnect(splicedNodeId, origTarget)) return;
+        }
 
         const nextEdges: Record<ID, EdgeEntity> = { ...prev.edges };
-        if (oldIn && oldOut) {
+
+        // 1. Bridge previous connections
+        if (shouldBridge) {
           nextEdges[oldIn.id] = {
             ...oldIn,
             targetId: oldOut.targetId,
             targetPortId: oldOut.targetPortId,
           };
           delete nextEdges[oldOut.id];
+        } else {
+          if (oldIn) delete nextEdges[oldIn.id];
+          if (oldOut) delete nextEdges[oldOut.id];
         }
 
+        // 2. Splice into target edge
         const targetPort = prev.nodes[splicedNodeId]?.ports[0]?.id || 'p_in';
         const sourcePort =
           prev.nodes[splicedNodeId]?.ports.find((p) => p.id !== targetPort)?.id || targetPort;
@@ -280,9 +478,25 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
         };
 
         pushState({ ...prev, edges: nextEdges });
+      } else {
+        // Fallback for custom delete actions passed through applyAction
+        const rawAction = action as any;
+        if (
+          rawAction.type === 'NODE_DELETE' ||
+          rawAction.type === 'DELETE_SELECTION' ||
+          rawAction.type === 'SELECTION_DELETE'
+        ) {
+          const payload = rawAction.payload || {};
+          const rawIds: string[] = [];
+          if (payload.nodeId) rawIds.push(payload.nodeId);
+          if (payload.id) rawIds.push(payload.id);
+          if (Array.isArray(payload.selectedIds)) rawIds.push(...payload.selectedIds);
+          if (Array.isArray(payload.ids)) rawIds.push(...payload.ids);
+          deleteSelection(rawIds);
+        }
       }
     },
-    [currentGraph, pushState]
+    [currentGraph, pushState, deleteSelection]
   );
 
   const copyEntity = useCallback(
@@ -326,30 +540,6 @@ export function useGraphHistory(initialGraph: LogicalGraph) {
       });
     }
   }, [clipboard, currentGraph, pushState]);
-
-  const deleteSelection = useCallback(
-    (selectedIds: ID[]) => {
-      if (selectedIds.length === 0) return;
-
-      const nextNodes = { ...currentGraph.nodes };
-      const nextContainers = { ...currentGraph.containers };
-      const nextEdges = { ...currentGraph.edges };
-
-      for (const id of selectedIds) {
-        delete nextNodes[id];
-        delete nextContainers[id];
-        delete nextEdges[id];
-      }
-
-      pushState({
-        ...currentGraph,
-        nodes: nextNodes,
-        containers: nextContainers,
-        edges: nextEdges,
-      });
-    },
-    [currentGraph, pushState]
-  );
 
   return {
     graph: currentGraph,
