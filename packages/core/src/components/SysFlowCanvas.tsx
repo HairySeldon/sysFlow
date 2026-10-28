@@ -52,6 +52,10 @@ export interface SysFlowCanvasProps {
   theme?: 'dark' | 'light';
   enableQuickAdd?: boolean;
   enableEdgeQuickAdd?: boolean;
+  onNodeCreate?: (node: Partial<NodeEntity>) => void;
+  onEdgeCreate?: (sourceId: ID, targetId: ID, edgeId: ID) => void;
+  onNodeDelete?: (nodeId: ID) => void;
+  onEdgeDelete?: (edgeId: ID) => void;
 }
 
 const DEFAULT_STRATEGY = new ReparentStrategy();
