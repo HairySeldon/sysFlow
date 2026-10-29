@@ -81,7 +81,11 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   selectedIds = [],
   theme = 'dark',
   enableQuickAdd,
-  enableEdgeQuickAdd
+  enableEdgeQuickAdd,
+  onNodeCreate,
+  onEdgeCreate,
+  onNodeDelete,
+  onEdgeDelete
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const internalEngineRef = useRef<LayoutEngine | null>(null);
@@ -552,11 +556,37 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     });
   };
 
+  const shouldEnableEdgeQuickAdd =
+    enableEdgeQuickAdd ?? (enableQuickAdd ?? (layoutOptions?.mode === 'flow'));
+
   const handleAddConnectedNode = useCallback(
     (currentNode: NodeEntity, position: 'top' | 'bottom') => {
       const newNodeId = generateId();
       const newEdgeId = generateId();
 
+      const isBT = direction === 'BT';
+      const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
+
+      // 1. If consumer provided onNodeCreate, invoke it directly (same as "T", "Q", "W")
+      if (onNodeCreate) {
+        onNodeCreate({
+          id: newNodeId,
+          type: currentNode.type || 'task',
+          label: `New ${currentNode.type || 'task'}`,
+          parentId: currentNode.parentId ?? null,
+        });
+      }
+
+      // 2. If consumer provided onEdgeCreate, connect source & target directly
+      if (onEdgeCreate) {
+        if (isPrepending) {
+          onEdgeCreate(newNodeId, currentNode.id, newEdgeId);
+        } else {
+          onEdgeCreate(currentNode.id, newNodeId, newEdgeId);
+        }
+      }
+
+      // 3. Keep local SysFlow history/canvas in sync
       onChange({
         type: 'NODE_ADD_CONNECTED',
         payload: {
@@ -567,12 +597,14 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           suggestedNewEdgeId: newEdgeId,
         },
       });
-    },
-    [direction, onChange]
-  );
 
-  const shouldEnableEdgeQuickAdd =
-    enableEdgeQuickAdd ?? (enableQuickAdd ?? (layoutOptions?.mode === 'flow'));
+      onChange({
+        type: 'SELECTION_CHANGE',
+        payload: { selectedIds: [newNodeId] },
+      });
+    },
+    [direction, onChange, onNodeCreate, onEdgeCreate]
+  );
 
   const handleInsertNodeOnEdge = useCallback(
     (edge: EdgeEntity) => {
@@ -580,6 +612,31 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       const newEdge1Id = generateId();
       const newEdge2Id = generateId();
 
+      const sourceNode = graph.nodes[edge.sourceId];
+      const nodeType = sourceNode?.type || 'task';
+
+      // 1. Delete old edge if callback provided
+      if (onEdgeDelete) {
+        onEdgeDelete(edge.id);
+      }
+
+      // 2. Create the new spliced node
+      if (onNodeCreate) {
+        onNodeCreate({
+          id: newNodeId,
+          type: nodeType,
+          label: `New ${nodeType}`,
+          parentId: sourceNode?.parentId ?? null,
+        });
+      }
+
+      // 3. Create the two new connected edges
+      if (onEdgeCreate) {
+        onEdgeCreate(edge.sourceId, newNodeId, newEdge1Id);
+        onEdgeCreate(newNodeId, edge.targetId, newEdge2Id);
+      }
+
+      // 4. Update local canvas state
       onChange({
         type: 'EDGE_SPLIT_INSERT_NODE',
         payload: {
@@ -587,16 +644,16 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           direction,
           suggestedNewNodeId: newNodeId,
           suggestedNewEdge1Id: newEdge1Id,
-          suggestedNewEdge2Id: newEdge2Id
-        }
+          suggestedNewEdge2Id: newEdge2Id,
+        },
       });
 
       onChange({
         type: 'SELECTION_CHANGE',
-        payload: { selectedIds: [newNodeId] }
+        payload: { selectedIds: [newNodeId] },
       });
     },
-    [direction, onChange]
+    [direction, graph.nodes, onChange, onNodeCreate, onEdgeCreate, onEdgeDelete]
   );
 
   const containersList = Object.values(graph.containers) as ContainerEntity[];
