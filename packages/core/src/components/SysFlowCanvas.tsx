@@ -146,6 +146,9 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   } = useDragGesture(graph, layout, interactionStrategy, screenToWorld, onChange);
 
   // Keyboard Navigation: Tab, Arrow keys, 'F' (zoom-to-fit), Ctrl+A, Undo/Redo, Copy/Paste/Delete
+// Inside SysFlowCanvas.tsx:
+
+  // Keyboard navigation & shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -159,7 +162,25 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       const isMod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
 
-      // Built-in History & Clipboard shortcuts
+      // Deletion shortcut: invoke user-provided callbacks if available
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        if (selectedIds.length > 0) {
+          if (onNodeDelete || onEdgeDelete) {
+            for (const id of selectedIds) {
+              if (graph.nodes[id]) onNodeDelete?.(id);
+              else if (graph.edges[id]) onEdgeDelete?.(id);
+            }
+          }
+          if (history?.deleteSelection) {
+            history.deleteSelection(selectedIds);
+          }
+          onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
+        }
+        return;
+      }
+
+      // History & Clipboard shortcuts
       if (enableShortcuts !== false && history) {
         if (isMod && key === 'z') {
           e.preventDefault();
@@ -191,13 +212,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           history.pasteEntity?.();
           return;
         }
-
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-          e.preventDefault();
-          history.deleteSelection?.(selectedIds);
-          onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
-          return;
-        }
       }
 
       // Escape Key: Deselect all and cancel active marquee
@@ -212,14 +226,12 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         isSpacePressedRef.current = true;
       }
 
-      // 'F' Key: Zoom to fit
       if (e.key.toLowerCase() === 'f' && !isMod) {
         e.preventDefault();
         zoomToFit(layout);
         return;
       }
 
-      // Ctrl+A / Cmd+A: Select all
       if (isMod && key === 'a') {
         e.preventDefault();
         const allIds = [
@@ -234,7 +246,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       const nodeIds = Object.keys(graph.nodes);
       if (nodeIds.length === 0) return;
 
-      // Tab / Shift+Tab: Cycle through nodes
       if (e.key === 'Tab') {
         e.preventDefault();
         const currentIdx = selectedIds.length > 0 ? nodeIds.indexOf(selectedIds[0]) : -1;
@@ -246,54 +257,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         }
         onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [nodeIds[nextIdx]] } });
         return;
-      }
-
-      // Arrow Key Spatial Navigation
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        e.preventDefault();
-        const currentId = selectedIds[0] || nodeIds[0];
-        const currentPos = layout.nodes[currentId] || layout.containers[currentId];
-        if (!currentPos) return;
-
-        const currentCenter = {
-          x: currentPos.x + currentPos.width / 2,
-          y: currentPos.y + currentPos.height / 2
-        };
-
-        let bestCandidateId: ID | null = null;
-        let minDistance = Infinity;
-
-        for (const id of nodeIds) {
-          if (id === currentId) continue;
-          const targetPos = layout.nodes[id];
-          if (!targetPos) continue;
-
-          const targetCenter = {
-            x: targetPos.x + targetPos.width / 2,
-            y: targetPos.y + targetPos.height / 2
-          };
-
-          const dx = targetCenter.x - currentCenter.x;
-          const dy = targetCenter.y - currentCenter.y;
-
-          let isInDirection = false;
-          if (e.key === 'ArrowRight' && dx > 20) isInDirection = true;
-          if (e.key === 'ArrowLeft' && dx < -20) isInDirection = true;
-          if (e.key === 'ArrowDown' && dy > 20) isInDirection = true;
-          if (e.key === 'ArrowUp' && dy < -20) isInDirection = true;
-
-          if (isInDirection) {
-            const distance = Math.hypot(dx, dy);
-            if (distance < minDistance) {
-              minDistance = distance;
-              bestCandidateId = id;
-            }
-          }
-        }
-
-        if (bestCandidateId) {
-          onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [bestCandidateId] } });
-        }
       }
     };
 
@@ -309,7 +272,94 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [graph, layout, selectedIds, zoomToFit, onChange]);
+  }, [graph, layout, selectedIds, zoomToFit, onChange, history, enableShortcuts, onNodeDelete, onEdgeDelete]);
+
+  // Complex interaction: Add connected node above or below
+  const handleAddConnectedNode = useCallback(
+    (currentNode: NodeEntity, position: 'top' | 'bottom') => {
+      const newNodeId = generateId();
+      const newEdgeId = generateId();
+
+      const isBT = direction === 'BT';
+      const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
+
+      if (onNodeCreate && onEdgeCreate) {
+        // External consumer handles persistence manually
+        onNodeCreate({
+          id: newNodeId,
+          type: currentNode.type || 'FlowTask',
+          label: `New ${currentNode.type || 'Task'}`,
+          parentId: currentNode.parentId ?? null,
+        });
+
+        if (isPrepending) {
+          onEdgeCreate(newNodeId, currentNode.id, newEdgeId);
+        } else {
+          onEdgeCreate(currentNode.id, newNodeId, newEdgeId);
+        }
+      } else {
+        // Default: atomic history action
+        onChange({
+          type: 'NODE_ADD_CONNECTED',
+          payload: {
+            sourceNode: currentNode,
+            position,
+            direction,
+            suggestedNewNodeId: newNodeId,
+            suggestedNewEdgeId: newEdgeId,
+          },
+        });
+      }
+
+      onChange({
+        type: 'SELECTION_CHANGE',
+        payload: { selectedIds: [newNodeId] },
+      });
+    },
+    [direction, onChange, onNodeCreate, onEdgeCreate]
+  );
+
+  const handleInsertNodeOnEdge = useCallback(
+    (edge: EdgeEntity) => {
+      const newNodeId = generateId();
+      const newEdge1Id = generateId();
+      const newEdge2Id = generateId();
+
+      const sourceNode = graph.nodes[edge.sourceId];
+      const nodeType = sourceNode?.type || 'FlowTask';
+
+      if (onNodeCreate && onEdgeCreate && onEdgeDelete) {
+        // External consumer handles persistence manually
+        onEdgeDelete(edge.id);
+        onNodeCreate({
+          id: newNodeId,
+          type: nodeType,
+          label: `New ${nodeType}`,
+          parentId: sourceNode?.parentId ?? null,
+        });
+        onEdgeCreate(edge.sourceId, newNodeId, newEdge1Id);
+        onEdgeCreate(newNodeId, edge.targetId, newEdge2Id);
+      } else {
+        // Default: atomic history action
+        onChange({
+          type: 'EDGE_SPLIT_INSERT_NODE',
+          payload: {
+            edge,
+            direction,
+            suggestedNewNodeId: newNodeId,
+            suggestedNewEdge1Id: newEdge1Id,
+            suggestedNewEdge2Id: newEdge2Id,
+          },
+        });
+      }
+
+      onChange({
+        type: 'SELECTION_CHANGE',
+        payload: { selectedIds: [newNodeId] },
+      });
+    },
+    [direction, graph.nodes, onChange, onNodeCreate, onEdgeCreate, onEdgeDelete]
+  );
 
   // Layout resolution
   useEffect(() => {
@@ -558,103 +608,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
 
   const shouldEnableEdgeQuickAdd =
     enableEdgeQuickAdd ?? (enableQuickAdd ?? (layoutOptions?.mode === 'flow'));
-
-  const handleAddConnectedNode = useCallback(
-    (currentNode: NodeEntity, position: 'top' | 'bottom') => {
-      const newNodeId = generateId();
-      const newEdgeId = generateId();
-
-      const isBT = direction === 'BT';
-      const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
-
-      // 1. If consumer provided onNodeCreate, invoke it directly (same as "T", "Q", "W")
-      if (onNodeCreate) {
-        onNodeCreate({
-          id: newNodeId,
-          type: currentNode.type || 'task',
-          label: `New ${currentNode.type || 'task'}`,
-          parentId: currentNode.parentId ?? null,
-        });
-      }
-
-      // 2. If consumer provided onEdgeCreate, connect source & target directly
-      if (onEdgeCreate) {
-        if (isPrepending) {
-          onEdgeCreate(newNodeId, currentNode.id, newEdgeId);
-        } else {
-          onEdgeCreate(currentNode.id, newNodeId, newEdgeId);
-        }
-      }
-
-      // 3. Keep local SysFlow history/canvas in sync
-      onChange({
-        type: 'NODE_ADD_CONNECTED',
-        payload: {
-          sourceNode: currentNode,
-          position,
-          direction,
-          suggestedNewNodeId: newNodeId,
-          suggestedNewEdgeId: newEdgeId,
-        },
-      });
-
-      onChange({
-        type: 'SELECTION_CHANGE',
-        payload: { selectedIds: [newNodeId] },
-      });
-    },
-    [direction, onChange, onNodeCreate, onEdgeCreate]
-  );
-
-  const handleInsertNodeOnEdge = useCallback(
-    (edge: EdgeEntity) => {
-      const newNodeId = generateId();
-      const newEdge1Id = generateId();
-      const newEdge2Id = generateId();
-
-      const sourceNode = graph.nodes[edge.sourceId];
-      const nodeType = sourceNode?.type || 'task';
-
-      // 1. Delete old edge if callback provided
-      if (onEdgeDelete) {
-        onEdgeDelete(edge.id);
-      }
-
-      // 2. Create the new spliced node
-      if (onNodeCreate) {
-        onNodeCreate({
-          id: newNodeId,
-          type: nodeType,
-          label: `New ${nodeType}`,
-          parentId: sourceNode?.parentId ?? null,
-        });
-      }
-
-      // 3. Create the two new connected edges
-      if (onEdgeCreate) {
-        onEdgeCreate(edge.sourceId, newNodeId, newEdge1Id);
-        onEdgeCreate(newNodeId, edge.targetId, newEdge2Id);
-      }
-
-      // 4. Update local canvas state
-      onChange({
-        type: 'EDGE_SPLIT_INSERT_NODE',
-        payload: {
-          edge,
-          direction,
-          suggestedNewNodeId: newNodeId,
-          suggestedNewEdge1Id: newEdge1Id,
-          suggestedNewEdge2Id: newEdge2Id,
-        },
-      });
-
-      onChange({
-        type: 'SELECTION_CHANGE',
-        payload: { selectedIds: [newNodeId] },
-      });
-    },
-    [direction, graph.nodes, onChange, onNodeCreate, onEdgeCreate, onEdgeDelete]
-  );
 
   const containersList = Object.values(graph.containers) as ContainerEntity[];
   const themeClass = theme === 'light' ? 'sysflow-theme-light' : 'sysflow-theme-dark';

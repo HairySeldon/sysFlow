@@ -243,8 +243,8 @@ export function useGraphHistory(
 
         const isBT = direction === 'BT';
         const isTB = direction === 'TB';
-        const inPortId = `p_in_${Date.now()}`;
-        const outPortId = `p_out_${Date.now()}`;
+        const fallbackInPortId = `p_in_${Date.now()}`;
+        const fallbackOutPortId = `p_out_${Date.now() + 1}`;
 
         let inSide: 'top' | 'bottom' | 'left' | 'right' = 'left';
         let outSide: 'top' | 'bottom' | 'left' | 'right' = 'right';
@@ -272,13 +272,28 @@ export function useGraphHistory(
           type: customProps?.type || sourceNode?.type || 'FlowTask',
           parentId: customProps?.parentId ?? sourceNode?.parentId ?? null,
           ports: customProps?.ports || [
-            { id: inPortId, label: 'in', side: inSide },
-            { id: outPortId, label: 'out', side: outSide },
+            { id: fallbackInPortId, label: 'in', side: inSide },
+            { id: fallbackOutPortId, label: 'out', side: outSide },
           ],
           data: customProps?.data || {},
           ...customProps,
         };
 
+        // Resolve ports from the actual instantiated newNode
+        const resolvedInPort =
+          newNode.ports.find((p) => p.label.toLowerCase().includes('in')) ||
+          newNode.ports.find((p) => p.side === (isBT ? 'bottom' : 'top')) ||
+          newNode.ports[0];
+
+        const resolvedOutPort =
+          newNode.ports.find((p) => p.label.toLowerCase().includes('out')) ||
+          newNode.ports.find((p) => p.side === (isBT ? 'top' : 'bottom')) ||
+          newNode.ports[newNode.ports.length - 1];
+
+        const inPortId = resolvedInPort ? resolvedInPort.id : fallbackInPortId;
+        const outPortId = resolvedOutPort ? resolvedOutPort.id : fallbackOutPortId;
+
+        // Bottom/Incoming Edge: oldSource -> newNode
         const edge1: EdgeEntity = {
           id: suggestedNewEdge1Id,
           sourceId: oldEdge.sourceId,
@@ -287,6 +302,7 @@ export function useGraphHistory(
           targetPortId: inPortId,
         };
 
+        // Top/Outgoing Edge: newNode -> oldTarget
         const edge2: EdgeEntity = {
           id: suggestedNewEdge2Id,
           sourceId: newNode.id,
@@ -332,8 +348,8 @@ export function useGraphHistory(
         const { sourceNode, position, direction, suggestedNewNodeId, suggestedNewEdgeId } =
           action.payload;
         const isBT = direction === 'BT';
-        const inPortId = `p_in_${Date.now()}`;
-        const outPortId = `p_out_${Date.now()}`;
+        const fallbackInPortId = `p_in_${Date.now()}`;
+        const fallbackOutPortId = `p_out_${Date.now() + 1}`;
 
         const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
         const sourceId = isPrepending ? suggestedNewNodeId : sourceNode.id;
@@ -355,13 +371,27 @@ export function useGraphHistory(
           label: customProps?.label || `Node ${Object.keys(prev.nodes).length + 1}`,
           type: customProps?.type || sourceNode.type,
           ports: customProps?.ports || [
-            { id: inPortId, label: 'in', side: isBT ? 'bottom' : 'top' },
-            { id: outPortId, label: 'out', side: isBT ? 'top' : 'bottom' },
+            { id: fallbackInPortId, label: 'in', side: isBT ? 'bottom' : 'top' },
+            { id: fallbackOutPortId, label: 'out', side: isBT ? 'top' : 'bottom' },
           ],
           data: customProps?.data || {},
           parentId: customProps?.parentId ?? sourceNode?.parentId ?? null,
           ...customProps,
         };
+
+        // Resolve ports from the actual instantiated newNode
+        const resolvedInPort =
+          newNode.ports.find((p) => p.label.toLowerCase().includes('in')) ||
+          newNode.ports.find((p) => p.side === (isBT ? 'bottom' : 'top')) ||
+          newNode.ports[0];
+
+        const resolvedOutPort =
+          newNode.ports.find((p) => p.label.toLowerCase().includes('out')) ||
+          newNode.ports.find((p) => p.side === (isBT ? 'top' : 'bottom')) ||
+          newNode.ports[newNode.ports.length - 1];
+
+        const inPortId = resolvedInPort ? resolvedInPort.id : fallbackInPortId;
+        const outPortId = resolvedOutPort ? resolvedOutPort.id : fallbackOutPortId;
 
         const currentInPort =
           sourceNode.ports.find((p) => p.label === 'in') || sourceNode.ports[0];
@@ -402,6 +432,17 @@ export function useGraphHistory(
               ...prev.containers,
               [containerId]: { ...prev.containers[containerId], collapsed },
             },
+          });
+        }
+      } else if (action.type === 'NODE_UPDATE') {
+        const { id, updates } = action.payload;
+        if (prev.nodes[id]) {
+          pushState({
+            ...prev,
+            nodes: {
+              ...prev.nodes,
+              [id]: { ...prev.nodes[id], ...updates }
+            }
           });
         }
       } else if (action.type === 'EDGE_CREATE') {

@@ -4,11 +4,46 @@ import { ID, NodeEntity } from './Entity';
 import { EdgeEntity } from './Edge';
 import { LayoutDirection } from './Graph';
 
+// packages/core/src/models/Events.ts
+
 export type GraphAction =
-  | { type: 'ENTITY_REPARENT'; payload: { entityId: ID; newParentId: ID | null } }
-  | { type: 'EDGE_CREATE'; payload: { edge: Omit<EdgeEntity, 'id'>; id?: ID } }
-  | { type: 'EDGE_DELETE'; payload: { edgeId: ID } }
-  | { type: 'EDGE_REWIRE'; payload: { edgeId: ID; newSourceId?: ID; newTargetId?: ID; newSourcePortId?: ID; newTargetPortId?: ID } }
+  | {
+      type: 'ENTITY_REPARENT';
+      payload: {
+        entityId: ID;
+        newParentId: ID | null;
+      };
+    }
+  | {
+      type: 'NODE_UPDATE';
+      payload: {
+        id: ID;
+        updates: Partial<NodeEntity>;
+      };
+    }
+  | {
+      type: 'EDGE_CREATE';
+      payload: {
+        edge: Omit<EdgeEntity, 'id'>;
+        id?: ID;
+      };
+    }
+  | {
+      type: 'EDGE_DELETE';
+      payload: {
+        edgeId: ID;
+      };
+    }
+  | {
+      type: 'EDGE_REWIRE';
+      payload: {
+        edgeId: ID;
+        newSourceId?: ID;
+        newTargetId?: ID;
+        newSourcePortId?: ID;
+        newTargetPortId?: ID;
+      };
+    }
   | {
       type: 'NODE_EXTRACT';
       payload: {
@@ -17,14 +52,25 @@ export type GraphAction =
         outgoingEdgeId: ID;
       };
     }
-  | { type: 'CONTAINER_TOGGLE_COLLAPSE'; payload: { containerId: ID; collapsed: boolean } }
-  | { type: 'SELECTION_CHANGE'; payload: { selectedIds: ID[] } }
+  | {
+      type: 'CONTAINER_TOGGLE_COLLAPSE';
+      payload: {
+        containerId: ID;
+        collapsed: boolean;
+      };
+    }
+  | {
+      type: 'SELECTION_CHANGE';
+      payload: {
+        selectedIds: ID[];
+      };
+    }
   | {
       type: 'NODE_ADD_CONNECTED';
       payload: {
         sourceNode: NodeEntity;
-        position: 'top' | 'bottom' | 'left' | 'right';
-        direction: LayoutDirection;
+        position: 'top' | 'bottom';
+        direction: 'LR' | 'TB' | 'RL' | 'BT';
         suggestedNewNodeId: ID;
         suggestedNewEdgeId: ID;
       };
@@ -33,7 +79,7 @@ export type GraphAction =
       type: 'EDGE_SPLIT_INSERT_NODE';
       payload: {
         edge: EdgeEntity;
-        direction: LayoutDirection;
+        direction: 'LR' | 'TB' | 'RL' | 'BT';
         suggestedNewNodeId: ID;
         suggestedNewEdge1Id: ID;
         suggestedNewEdge2Id: ID;

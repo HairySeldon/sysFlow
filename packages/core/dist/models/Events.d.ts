@@ -1,12 +1,17 @@
 import { ID, NodeEntity } from './Entity';
 import { EdgeEntity } from './Edge';
-import { LayoutDirection } from './Graph';
 
 export type GraphAction = {
     type: 'ENTITY_REPARENT';
     payload: {
         entityId: ID;
         newParentId: ID | null;
+    };
+} | {
+    type: 'NODE_UPDATE';
+    payload: {
+        id: ID;
+        updates: Partial<NodeEntity>;
     };
 } | {
     type: 'EDGE_CREATE';
@@ -50,8 +55,8 @@ export type GraphAction = {
     type: 'NODE_ADD_CONNECTED';
     payload: {
         sourceNode: NodeEntity;
-        position: 'top' | 'bottom' | 'left' | 'right';
-        direction: LayoutDirection;
+        position: 'top' | 'bottom';
+        direction: 'LR' | 'TB' | 'RL' | 'BT';
         suggestedNewNodeId: ID;
         suggestedNewEdgeId: ID;
     };
@@ -59,7 +64,7 @@ export type GraphAction = {
     type: 'EDGE_SPLIT_INSERT_NODE';
     payload: {
         edge: EdgeEntity;
-        direction: LayoutDirection;
+        direction: 'LR' | 'TB' | 'RL' | 'BT';
         suggestedNewNodeId: ID;
         suggestedNewEdge1Id: ID;
         suggestedNewEdge2Id: ID;
