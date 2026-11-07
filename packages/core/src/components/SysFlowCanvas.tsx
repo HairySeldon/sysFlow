@@ -21,6 +21,69 @@ import { GraphEdgeLayer } from './GraphEdgeLayer';
 import { GraphNode } from './GraphNode';
 import { GraphContainer } from './GraphContainer';
 
+// --- Theme Tokens & Converter ---
+export interface SysFlowThemeTokens {
+  bg?: string;
+  grid?: string;
+  nodeBg?: string;
+  nodeBorder?: string;
+  nodeSelected?: string;
+  nodeText?: string;
+  nodeSubtext?: string;
+  containerBg?: string;
+  containerHeaderBg?: string;
+  containerBorder?: string;
+  containerHover?: string;
+  edgeStroke?: string;
+  edgeSelected?: string;
+  portBg?: string;
+  portHover?: string;
+  panelBg?: string;
+  panelBorder?: string;
+  panelBtnBg?: string;
+  panelBtnHover?: string;
+  panelBtnText?: string;
+  shadow?: string;
+}
+
+const TOKEN_VAR_MAP: Record<keyof SysFlowThemeTokens, string> = {
+  bg: '--sysflow-bg',
+  grid: '--sysflow-grid',
+  nodeBg: '--sysflow-node-bg',
+  nodeBorder: '--sysflow-node-border',
+  nodeSelected: '--sysflow-node-selected',
+  nodeText: '--sysflow-node-text',
+  nodeSubtext: '--sysflow-node-subtext',
+  containerBg: '--sysflow-container-bg',
+  containerHeaderBg: '--sysflow-container-header-bg',
+  containerBorder: '--sysflow-container-border',
+  containerHover: '--sysflow-container-hover',
+  edgeStroke: '--sysflow-edge-stroke',
+  edgeSelected: '--sysflow-edge-selected',
+  portBg: '--sysflow-port-bg',
+  portHover: '--sysflow-port-hover',
+  panelBg: '--sysflow-panel-bg',
+  panelBorder: '--sysflow-panel-border',
+  panelBtnBg: '--sysflow-panel-btn-bg',
+  panelBtnHover: '--sysflow-panel-btn-hover',
+  panelBtnText: '--sysflow-panel-btn-text',
+  shadow: '--sysflow-shadow',
+};
+
+export function themeTokensToStyle(tokens?: Partial<SysFlowThemeTokens>): React.CSSProperties {
+  if (!tokens) return {};
+  const styles: Record<string, string> = {};
+  for (const [key, val] of Object.entries(tokens)) {
+    if (val !== undefined) {
+      const varName =
+        TOKEN_VAR_MAP[key as keyof SysFlowThemeTokens] ||
+        `--sysflow-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+      styles[varName] = val;
+    }
+  }
+  return styles as React.CSSProperties;
+}
+
 export interface SysFlowHistoryControls {
   undo: () => void;
   redo: () => void;
@@ -50,6 +113,8 @@ export interface SysFlowCanvasProps {
   portPlacementMode?: 'strict-flow' | 'perimeter-optimized';
   routing?: 'bezier' | 'step' | 'auto';
   theme?: 'dark' | 'light';
+  themeTokens?: Partial<SysFlowThemeTokens>;
+  style?: React.CSSProperties;
   enableQuickAdd?: boolean;
   enableEdgeQuickAdd?: boolean;
   onNodeCreate?: (node: Partial<NodeEntity>) => void;
@@ -80,6 +145,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   className = '',
   selectedIds = [],
   theme = 'dark',
+  themeTokens,
+  style,
   enableQuickAdd,
   enableEdgeQuickAdd,
   onNodeCreate,
@@ -612,17 +679,26 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   const containersList = Object.values(graph.containers) as ContainerEntity[];
   const themeClass = theme === 'light' ? 'sysflow-theme-light' : 'sysflow-theme-dark';
 
+  // Merge themeTokens and custom styles onto root container
+  const containerStyle = useMemo<React.CSSProperties>(() => {
+    return {
+      outline: 'none',
+      ...themeTokensToStyle(themeTokens),
+      ...style,
+    };
+  }, [themeTokens, style]);
+
   return (
     <div
       ref={containerRef}
       className={`sysflow-canvas ${themeClass} ${className}`}
       data-theme={theme}
+      style={containerStyle}
       onWheel={onWheel}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handleCanvasPointerMove}
       onPointerUp={handleCanvasPointerUp}
       tabIndex={0}
-      style={{ outline: 'none' }}
     >
       <MeasureLayer
         graph={graph}
@@ -650,7 +726,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`
         }}
       >
-        {/* Marquee Selection Rectangle */}
+        {/* Dynamic marquee selection rectangle */}
         {marqueeBox && (
           <div
             style={{
@@ -659,8 +735,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
               top: `${Math.min(marqueeBox.startY, marqueeBox.currentY)}px`,
               width: `${Math.abs(marqueeBox.currentX - marqueeBox.startX)}px`,
               height: `${Math.abs(marqueeBox.currentY - marqueeBox.startY)}px`,
-              backgroundColor: 'rgba(56, 189, 248, 0.12)',
-              border: '1px dashed #38bdf8',
+              backgroundColor: 'color-mix(in srgb, var(--sysflow-node-selected, #aa9460) 15%, transparent)',
+              border: '1px dashed var(--sysflow-node-selected, #aa9460)',
               borderRadius: '2px',
               pointerEvents: 'none',
               zIndex: 90
@@ -668,7 +744,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           />
         )}
 
-        {/* Live Wiring preview curve */}
+        {/* Dynamic live wiring preview line */}
         {activeWire && (
           <svg className="sysflow-edge-layer" style={{ pointerEvents: 'none' }}>
             <line
@@ -676,7 +752,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
               y1={activeWire.startWorldPos.y}
               x2={activeWire.currentWorldPos.x}
               y2={activeWire.currentWorldPos.y}
-              stroke="#38bdf8"
+              stroke="var(--sysflow-edge-selected, #aa9460)"
               strokeWidth={2}
               strokeDasharray="4 4"
             />

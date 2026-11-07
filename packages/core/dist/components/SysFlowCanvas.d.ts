@@ -3,6 +3,30 @@ import { LogicalGraph, ID, NodeEntity, ContainerEntity, GraphAction } from '../m
 import { LayoutEngine, LayoutOptions } from '../layout/LayoutEngine';
 import { InteractionStrategy } from '../strategies/InteractionStrategy';
 
+export interface SysFlowThemeTokens {
+    bg?: string;
+    grid?: string;
+    nodeBg?: string;
+    nodeBorder?: string;
+    nodeSelected?: string;
+    nodeText?: string;
+    nodeSubtext?: string;
+    containerBg?: string;
+    containerHeaderBg?: string;
+    containerBorder?: string;
+    containerHover?: string;
+    edgeStroke?: string;
+    edgeSelected?: string;
+    portBg?: string;
+    portHover?: string;
+    panelBg?: string;
+    panelBorder?: string;
+    panelBtnBg?: string;
+    panelBtnHover?: string;
+    panelBtnText?: string;
+    shadow?: string;
+}
+export declare function themeTokensToStyle(tokens?: Partial<SysFlowThemeTokens>): React.CSSProperties;
 export interface SysFlowHistoryControls {
     undo: () => void;
     redo: () => void;
@@ -40,6 +64,8 @@ export interface SysFlowCanvasProps {
     portPlacementMode?: 'strict-flow' | 'perimeter-optimized';
     routing?: 'bezier' | 'step' | 'auto';
     theme?: 'dark' | 'light';
+    themeTokens?: Partial<SysFlowThemeTokens>;
+    style?: React.CSSProperties;
     enableQuickAdd?: boolean;
     enableEdgeQuickAdd?: boolean;
     onNodeCreate?: (node: Partial<NodeEntity>) => void;
