@@ -4,6 +4,13 @@ import React from 'react';
 import { ContainerEntity } from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 
+export interface ContainerRendererProps {
+  container: ContainerEntity;
+  selected: boolean;
+  hasChildren?: boolean;
+  onToggleCollapse?: (containerId: string, currentCollapsed: boolean) => void;
+}
+
 interface GraphContainerProps {
   container: ContainerEntity;
   layout: NodeLayoutResult;
@@ -15,7 +22,7 @@ interface GraphContainerProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onClick: (e: React.MouseEvent) => void;
-  customRenderer?: React.ComponentType<{ container: ContainerEntity; selected: boolean }>;
+  customRenderer?: React.ComponentType<ContainerRendererProps>;
 }
 
 export const GraphContainer: React.FC<GraphContainerProps> = ({
@@ -45,7 +52,12 @@ export const GraphContainer: React.FC<GraphContainerProps> = ({
       onClick={onClick}
     >
       {CustomRenderer ? (
-        <CustomRenderer container={container} selected={selected} />
+        <CustomRenderer
+          container={container}
+          selected={selected}
+          hasChildren={hasChildren}
+          onToggleCollapse={onToggleCollapse}
+        />
       ) : (
         <>
           <div className="sysflow-container-header">

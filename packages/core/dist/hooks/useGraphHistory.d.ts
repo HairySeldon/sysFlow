@@ -15,6 +15,9 @@ export interface GraphMutationDiff {
     createdNodes: NodeEntity[];
     updatedNodes: NodeEntity[];
     deletedNodes: ID[];
+    createdContainers?: ContainerEntity[];
+    updatedContainers?: ContainerEntity[];
+    deletedContainers: ID[];
     createdEdges: EdgeEntity[];
     deletedEdges: EdgeEntity[];
 }

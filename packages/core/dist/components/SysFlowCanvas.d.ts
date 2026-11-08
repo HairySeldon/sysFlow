@@ -71,6 +71,7 @@ export interface SysFlowCanvasProps {
     onNodeCreate?: (node: Partial<NodeEntity>) => void;
     onEdgeCreate?: (sourceId: ID, targetId: ID, edgeId: ID) => void;
     onNodeDelete?: (nodeId: ID) => void;
+    onContainerDelete?: (containerId: ID) => void;
     onEdgeDelete?: (edgeId: ID) => void;
 }
 export declare const SysFlowCanvas: React.FC<SysFlowCanvasProps>;
