@@ -480,7 +480,7 @@ export function useGraphHistory(
         delete nextEdges[edgeId];
         pushState({ ...prev, edges: nextEdges });
       } else if (action.type === 'EDGE_REWIRE') {
-        const { edgeId, newTargetId } = action.payload;
+        const { edgeId, newTargetId, newTargetPortId } = action.payload;
         if (!newTargetId || !prev.edges[edgeId]) return;
 
         const splicedNodeId = newTargetId;
@@ -503,35 +503,60 @@ export function useGraphHistory(
 
         const nextEdges: Record<ID, EdgeEntity> = { ...prev.edges };
 
-        // 1. Bridge previous connections
+        // 1. Bridge previous connections (delete both old edges, create new bridge edge)
         if (shouldBridge) {
-          nextEdges[oldIn.id] = {
-            ...oldIn,
+          delete nextEdges[oldIn.id];
+          delete nextEdges[oldOut.id];
+
+          const bridgeEdgeId = generateUUID();
+          nextEdges[bridgeEdgeId] = {
+            id: bridgeEdgeId,
+            sourceId: oldIn.sourceId,
+            sourcePortId: oldIn.sourcePortId,
             targetId: oldOut.targetId,
             targetPortId: oldOut.targetPortId,
           };
-          delete nextEdges[oldOut.id];
         } else {
           if (oldIn) delete nextEdges[oldIn.id];
           if (oldOut) delete nextEdges[oldOut.id];
         }
 
-        // 2. Splice into target edge
-        const targetPort = prev.nodes[splicedNodeId]?.ports[0]?.id || 'p_in';
-        const sourcePort =
-          prev.nodes[splicedNodeId]?.ports.find((p) => p.id !== targetPort)?.id || targetPort;
+        // 2. Resolve ports on the spliced node
+        const splicedNode = prev.nodes[splicedNodeId];
+        const inPort =
+          (newTargetPortId && splicedNode?.ports.find((p) => p.id === newTargetPortId)) ||
+          splicedNode?.ports.find((p) => p.label?.toLowerCase().includes('in')) ||
+          splicedNode?.ports.find((p) => p.side === 'bottom') ||
+          splicedNode?.ports[0];
 
-        nextEdges[edgeId] = {
-          ...oldEdge,
+        const outPort =
+          splicedNode?.ports.find((p) => p.id !== inPort?.id && p.label?.toLowerCase().includes('out')) ||
+          splicedNode?.ports.find((p) => p.id !== inPort?.id && p.side === 'top') ||
+          splicedNode?.ports.find((p) => p.id !== inPort?.id) ||
+          inPort;
+
+        const targetPortId = inPort?.id || 'p_in';
+        const sourcePortId = outPort?.id || 'p_out';
+
+        // 3. Delete original edge
+        delete nextEdges[edgeId];
+
+        // 4. Create bottom edge: origSource -> splicedNode
+        const firstEdgeId = generateUUID();
+        nextEdges[firstEdgeId] = {
+          id: firstEdgeId,
+          sourceId: origSource,
+          sourcePortId: oldEdge.sourcePortId,
           targetId: splicedNodeId,
-          targetPortId: targetPort,
+          targetPortId: targetPortId,
         };
 
-      const secondEdgeId = generateUUID();
+        // 5. Create top edge: splicedNode -> origTarget
+        const secondEdgeId = generateUUID();
         nextEdges[secondEdgeId] = {
           id: secondEdgeId,
           sourceId: splicedNodeId,
-          sourcePortId: sourcePort,
+          sourcePortId: sourcePortId,
           targetId: origTarget,
           targetPortId: oldEdge.targetPortId,
         };
