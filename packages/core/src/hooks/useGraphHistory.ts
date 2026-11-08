@@ -333,12 +333,19 @@ export function useGraphHistory(
         }
 
         const nextEdges = { ...prev.edges };
-        nextEdges[incomingEdgeId] = {
-          ...inEdge,
+        // 1. Delete both old edges so diff catches both deletions
+        delete nextEdges[incomingEdgeId];
+        delete nextEdges[outgoingEdgeId];
+
+        // 2. Create a new bypass edge with a new UUID so diff catches the creation
+        const newBypassEdgeId = generateUUID();
+        nextEdges[newBypassEdgeId] = {
+          id: newBypassEdgeId,
+          sourceId: inEdge.sourceId,
+          sourcePortId: inEdge.sourcePortId,
           targetId: outEdge.targetId,
           targetPortId: outEdge.targetPortId,
         };
-        delete nextEdges[outgoingEdgeId];
 
         pushState({
           ...prev,
