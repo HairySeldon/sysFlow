@@ -33,6 +33,9 @@ export interface GraphMutationDiff {
   createdNodes: NodeEntity[];
   updatedNodes: NodeEntity[];
   deletedNodes: ID[];
+  createdContainers?: ContainerEntity[];
+  updatedContainers?: ContainerEntity[];
+  deletedContainers: ID[];
   createdEdges: EdgeEntity[];
   deletedEdges: EdgeEntity[];
 }
@@ -57,6 +60,10 @@ function computeGraphDiff(
   const updatedNodes: NodeEntity[] = [];
   const deletedNodes: ID[] = [];
 
+  const createdContainers: ContainerEntity[] = [];
+  const updatedContainers: ContainerEntity[] = [];
+  const deletedContainers: ID[] = [];
+
   const createdEdges: EdgeEntity[] = [];
   const deletedEdges: EdgeEntity[] = [];
 
@@ -74,6 +81,20 @@ function computeGraphDiff(
     }
   }
 
+  // Containers diff
+  for (const [id, container] of Object.entries(next.containers)) {
+    if (!prev.containers[id]) {
+      createdContainers.push(container);
+    } else if (prev.containers[id] !== container) {
+      updatedContainers.push(container);
+    }
+  }
+  for (const id of Object.keys(prev.containers)) {
+    if (!next.containers[id]) {
+      deletedContainers.push(id);
+    }
+  }
+
   // Edges diff
   for (const [id, edge] of Object.entries(next.edges)) {
     if (!prev.edges[id]) {
@@ -86,7 +107,16 @@ function computeGraphDiff(
     }
   }
 
-  return { createdNodes, updatedNodes, deletedNodes, createdEdges, deletedEdges };
+  return {
+    createdNodes,
+    updatedNodes,
+    deletedNodes,
+    createdContainers,
+    updatedContainers,
+    deletedContainers,
+    createdEdges,
+    deletedEdges,
+  };
 }
 
 function hasDiff(diff: GraphMutationDiff): boolean {
@@ -94,6 +124,7 @@ function hasDiff(diff: GraphMutationDiff): boolean {
     diff.createdNodes.length > 0 ||
     diff.updatedNodes.length > 0 ||
     diff.deletedNodes.length > 0 ||
+    (diff.deletedContainers && diff.deletedContainers.length > 0) ||
     diff.createdEdges.length > 0 ||
     diff.deletedEdges.length > 0
   );

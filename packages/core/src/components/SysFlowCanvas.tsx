@@ -120,6 +120,7 @@ export interface SysFlowCanvasProps {
   onNodeCreate?: (node: Partial<NodeEntity>) => void;
   onEdgeCreate?: (sourceId: ID, targetId: ID, edgeId: ID) => void;
   onNodeDelete?: (nodeId: ID) => void;
+  onContainerDelete?: (containerId: ID) => void;
   onEdgeDelete?: (edgeId: ID) => void;
 }
 
@@ -152,6 +153,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   onNodeCreate,
   onEdgeCreate,
   onNodeDelete,
+  onContainerDelete,
   onEdgeDelete
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -233,9 +235,13 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         if (selectedIds.length > 0) {
-          if (onNodeDelete || onEdgeDelete) {
+          if (onNodeDelete || onEdgeDelete || onContainerDelete) {
             for (const id of selectedIds) {
               if (graph.nodes[id]) onNodeDelete?.(id);
+              else if (graph.containers[id]) {
+                // If onContainerDelete is provided, call it; otherwise fallback to onNodeDelete
+                (onContainerDelete || onNodeDelete)?.(id);
+              }
               else if (graph.edges[id]) onEdgeDelete?.(id);
             }
           }
