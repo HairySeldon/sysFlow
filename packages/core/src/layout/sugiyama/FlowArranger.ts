@@ -6,6 +6,19 @@ import { LayoutOptions } from '../LayoutEngine';
 
 const PRIMARY_GAP = 70;
 const SECONDARY_GAP = 28;
+const RELAXATION_PASSES = 2;
+
+interface BlockItem {
+  id: ID;
+  breadth: number;
+  idealCenter: number | null;
+}
+
+interface Block {
+  items: BlockItem[];
+  totalBreadth: number;
+  start: number;
+}
 
 export class FlowArranger implements ChildArranger {
   constructor(private options: LayoutOptions = {}) {}
@@ -65,8 +78,7 @@ export class FlowArranger implements ChildArranger {
     const rankMap = new Map<ID, number>();
 
     if (isReverse) {
-      // Sink-aligned (ALAP) layering for BT / RL:
-      // Pulls leaf inputs up directly under their target ("parent") node.
+      // Sink-aligned (ALAP) layering for BT / RL
       const distFromSink = new Map<ID, number>();
       const queue: ID[] = childIds.filter((id) => (outDegree.get(id) || 0) === 0);
       for (const id of queue) distFromSink.set(id, 0);
@@ -129,7 +141,7 @@ export class FlowArranger implements ChildArranger {
     const sortedRankKeys = Array.from(layers.keys()).sort((a, b) => a - b);
     const placementRanks = isReverse ? [...sortedRankKeys].reverse() : sortedRankKeys;
 
-    // 3. Parent-Centered Secondary Axis Positioning
+    // 3. Symmetric Block-Centered Secondary Axis Positioning
     const secondaryPos = new Map<ID, number>();
 
     const getBreadth = (id: ID) => {
@@ -137,66 +149,38 @@ export class FlowArranger implements ChildArranger {
       return isVertical ? dim.width : dim.height;
     };
 
-    // Forward pass: Align children directly to the center of their parent(s)
-    for (const rank of sortedRankKeys) {
-      const entities = layers.get(rank) || [];
+    const getIncomingRefs = (id: ID) => {
+      const r = rankMap.get(id);
+      return (incoming.get(id) || []).filter((n) => rankMap.get(n) !== r);
+    };
 
-      // Keep nodes that continue an upstream chain before branch/leaf nodes
-      entities.sort((a, b) => {
-        const aHasIn = (incoming.get(a)?.length || 0) > 0 ? 0 : 1;
-        const bHasIn = (incoming.get(b)?.length || 0) > 0 ? 0 : 1;
-        if (aHasIn !== bHasIn) return aHasIn - bHasIn;
+    const getOutgoingRefs = (id: ID) => {
+      const r = rankMap.get(id);
+      return (outgoing.get(id) || []).filter((n) => rankMap.get(n) !== r);
+    };
 
-        const aAvg = this.getAvgNeighborPos(incoming.get(a) || [], secondaryPos, getBreadth);
-        const bAvg = this.getAvgNeighborPos(incoming.get(b) || [], secondaryPos, getBreadth);
-        if (aAvg !== null && bAvg !== null && aAvg !== bAvg) return aAvg - bAvg;
-
-        return 0;
-      });
-
-      let prevEnd = -Infinity;
-
-      for (const id of entities) {
-        const breadth = getBreadth(id);
-        const parents = incoming.get(id) || [];
-        const idealCenter = this.getAvgNeighborPos(parents, secondaryPos, getBreadth);
-
-        let startPos = idealCenter !== null ? idealCenter - breadth / 2 : 0;
-        if (startPos < prevEnd + SECONDARY_GAP) {
-          startPos = prevEnd === -Infinity ? 0 : prevEnd + SECONDARY_GAP;
-        }
-
-        secondaryPos.set(id, startPos);
-        prevEnd = startPos + breadth;
-      }
-    }
-
-    // Backward pass: Align parents directly over their children's center
-    for (let i = sortedRankKeys.length - 1; i >= 0; i--) {
-      const rank = sortedRankKeys[i];
-      const entities = layers.get(rank) || [];
-
-      for (const id of entities) {
-        const children = outgoing.get(id) || [];
-        if (children.length === 0) continue;
-
-        const avgChildCenter = this.getAvgNeighborPos(children, secondaryPos, getBreadth);
-        if (avgChildCenter !== null) {
-          const breadth = getBreadth(id);
-          secondaryPos.set(id, avgChildCenter - breadth / 2);
-        }
+    for (let pass = 0; pass < RELAXATION_PASSES; pass++) {
+      // Forward pass: center each layer's sibling blocks against upstream neighbors
+      for (const rank of sortedRankKeys) {
+        this.alignLayer(
+          layers.get(rank) || [],
+          getIncomingRefs,
+          secondaryPos,
+          getBreadth,
+          pass === 0
+        );
       }
 
-      // Re-pack to resolve any newly created sibling overlaps
-      let prevEnd = -Infinity;
-      for (const id of entities) {
-        const breadth = getBreadth(id);
-        let pos = secondaryPos.get(id) ?? 0;
-        if (pos < prevEnd + SECONDARY_GAP) {
-          pos = prevEnd === -Infinity ? 0 : prevEnd + SECONDARY_GAP;
-          secondaryPos.set(id, pos);
-        }
-        prevEnd = pos + breadth;
+      // Backward pass: center each layer's sibling blocks against downstream neighbors
+      for (let i = sortedRankKeys.length - 1; i >= 0; i--) {
+        const rank = sortedRankKeys[i];
+        this.alignLayer(
+          layers.get(rank) || [],
+          getOutgoingRefs,
+          secondaryPos,
+          getBreadth,
+          false
+        );
       }
     }
 
@@ -235,6 +219,108 @@ export class FlowArranger implements ChildArranger {
     const overallH = Math.max(...boxes.map((b) => b.localY + b.height), 0);
 
     return { width: overallW, height: overallH, boxes };
+  }
+
+  private alignLayer(
+    entities: ID[],
+    getRefs: (id: ID) => ID[],
+    secondaryPos: Map<ID, number>,
+    getBreadth: (id: ID) => number,
+    isInitialPass: boolean
+  ): void {
+    if (entities.length === 0) return;
+
+    const idealCenters = new Map<ID, number | null>();
+    for (const id of entities) {
+      idealCenters.set(id, this.getAvgNeighborPos(getRefs(id), secondaryPos, getBreadth));
+    }
+
+    entities.sort((a, b) => {
+      const aIdeal = idealCenters.get(a) ?? null;
+      const bIdeal = idealCenters.get(b) ?? null;
+
+      if (isInitialPass) {
+        const aHas = aIdeal !== null ? 0 : 1;
+        const bHas = bIdeal !== null ? 0 : 1;
+        if (aHas !== bHas) return aHas - bHas;
+      }
+
+      const aPos = secondaryPos.get(a);
+      const bPos = secondaryPos.get(b);
+      const aKey = aIdeal ?? (aPos !== undefined ? aPos + getBreadth(a) / 2 : 0);
+      const bKey = bIdeal ?? (bPos !== undefined ? bPos + getBreadth(b) / 2 : 0);
+
+      if (aKey !== bKey) return aKey - bKey;
+
+      if (aPos !== undefined && bPos !== undefined && aPos !== bPos) {
+        return aPos - bPos;
+      }
+      return 0;
+    });
+
+    const placeMergedBlock = (items: BlockItem[], fallbackStart: number): Block => {
+      let offset = 0;
+      let anchoredSum = 0;
+      let anchoredCount = 0;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (i > 0) offset += SECONDARY_GAP;
+        const relCenter = offset + item.breadth / 2;
+        if (item.idealCenter !== null) {
+          anchoredSum += item.idealCenter - relCenter;
+          anchoredCount++;
+        }
+        offset += item.breadth;
+      }
+
+      const start = anchoredCount > 0 ? anchoredSum / anchoredCount : fallbackStart;
+      return { items, totalBreadth: offset, start };
+    };
+
+    const blocks: Block[] = [];
+    let prevEnd = -Infinity;
+
+    for (const id of entities) {
+      const breadth = getBreadth(id);
+      const idealCenter = idealCenters.get(id) ?? null;
+
+      let initialStart: number;
+      if (idealCenter !== null) {
+        initialStart = idealCenter - breadth / 2;
+      } else if (!isInitialPass && secondaryPos.has(id)) {
+        initialStart = secondaryPos.get(id)!;
+      } else {
+        initialStart = prevEnd === -Infinity ? 0 : prevEnd + SECONDARY_GAP;
+      }
+
+      let currBlock: Block = {
+        items: [{ id, breadth, idealCenter }],
+        totalBreadth: breadth,
+        start: initialStart
+      };
+
+      // Merge backward while overlapping so sibling groups stay centered on their target
+      while (blocks.length > 0) {
+        const prev = blocks[blocks.length - 1];
+        if (prev.start + prev.totalBreadth + SECONDARY_GAP <= currBlock.start + 1e-6) {
+          break;
+        }
+        blocks.pop();
+        currBlock = placeMergedBlock([...prev.items, ...currBlock.items], prev.start);
+      }
+
+      blocks.push(currBlock);
+      prevEnd = currBlock.start + currBlock.totalBreadth;
+    }
+
+    for (const block of blocks) {
+      let cursor = block.start;
+      for (const item of block.items) {
+        secondaryPos.set(item.id, cursor);
+        cursor += item.breadth + SECONDARY_GAP;
+      }
+    }
   }
 
   private getAvgNeighborPos(
