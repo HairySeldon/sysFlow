@@ -68,6 +68,8 @@ export interface SysFlowCanvasProps {
     style?: React.CSSProperties;
     enableQuickAdd?: boolean;
     enableEdgeQuickAdd?: boolean;
+    isDrawingEdge?: boolean;
+    onDrawingEdgeChange?: (isDrawing: boolean) => void;
     onNodeCreate?: (node: Partial<NodeEntity>) => void;
     onEdgeCreate?: (sourceId: ID, targetId: ID, edgeId: ID) => void;
     onNodeDelete?: (nodeId: ID) => void;

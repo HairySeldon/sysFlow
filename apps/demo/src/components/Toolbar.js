@@ -1,9 +1,10 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useRef } from 'react';
-export const Toolbar = ({ graph, selectedIds, direction = 'LR', onToggleDirection, onAddNode, onAddContainer, onDeleteSelected, onUpdateGraph, extraActions }) => {
+export const Toolbar = ({ graph, selectedIds, direction = 'LR', isDrawingEdge = false, onToggleDrawingEdge, onToggleDirection, onAddNode, onAddContainer, onDeleteSelected, onUpdateGraph, extraActions }) => {
     const fileInputRef = useRef(null);
     const handleSaveJson = () => {
-        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(graph, null, 2));
+        const dataStr = 'data:text/json;charset=utf-8,' +
+            encodeURIComponent(JSON.stringify(graph, null, 2));
         const downloadAnchor = document.createElement('a');
         downloadAnchor.setAttribute('href', dataStr);
         downloadAnchor.setAttribute('download', `sysflow-graph-${Date.now()}.json`);
@@ -26,7 +27,9 @@ export const Toolbar = ({ graph, selectedIds, direction = 'LR', onToggleDirectio
         if (typeof g.nodes !== 'object' || g.nodes === null || Array.isArray(g.nodes)) {
             throw new Error('Schema error: "nodes" property must be a valid object map.');
         }
-        if (typeof g.containers !== 'object' || g.containers === null || Array.isArray(g.containers)) {
+        if (typeof g.containers !== 'object' ||
+            g.containers === null ||
+            Array.isArray(g.containers)) {
             throw new Error('Schema error: "containers" property must be a valid object map.');
         }
         if (typeof g.edges !== 'object' || g.edges === null || Array.isArray(g.edges)) {
@@ -35,10 +38,12 @@ export const Toolbar = ({ graph, selectedIds, direction = 'LR', onToggleDirectio
         const nodeIds = new Set(Object.keys(g.nodes));
         const containerIds = new Set(Object.keys(g.containers));
         for (const [eId, edge] of Object.entries(g.edges)) {
-            if (!edge.sourceId || (!nodeIds.has(edge.sourceId) && !containerIds.has(edge.sourceId))) {
+            if (!edge.sourceId ||
+                (!nodeIds.has(edge.sourceId) && !containerIds.has(edge.sourceId))) {
                 throw new Error(`Schema error in edge "${eId}": sourceId "${edge.sourceId}" does not exist.`);
             }
-            if (!edge.targetId || (!nodeIds.has(edge.targetId) && !containerIds.has(edge.targetId))) {
+            if (!edge.targetId ||
+                (!nodeIds.has(edge.targetId) && !containerIds.has(edge.targetId))) {
                 throw new Error(`Schema error in edge "${eId}": targetId "${edge.targetId}" does not exist.`);
             }
         }
@@ -83,7 +88,18 @@ export const Toolbar = ({ graph, selectedIds, direction = 'LR', onToggleDirectio
                     const name = prompt('Enter container label:', 'Group_Container');
                     if (name)
                         onAddContainer(name);
-                }, children: "+ Add Container" }), selectedIds.length > 0 && (_jsxs("button", { style: { ...actionBtnStyle, backgroundColor: '#7f1d1d', borderColor: '#ef4444' }, onClick: onDeleteSelected, children: ["Delete Selected (", selectedIds.length, ")"] })), extraActions, _jsx("button", { style: actionBtnStyle, onClick: handleSaveJson, children: "Save JSON" }), _jsx("input", { ref: fileInputRef, type: "file", accept: ".json", style: { display: 'none' }, onChange: handleUploadJson }), _jsx("button", { style: actionBtnStyle, onClick: () => fileInputRef.current?.click(), children: "Upload JSON" })] }));
+                }, children: "+ Add Container" }), onToggleDrawingEdge && (_jsx("button", { style: {
+                    ...actionBtnStyle,
+                    background: isDrawingEdge
+                        ? '#0284c7'
+                        : 'var(--sysflow-panel-btn-bg, #1e293b)',
+                    borderColor: isDrawingEdge
+                        ? '#38bdf8'
+                        : 'var(--sysflow-panel-border, #334155)',
+                    color: isDrawingEdge
+                        ? '#ffffff'
+                        : 'var(--sysflow-panel-btn-text, #f8fafc)'
+                }, onClick: onToggleDrawingEdge, title: "Toggle Edge Drawing Mode (E)", children: isDrawingEdge ? '⚡ Drawing Edge (E)' : '↗ Draw Edge (E)' })), selectedIds.length > 0 && (_jsxs("button", { style: { ...actionBtnStyle, backgroundColor: '#7f1d1d', borderColor: '#ef4444' }, onClick: onDeleteSelected, children: ["Delete Selected (", selectedIds.length, ")"] })), extraActions, _jsx("button", { style: actionBtnStyle, onClick: handleSaveJson, children: "Save JSON" }), _jsx("input", { ref: fileInputRef, type: "file", accept: ".json", style: { display: 'none' }, onChange: handleUploadJson }), _jsx("button", { style: actionBtnStyle, onClick: () => fileInputRef.current?.click(), children: "Upload JSON" })] }));
 };
 const actionBtnStyle = {
     background: 'var(--sysflow-panel-btn-bg, #1e293b)',

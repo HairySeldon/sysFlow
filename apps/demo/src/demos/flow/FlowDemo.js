@@ -61,6 +61,7 @@ export const FlowDemo = ({ theme }) => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [editorNodeId, setEditorNodeId] = useState(null);
     const [direction, setDirection] = useState('BT');
+    const [isDrawingEdge, setIsDrawingEdge] = useState(false);
     // Provide factory to useGraphHistory for generating connected and spliced nodes
     const history = useGraphHistory(INITIAL_PIPELINE_GRAPH, {
         createNodeEntity: (context) => {
@@ -123,7 +124,7 @@ export const FlowDemo = ({ theme }) => {
             }
         });
     }, [graph, setGraphDirect]);
-    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, onToggleDirection: () => setDirection((d) => (d === 'BT' ? 'TB' : 'BT')), onAddNode: handleAddToolbarNode, onAddContainer: (label) => {
+    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, isDrawingEdge: isDrawingEdge, onToggleDrawingEdge: () => setIsDrawingEdge((prev) => !prev), onToggleDirection: () => setDirection((d) => (d === 'BT' ? 'TB' : 'BT')), onAddNode: handleAddToolbarNode, onAddContainer: (label) => {
                     const id = `stage_${Date.now()}`;
                     setGraphDirect({
                         ...graph,
@@ -133,7 +134,7 @@ export const FlowDemo = ({ theme }) => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                     setEditorNodeId(null);
-                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, history: history, onChange: (action) => {
+                }, onUpdateGraph: setGraphDirect }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, history: history, isDrawingEdge: isDrawingEdge, onDrawingEdgeChange: setIsDrawingEdge, onChange: (action) => {
                     if (action.type === 'SELECTION_CHANGE') {
                         setSelectedIds(action.payload.selectedIds);
                         setEditorNodeId(action.payload.selectedIds[0] || null);

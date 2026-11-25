@@ -94,6 +94,7 @@ export const SysDemo = ({ theme = 'dark' }) => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [inspectorOpen, setInspectorOpen] = useState(false);
     const [showConfigModal, setShowConfigModal] = useState(false);
+    const [isDrawingEdge, setIsDrawingEdge] = useState(false);
     // File System & Configuration State
     const [sourceConfig, setSourceConfig] = useState(DEFAULT_SOURCE_CONFIG);
     const [projectDirHandle, setProjectDirHandle] = useState(null);
@@ -372,7 +373,7 @@ export const SysDemo = ({ theme = 'dark' }) => {
         btnHover: isLight ? '#e2e8f0' : '#334155',
         shadow: isLight ? '0 16px 48px rgba(0, 0, 0, 0.14)' : '0 16px 48px rgba(0, 0, 0, 0.85)'
     };
-    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, onAddNode: handleAddNode, onAddContainer: handleAddContainer, onDeleteSelected: () => {
+    return (_jsxs("div", { style: { width: '100vw', height: 'calc(100vh - 50px)', position: 'relative' }, children: [_jsx(Toolbar, { graph: graph, selectedIds: selectedIds, direction: direction, isDrawingEdge: isDrawingEdge, onToggleDrawingEdge: () => setIsDrawingEdge((prev) => !prev), onAddNode: handleAddNode, onAddContainer: handleAddContainer, onDeleteSelected: () => {
                     deleteSelection(selectedIds);
                     setSelectedIds([]);
                 }, onUpdateGraph: setGraphDirect, extraActions: _jsx("button", { style: {
@@ -385,7 +386,7 @@ export const SysDemo = ({ theme = 'dark' }) => {
                         fontSize: '12px',
                         fontWeight: 700,
                         transition: 'all 0.15s ease'
-                    }, onClick: () => setShowConfigModal(!showConfigModal), title: "Open Module-to-File Source Configuration", children: "\u2699 Source Config" }) }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigModal && (_jsxs("div", { style: {
+                    }, onClick: () => setShowConfigModal(!showConfigModal), title: "Open Module-to-File Source Configuration", children: "\u2699 Source Config" }) }), _jsx(SysFlowCanvas, { theme: theme, graph: graph, isDrawingEdge: isDrawingEdge, onDrawingEdgeChange: setIsDrawingEdge, onChange: handleGraphChange, interactionStrategy: reparentStrategy, direction: "LR", routing: "step", portPlacementMode: "perimeter-optimized", layoutOptions: { mode: 'concurrent', channelSpacing: 60 }, nodeTypes: { Module: SysModuleRenderer }, selectedIds: selectedIds }), showConfigModal && (_jsxs("div", { style: {
                     position: 'absolute',
                     top: 60,
                     left: 40,

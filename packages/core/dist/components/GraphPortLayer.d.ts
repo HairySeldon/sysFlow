@@ -8,8 +8,8 @@ export interface GraphPortLayerProps {
     direction?: 'LR' | 'TB' | 'RL' | 'BT';
     edges?: Record<ID, EdgeEntity>;
     portOptions?: ComputePortOptions;
-    onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
-    onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
+    enableQuickAdd?: boolean;
+    onAddConnectedNode?: (entity: NodeEntity, portId: ID, side: 'top' | 'bottom' | 'left' | 'right') => void;
 }
 export declare const GraphPortLayer: React.FC<GraphPortLayerProps>;
 //# sourceMappingURL=GraphPortLayer.d.ts.map

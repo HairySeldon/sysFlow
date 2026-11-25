@@ -1,5 +1,11 @@
-import React from 'react';
-import { NodeEntity, EdgeEntity, ID, computeEntityPortLocations, ComputePortOptions } from '../models';
+import React, { useState } from 'react';
+import {
+  NodeEntity,
+  EdgeEntity,
+  ID,
+  computeEntityPortLocations,
+  ComputePortOptions,
+} from '../models';
 import { NodeLayoutResult } from '../layout/LayoutEngine';
 
 export interface GraphPortLayerProps {
@@ -8,8 +14,12 @@ export interface GraphPortLayerProps {
   direction?: 'LR' | 'TB' | 'RL' | 'BT';
   edges?: Record<ID, EdgeEntity>;
   portOptions?: ComputePortOptions;
-  onPortPointerDown?: (entityId: string, portId: string, isSource: boolean, e: React.PointerEvent) => void;
-  onPortPointerUp?: (entityId: string, portId: string, isSource: boolean) => void;
+  enableQuickAdd?: boolean;
+  onAddConnectedNode?: (
+    entity: NodeEntity,
+    portId: ID,
+    side: 'top' | 'bottom' | 'left' | 'right'
+  ) => void;
 }
 
 export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
@@ -18,9 +28,11 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
   direction = 'LR',
   edges,
   portOptions,
-  onPortPointerDown,
-  onPortPointerUp
+  enableQuickAdd = false,
+  onAddConnectedNode,
 }) => {
+  const [hoveredPortId, setHoveredPortId] = useState<ID | null>(null);
+
   if (!entity.ports || entity.ports.length === 0) {
     return null;
   }
@@ -39,28 +51,41 @@ export const GraphPortLayer: React.FC<GraphPortLayerProps> = ({
         const loc = portLocations.get(port.id);
         if (!loc) return null;
 
+        const isPortHovered = hoveredPortId === port.id;
+
         return (
           <div
             key={port.id}
-            className={`sysflow-port-anchor sysflow-port-${loc.side}`}
+            className="sysflow-port-hit-area"
             style={{
-              position: 'absolute',
               left: `${loc.localX}px`,
               top: `${loc.localY}px`,
-              transform: 'translate(-50%, -50%)',
-              cursor: 'crosshair',
-              zIndex: 10
             }}
             title={`${port.label} (${loc.side})`}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onPortPointerDown?.(entity.id, port.id, true, e);
-            }}
-            onPointerUp={(e) => {
-              e.stopPropagation();
-              onPortPointerUp?.(entity.id, port.id, false);
-            }}
-          />
+            onMouseEnter={() => setHoveredPortId(port.id)}
+            onMouseLeave={() =>
+              setHoveredPortId((prev) => (prev === port.id ? null : prev))
+            }
+          >
+            <div className={`sysflow-port-anchor sysflow-port-${loc.side}`} />
+
+            {enableQuickAdd && isPortHovered && onAddConnectedNode && (
+              <button
+                type="button"
+                className="sysflow-port-quick-add-btn"
+                title={`Add connected node on "${port.label}"`}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onAddConnectedNode(entity, port.id, loc.side);
+                }}
+              >
+                +
+              </button>
+            )}
+          </div>
         );
       })}
     </>

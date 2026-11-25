@@ -125,6 +125,7 @@ export const SysDemo: React.FC<SysDemoProps> = ({ theme = 'dark' }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [isDrawingEdge, setIsDrawingEdge] = useState(false);
 
   // File System & Configuration State
   const [sourceConfig, setSourceConfig] = useState<SourceConfig>(DEFAULT_SOURCE_CONFIG);
@@ -422,6 +423,8 @@ export const SysDemo: React.FC<SysDemoProps> = ({ theme = 'dark' }) => {
         graph={graph}
         selectedIds={selectedIds}
         direction={direction}
+        isDrawingEdge={isDrawingEdge}
+        onToggleDrawingEdge={() => setIsDrawingEdge((prev) => !prev)}
         onAddNode={handleAddNode}
         onAddContainer={handleAddContainer}
         onDeleteSelected={() => {
@@ -453,6 +456,8 @@ export const SysDemo: React.FC<SysDemoProps> = ({ theme = 'dark' }) => {
       <SysFlowCanvas
         theme={theme}
         graph={graph}
+        isDrawingEdge={isDrawingEdge}
+        onDrawingEdgeChange={setIsDrawingEdge}
         onChange={handleGraphChange}
         interactionStrategy={reparentStrategy}
         direction="LR"
@@ -462,7 +467,6 @@ export const SysDemo: React.FC<SysDemoProps> = ({ theme = 'dark' }) => {
         nodeTypes={{ Module: SysModuleRenderer }}
         selectedIds={selectedIds}
       />
-
       {/* Source Configuration Modal */}
       {showConfigModal && (
         <div

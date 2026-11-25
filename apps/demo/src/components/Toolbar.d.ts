@@ -4,6 +4,8 @@ interface ToolbarProps {
     graph: LogicalGraph;
     selectedIds: ID[];
     direction?: 'LR' | 'TB' | 'RL' | 'BT';
+    isDrawingEdge?: boolean;
+    onToggleDrawingEdge?: () => void;
     onToggleDirection?: () => void;
     onAddNode: (label: string, parentId?: string | null) => void;
     onAddContainer: (label: string) => void;

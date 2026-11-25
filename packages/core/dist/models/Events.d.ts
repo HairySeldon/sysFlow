@@ -55,7 +55,8 @@ export type GraphAction = {
     type: 'NODE_ADD_CONNECTED';
     payload: {
         sourceNode: NodeEntity;
-        position: 'top' | 'bottom';
+        position: 'top' | 'bottom' | 'left' | 'right';
+        portId?: ID;
         direction: 'LR' | 'TB' | 'RL' | 'BT';
         suggestedNewNodeId: ID;
         suggestedNewEdgeId: ID;

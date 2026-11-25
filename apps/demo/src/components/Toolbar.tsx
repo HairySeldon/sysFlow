@@ -5,6 +5,8 @@ interface ToolbarProps {
   graph: LogicalGraph;
   selectedIds: ID[];
   direction?: 'LR' | 'TB' | 'RL' | 'BT';
+  isDrawingEdge?: boolean;
+  onToggleDrawingEdge?: () => void;
   onToggleDirection?: () => void;
   onAddNode: (label: string, parentId?: string | null) => void;
   onAddContainer: (label: string) => void;
@@ -17,6 +19,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   graph,
   selectedIds,
   direction = 'LR',
+  isDrawingEdge = false,
+  onToggleDrawingEdge,
   onToggleDirection,
   onAddNode,
   onAddContainer,
@@ -27,7 +31,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSaveJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(graph, null, 2));
+    const dataStr =
+      'data:text/json;charset=utf-8,' +
+      encodeURIComponent(JSON.stringify(graph, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute('download', `sysflow-graph-${Date.now()}.json`);
@@ -53,7 +59,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     if (typeof g.nodes !== 'object' || g.nodes === null || Array.isArray(g.nodes)) {
       throw new Error('Schema error: "nodes" property must be a valid object map.');
     }
-    if (typeof g.containers !== 'object' || g.containers === null || Array.isArray(g.containers)) {
+    if (
+      typeof g.containers !== 'object' ||
+      g.containers === null ||
+      Array.isArray(g.containers)
+    ) {
       throw new Error('Schema error: "containers" property must be a valid object map.');
     }
     if (typeof g.edges !== 'object' || g.edges === null || Array.isArray(g.edges)) {
@@ -64,11 +74,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     const containerIds = new Set(Object.keys(g.containers as object));
 
     for (const [eId, edge] of Object.entries(g.edges as Record<string, any>)) {
-      if (!edge.sourceId || (!nodeIds.has(edge.sourceId) && !containerIds.has(edge.sourceId))) {
-        throw new Error(`Schema error in edge "${eId}": sourceId "${edge.sourceId}" does not exist.`);
+      if (
+        !edge.sourceId ||
+        (!nodeIds.has(edge.sourceId) && !containerIds.has(edge.sourceId))
+      ) {
+        throw new Error(
+          `Schema error in edge "${eId}": sourceId "${edge.sourceId}" does not exist.`
+        );
       }
-      if (!edge.targetId || (!nodeIds.has(edge.targetId) && !containerIds.has(edge.targetId))) {
-        throw new Error(`Schema error in edge "${eId}": targetId "${edge.targetId}" does not exist.`);
+      if (
+        !edge.targetId ||
+        (!nodeIds.has(edge.targetId) && !containerIds.has(edge.targetId))
+      ) {
+        throw new Error(
+          `Schema error in edge "${eId}": targetId "${edge.targetId}" does not exist.`
+        );
       }
     }
 
@@ -139,6 +159,27 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       >
         + Add Container
       </button>
+
+      {onToggleDrawingEdge && (
+        <button
+          style={{
+            ...actionBtnStyle,
+            background: isDrawingEdge
+              ? '#0284c7'
+              : 'var(--sysflow-panel-btn-bg, #1e293b)',
+            borderColor: isDrawingEdge
+              ? '#38bdf8'
+              : 'var(--sysflow-panel-border, #334155)',
+            color: isDrawingEdge
+              ? '#ffffff'
+              : 'var(--sysflow-panel-btn-text, #f8fafc)'
+          }}
+          onClick={onToggleDrawingEdge}
+          title="Toggle Edge Drawing Mode (E)"
+        >
+          {isDrawingEdge ? '⚡ Drawing Edge (E)' : '↗ Draw Edge (E)'}
+        </button>
+      )}
 
       {selectedIds.length > 0 && (
         <button

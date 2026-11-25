@@ -2,12 +2,13 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import {
   LogicalGraph,
   ID,
+  Port,
   NodeEntity,
   ContainerEntity,
   EdgeEntity,
   GraphAction,
   computeEntityPortLocations,
-  ComputePortOptions
+  ComputePortOptions,
 } from '../models';
 import { LayoutEngine, LayoutResult, LayoutOptions } from '../layout/LayoutEngine';
 import { WorkerBridge } from '../layout/worker/WorkerBridge';
@@ -70,7 +71,9 @@ const TOKEN_VAR_MAP: Record<keyof SysFlowThemeTokens, string> = {
   shadow: '--sysflow-shadow',
 };
 
-export function themeTokensToStyle(tokens?: Partial<SysFlowThemeTokens>): React.CSSProperties {
+export function themeTokensToStyle(
+  tokens?: Partial<SysFlowThemeTokens>
+): React.CSSProperties {
   if (!tokens) return {};
   const styles: Record<string, string> = {};
   for (const [key, val] of Object.entries(tokens)) {
@@ -106,7 +109,10 @@ export interface SysFlowCanvasProps {
   layoutOptions?: LayoutOptions;
   showEdgeArrows?: boolean;
   nodeTypes?: Record<string, React.ComponentType<{ node: NodeEntity; selected: boolean }>>;
-  containerTypes?: Record<string, React.ComponentType<{ container: ContainerEntity; selected: boolean }>>;
+  containerTypes?: Record<
+    string,
+    React.ComponentType<{ container: ContainerEntity; selected: boolean }>
+  >;
   zoomBounds?: { min: number; max: number };
   className?: string;
   selectedIds?: ID[];
@@ -117,11 +123,26 @@ export interface SysFlowCanvasProps {
   style?: React.CSSProperties;
   enableQuickAdd?: boolean;
   enableEdgeQuickAdd?: boolean;
+  isDrawingEdge?: boolean;
+  onDrawingEdgeChange?: (isDrawing: boolean) => void;
   onNodeCreate?: (node: Partial<NodeEntity>) => void;
   onEdgeCreate?: (sourceId: ID, targetId: ID, edgeId: ID) => void;
   onNodeDelete?: (nodeId: ID) => void;
   onContainerDelete?: (containerId: ID) => void;
   onEdgeDelete?: (edgeId: ID) => void;
+}
+
+interface DrawingSourceState {
+  nodeId: ID;
+  portId: ID;
+}
+
+interface PortPromptState {
+  role: 'source' | 'destination';
+  node: NodeEntity;
+  candidatePorts: Port[];
+  source?: DrawingSourceState;
+  remainingDestNodeIds?: ID[];
 }
 
 const DEFAULT_STRATEGY = new ReparentStrategy();
@@ -132,7 +153,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   history,
   enableShortcuts = true,
   onNodeClick,
-  onEdgeClick,
   layoutEngine,
   interactionStrategy = DEFAULT_STRATEGY,
   direction = 'TB',
@@ -150,11 +170,13 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   style,
   enableQuickAdd,
   enableEdgeQuickAdd,
+  isDrawingEdge,
+  onDrawingEdgeChange,
   onNodeCreate,
   onEdgeCreate,
   onNodeDelete,
   onContainerDelete,
-  onEdgeDelete
+  onEdgeDelete,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const internalEngineRef = useRef<LayoutEngine | null>(null);
@@ -175,34 +197,65 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     zoomIn,
     zoomOut,
     zoomToFit,
-    isPanning
+    isPanning,
   } = useCanvasTransform(containerRef, zoomBounds);
 
   const { measurements, registerMeasureElement } = useMeasurement(graph);
   const [layout, setLayout] = useState<LayoutResult>({ nodes: {}, containers: {} });
 
-  // Memoized port options available everywhere in the component
-  const resolvedPortOptions: ComputePortOptions = useMemo(() => ({
-    direction,
-    mode: portPlacementMode ?? (direction === 'TB' || direction === 'BT' ? 'strict-flow' : 'perimeter-optimized'),
-    nodeLayouts: layout.nodes
-  }), [direction, portPlacementMode, layout.nodes]);
+  // Controlled/uncontrolled Edge Drawing Mode
+  const [internalDrawingEdge, setInternalDrawingEdge] = useState(false);
+  const effectiveDrawingEdge = isDrawingEdge ?? internalDrawingEdge;
 
-  // Active wire-drawing state (drag from source port to target port)
-  const [activeWire, setActiveWire] = useState<{
-    sourceId: ID;
-    sourcePortId: ID;
-    startWorldPos: { x: number; y: number };
-    currentWorldPos: { x: number; y: number };
+  const setDrawingEdge = useCallback(
+    (next: boolean) => {
+      if (isDrawingEdge === undefined) {
+        setInternalDrawingEdge(next);
+      }
+      onDrawingEdgeChange?.(next);
+    },
+    [isDrawingEdge, onDrawingEdgeChange]
+  );
+
+  // Edge drawing state
+  const [drawingSource, setDrawingSource] = useState<DrawingSourceState | null>(null);
+  const [drawingCursorWorld, setDrawingCursorWorld] = useState<{
+    x: number;
+    y: number;
   } | null>(null);
+  const [portPrompt, setPortPrompt] = useState<PortPromptState | null>(null);
 
-  // Marquee box-selection state in world coordinates
+  // Clear temporary drawing state whenever drawing mode turns off
+  useEffect(() => {
+    if (!effectiveDrawingEdge) {
+      setDrawingSource(null);
+      setDrawingCursorWorld(null);
+      setPortPrompt(null);
+    }
+  }, [effectiveDrawingEdge]);
+
+  const resolvedPortOptions: ComputePortOptions = useMemo(
+    () => ({
+      direction,
+      mode:
+        portPlacementMode ??
+        (direction === 'TB' || direction === 'BT' ? 'strict-flow' : 'perimeter-optimized'),
+      nodeLayouts: layout.nodes,
+    }),
+    [direction, portPlacementMode, layout.nodes]
+  );
+
+  const isFlowMode =
+    layoutOptions?.mode === 'flow' || portPlacementMode === 'strict-flow';
+
+  // Marquee box-selection state in world coordinates + screen start for click vs drag detection
   const [marqueeBox, setMarqueeBox] = useState<{
     startX: number;
     startY: number;
     currentX: number;
     currentY: number;
   } | null>(null);
+  const marqueeStartScreenRef = useRef<{ x: number; y: number } | null>(null);
 
   const isSpacePressedRef = useRef(false);
 
@@ -211,11 +264,253 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     hoveredContainerId,
     handlePointerDown: onEntityPointerDown,
     handlePointerMove: onEntityPointerMove,
-    handlePointerUp: onEntityPointerUp
+    handlePointerUp: onEntityPointerUp,
   } = useDragGesture(graph, layout, interactionStrategy, screenToWorld, onChange);
 
-  // Keyboard Navigation: Tab, Arrow keys, 'F' (zoom-to-fit), Ctrl+A, Undo/Redo, Copy/Paste/Delete
-// Inside SysFlowCanvas.tsx:
+  const generateId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
+  // Resolve candidate ports for a node based on mode (flow vs system) and layout direction
+  const getCandidatePorts = useCallback(
+    (node: NodeEntity, role: 'source' | 'destination'): Port[] => {
+      if (!node.ports || node.ports.length === 0) return [];
+
+      // System mode: no strict port sides -> include all ports
+      if (!isFlowMode) {
+        return node.ports;
+      }
+
+      // Flow mode: source uses outgoing side, destination uses incoming side
+      const sourceSide: 'top' | 'bottom' | 'left' | 'right' =
+        direction === 'BT'
+          ? 'top'
+          : direction === 'TB'
+          ? 'bottom'
+          : direction === 'LR'
+          ? 'right'
+          : 'left';
+      const destSide: 'top' | 'bottom' | 'left' | 'right' =
+        direction === 'BT'
+          ? 'bottom'
+          : direction === 'TB'
+          ? 'top'
+          : direction === 'LR'
+          ? 'left'
+          : 'right';
+
+      const expectedSide = role === 'source' ? sourceSide : destSide;
+      const nodeLayout = layout.nodes[node.id];
+      const portLocs = nodeLayout
+        ? computeEntityPortLocations(
+            node,
+            nodeLayout,
+            direction,
+            graph.edges,
+            resolvedPortOptions
+          )
+        : null;
+
+      return node.ports.filter((port) => {
+        const computedSide = portLocs?.get(port.id)?.side ?? port.side;
+        return computedSide === expectedSide;
+      });
+    },
+    [isFlowMode, direction, layout.nodes, graph.edges, resolvedPortOptions]
+  );
+
+  // Duplicate and self-loop guard
+  const tryCreateEdge = useCallback(
+    (
+      sourceId: ID,
+      sourcePortId: ID,
+      targetId: ID,
+      targetPortId: ID,
+      batchKeys?: Set<string>
+    ) => {
+      if (sourceId === targetId) return;
+
+      const key = `${sourceId}:${sourcePortId}->${targetId}:${targetPortId}`;
+      if (batchKeys?.has(key)) return;
+
+      const alreadyExists = Object.values(graph.edges).some(
+        (e) =>
+          e.sourceId === sourceId &&
+          e.sourcePortId === sourcePortId &&
+          e.targetId === targetId &&
+          e.targetPortId === targetPortId
+      );
+      if (alreadyExists) return;
+
+      batchKeys?.add(key);
+
+      onChange({
+        type: 'EDGE_CREATE',
+        payload: {
+          edge: {
+            sourceId,
+            sourcePortId,
+            targetId,
+            targetPortId,
+          },
+        },
+      });
+    },
+    [graph.edges, onChange]
+  );
+
+  const resetAndExitDrawingMode = useCallback(() => {
+    setDrawingSource(null);
+    setDrawingCursorWorld(null);
+    setPortPrompt(null);
+    setDrawingEdge(false);
+  }, [setDrawingEdge]);
+
+  // Process a queue of destination node IDs (supports single-click or multi-node marquee)
+  const processDestinationQueue = useCallback(
+    (source: DrawingSourceState, queue: ID[], batchKeys = new Set<string>()) => {
+      for (let i = 0; i < queue.length; i++) {
+        const destNodeId = queue[i];
+        if (destNodeId === source.nodeId) continue;
+
+        const destNode = graph.nodes[destNodeId];
+        if (!destNode) continue;
+
+        const candidates = getCandidatePorts(destNode, 'destination');
+        if (candidates.length === 0) continue;
+
+        if (candidates.length === 1) {
+          tryCreateEdge(
+            source.nodeId,
+            source.portId,
+            destNode.id,
+            candidates[0].id,
+            batchKeys
+          );
+        } else {
+          // Pause and prompt user to select destination port
+          setPortPrompt({
+            role: 'destination',
+            node: destNode,
+            candidatePorts: candidates,
+            source,
+            remainingDestNodeIds: queue.slice(i + 1),
+          });
+          return;
+        }
+      }
+
+      // All destinations handled -> exit drawing mode
+      resetAndExitDrawingMode();
+    },
+    [graph.nodes, getCandidatePorts, tryCreateEdge, resetAndExitDrawingMode]
+  );
+
+  // Compute world origin for the live preview line from the selected source node/port
+  const sourceWorldOrigin = useMemo(() => {
+    if (!drawingSource) return null;
+    const node = graph.nodes[drawingSource.nodeId];
+    const nodeLayout = layout.nodes[drawingSource.nodeId];
+    if (!node || !nodeLayout) return null;
+
+    const portLocs = computeEntityPortLocations(
+      node,
+      nodeLayout,
+      direction,
+      graph.edges,
+      resolvedPortOptions
+    );
+    const loc = portLocs.get(drawingSource.portId);
+    if (loc) {
+      return { x: loc.worldX, y: loc.worldY };
+    }
+    return {
+      x: nodeLayout.x + nodeLayout.width / 2,
+      y: nodeLayout.y + nodeLayout.height / 2,
+    };
+  }, [drawingSource, graph.nodes, graph.edges, layout.nodes, direction, resolvedPortOptions]);
+
+  // Handle clicking a node while in edge drawing mode
+  const handleDrawingNodeClick = useCallback(
+    (node: NodeEntity, clientX: number, clientY: number) => {
+      if (portPrompt) return;
+
+      if (!drawingSource) {
+        const candidates = getCandidatePorts(node, 'source');
+        if (candidates.length === 0) return;
+
+        if (candidates.length === 1) {
+          setDrawingSource({ nodeId: node.id, portId: candidates[0].id });
+          setDrawingCursorWorld(screenToWorld(clientX, clientY));
+        } else {
+          setPortPrompt({
+            role: 'source',
+            node,
+            candidatePorts: candidates,
+          });
+        }
+        return;
+      }
+
+      // Disallow clicking the same node as both source and destination
+      if (node.id === drawingSource.nodeId) return;
+
+      processDestinationQueue(drawingSource, [node.id]);
+    },
+    [
+      portPrompt,
+      drawingSource,
+      getCandidatePorts,
+      screenToWorld,
+      processDestinationQueue,
+    ]
+  );
+
+  // Handle user picking a port inside the modal
+  const handleSelectPortInModal = (port: Port) => {
+    if (!portPrompt) return;
+
+    if (portPrompt.role === 'source') {
+      const chosenSource: DrawingSourceState = {
+        nodeId: portPrompt.node.id,
+        portId: port.id,
+      };
+      const nodeLayout = layout.nodes[portPrompt.node.id];
+      if (nodeLayout) {
+        const portLocs = computeEntityPortLocations(
+          portPrompt.node,
+          nodeLayout,
+          direction,
+          graph.edges,
+          resolvedPortOptions
+        );
+        const loc = portLocs.get(port.id);
+        if (loc) {
+          setDrawingCursorWorld({ x: loc.worldX, y: loc.worldY });
+        }
+      }
+      setDrawingSource(chosenSource);
+      setPortPrompt(null);
+    } else if (portPrompt.role === 'destination' && portPrompt.source) {
+      const source = portPrompt.source;
+      const remaining = portPrompt.remainingDestNodeIds || [];
+      tryCreateEdge(source.nodeId, source.portId, portPrompt.node.id, port.id);
+      setPortPrompt(null);
+
+      if (remaining.length > 0) {
+        processDestinationQueue(source, remaining);
+      } else {
+        resetAndExitDrawingMode();
+      }
+    }
+  };
 
   // Keyboard navigation & shortcuts
   useEffect(() => {
@@ -223,6 +518,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement ||
         (e.target instanceof HTMLElement && e.target.isContentEditable)
       ) {
         return;
@@ -231,17 +527,38 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       const isMod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
 
-      // Deletion shortcut: invoke user-provided callbacks if available
+      // Escape: wipe node/port selection, cancel marquee, and exit edge drawing mode
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMarqueeBox(null);
+        marqueeStartScreenRef.current = null;
+        if (effectiveDrawingEdge || portPrompt || drawingSource) {
+          resetAndExitDrawingMode();
+        }
+        onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
+        return;
+      }
+
+      // "e" keybind: toggle Edge Drawing Mode
+      if (enableShortcuts !== false && !isMod && !e.altKey && key === 'e') {
+        e.preventDefault();
+        if (effectiveDrawingEdge) {
+          resetAndExitDrawingMode();
+        } else {
+          setDrawingEdge(true);
+        }
+        return;
+      }
+
+      // Deletion shortcut
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (effectiveDrawingEdge) return;
         e.preventDefault();
         if (selectedIds.length > 0) {
           if (onNodeDelete || onEdgeDelete || onContainerDelete) {
             for (const id of selectedIds) {
               if (graph.nodes[id]) onNodeDelete?.(id);
-              else if (graph.containers[id]) {
-                // If onContainerDelete is provided, call it; otherwise fallback to onNodeDelete
-                (onContainerDelete || onNodeDelete)?.(id);
-              }
+              else if (graph.containers[id]) (onContainerDelete || onNodeDelete)?.(id);
               else if (graph.edges[id]) onEdgeDelete?.(id);
             }
           }
@@ -287,37 +604,28 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         }
       }
 
-      // Escape Key: Deselect all and cancel active marquee
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setMarqueeBox(null);
-        onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
-        return;
-      }
-
       if (e.code === 'Space') {
         isSpacePressedRef.current = true;
       }
 
-      if (e.key.toLowerCase() === 'f' && !isMod) {
+      if (key === 'f' && !isMod) {
         e.preventDefault();
         zoomToFit(layout);
         return;
       }
 
-      if (isMod && key === 'a') {
+      if (isMod && key === 'a' && !effectiveDrawingEdge) {
         e.preventDefault();
         const allIds = [
           ...Object.keys(graph.nodes),
-          ...Object.keys(graph.containers)
+          ...Object.keys(graph.containers),
         ];
         onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: allIds } });
         return;
       }
 
-      // Tab & Spatial navigation
       const nodeIds = Object.keys(graph.nodes);
-      if (nodeIds.length === 0) return;
+      if (nodeIds.length === 0 || effectiveDrawingEdge) return;
 
       if (e.key === 'Tab') {
         e.preventDefault();
@@ -329,7 +637,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           nextIdx = (currentIdx + 1) % nodeIds.length;
         }
         onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [nodeIds[nextIdx]] } });
-        return;
       }
     };
 
@@ -345,19 +652,58 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [graph, layout, selectedIds, zoomToFit, onChange, history, enableShortcuts, onNodeDelete, onEdgeDelete]);
+  }, [
+    graph,
+    layout,
+    selectedIds,
+    zoomToFit,
+    onChange,
+    history,
+    enableShortcuts,
+    onNodeDelete,
+    onContainerDelete,
+    onEdgeDelete,
+    effectiveDrawingEdge,
+    portPrompt,
+    drawingSource,
+    setDrawingEdge,
+    resetAndExitDrawingMode,
+  ]);
 
-  // Complex interaction: Add connected node above or below
+  // Quick-add connected node from a specific port's "+" button
   const handleAddConnectedNode = useCallback(
-    (currentNode: NodeEntity, position: 'top' | 'bottom') => {
+    (
+      currentNode: NodeEntity,
+      portId: ID,
+      side: 'top' | 'bottom' | 'left' | 'right'
+    ) => {
       const newNodeId = generateId();
       const newEdgeId = generateId();
 
-      const isBT = direction === 'BT';
-      const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
+      const clickedPort = currentNode.ports.find((p) => p.id === portId);
+      const labelLower = clickedPort?.label?.toLowerCase() || '';
+      const isIncomingByLabel =
+        labelLower === 'in' ||
+        labelLower.startsWith('in_') ||
+        labelLower.endsWith('_in');
+      const isOutgoingByLabel =
+        labelLower === 'out' ||
+        labelLower.startsWith('out_') ||
+        labelLower.endsWith('_out');
+
+      const isIncomingBySide =
+        (direction === 'BT' && side === 'bottom') ||
+        (direction === 'TB' && side === 'top') ||
+        (direction === 'LR' && side === 'left') ||
+        (direction === 'RL' && side === 'right');
+
+      const isPrepending = isIncomingByLabel
+        ? true
+        : isOutgoingByLabel
+        ? false
+        : isIncomingBySide;
 
       if (onNodeCreate && onEdgeCreate) {
-        // External consumer handles persistence manually
         onNodeCreate({
           id: newNodeId,
           type: currentNode.type || 'FlowTask',
@@ -371,12 +717,12 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           onEdgeCreate(currentNode.id, newNodeId, newEdgeId);
         }
       } else {
-        // Default: atomic history action
         onChange({
           type: 'NODE_ADD_CONNECTED',
           payload: {
             sourceNode: currentNode,
-            position,
+            position: side,
+            portId,
             direction,
             suggestedNewNodeId: newNodeId,
             suggestedNewEdgeId: newEdgeId,
@@ -402,7 +748,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       const nodeType = sourceNode?.type || 'FlowTask';
 
       if (onNodeCreate && onEdgeCreate && onEdgeDelete) {
-        // External consumer handles persistence manually
         onEdgeDelete(edge.id);
         onNodeCreate({
           id: newNodeId,
@@ -413,7 +758,6 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         onEdgeCreate(edge.sourceId, newNodeId, newEdge1Id);
         onEdgeCreate(newNodeId, edge.targetId, newEdge2Id);
       } else {
-        // Default: atomic history action
         onChange({
           type: 'EDGE_SPLIT_INSERT_NODE',
           payload: {
@@ -449,7 +793,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     const options: LayoutOptions = {
       direction,
       aspectRatio: dynamicAspect,
-      ...layoutOptions
+      ...layoutOptions,
     };
 
     activeEngine.execute(graph, measurements, options).then((computed) => {
@@ -463,115 +807,12 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
     };
   }, [graph, measurements, activeEngine, direction, layoutOptions]);
 
-  // Port wiring handlers
-  const handlePortPointerDown = (
-    entityId: string,
-    portId: string,
-    isSource: boolean,
-    e: React.PointerEvent
-  ) => {
-    const entity = graph.nodes[entityId] || graph.containers[entityId];
-    const itemLayout = layout.nodes[entityId] || layout.containers[entityId];
-    if (!entity || !itemLayout) return;
-
-    const portLocs = computeEntityPortLocations(
-      entity,
-      itemLayout,
-      direction,
-      graph.edges,
-      resolvedPortOptions
-    );
-    const loc = portLocs.get(portId);
-
-    const startPos = loc
-      ? { x: loc.worldX, y: loc.worldY }
-      : { x: itemLayout.x + itemLayout.width, y: itemLayout.y + itemLayout.height / 2 };
-
-    setActiveWire({
-      sourceId: entityId,
-      sourcePortId: portId,
-      startWorldPos: startPos,
-      currentWorldPos: screenToWorld(e.clientX, e.clientY)
-    });
-  };
-
-  const handlePortPointerUp = (entityId: string, portId: string, isSource: boolean) => {
-    if (activeWire && activeWire.sourceId !== entityId) {
-      const fromEntity = graph.nodes[activeWire.sourceId] || graph.containers[activeWire.sourceId];
-      const toEntity = graph.nodes[entityId] || graph.containers[entityId];
-
-      const fromPort = fromEntity?.ports?.find((p) => p.id === activeWire.sourcePortId);
-      const toPort = toEntity?.ports?.find((p) => p.id === portId);
-
-      let finalSourceId = activeWire.sourceId;
-      let finalSourcePortId = activeWire.sourcePortId;
-      let finalTargetId = entityId;
-      let finalTargetPortId = portId;
-
-      const isFromIn = fromPort?.label?.toLowerCase().includes('in') || fromPort?.side === (direction === 'BT' ? 'bottom' : 'top');
-      const isFromOut = fromPort?.label?.toLowerCase().includes('out') || fromPort?.side === (direction === 'BT' ? 'top' : 'bottom');
-      const isToIn = toPort?.label?.toLowerCase().includes('in') || toPort?.side === (direction === 'BT' ? 'bottom' : 'top');
-      const isToOut = toPort?.label?.toLowerCase().includes('out') || toPort?.side === (direction === 'BT' ? 'top' : 'bottom');
-
-      // Rule 1: Dragged backwards from input to output: normalize so out -> in
-      if (isFromIn && isToOut) {
-        finalSourceId = entityId;
-        finalSourcePortId = portId;
-        finalTargetId = activeWire.sourceId;
-        finalTargetPortId = activeWire.sourcePortId;
-      } 
-      // Rule 2: Already valid output -> input: preserve user's explicit intent!
-      else if (isFromOut && isToIn) {
-        finalSourceId = activeWire.sourceId;
-        finalSourcePortId = activeWire.sourcePortId;
-        finalTargetId = entityId;
-        finalTargetPortId = portId;
-      }
-      // Rule 3: Fallback spatial normalization only for ambiguous/untyped ports
-      else if (layout.nodes[activeWire.sourceId] && layout.nodes[entityId]) {
-        const fromLayout = layout.nodes[activeWire.sourceId];
-        const toLayout = layout.nodes[entityId];
-
-        const shouldFlipBT = direction === 'BT' && fromLayout.y < toLayout.y;
-        const shouldFlipTB = direction === 'TB' && fromLayout.y > toLayout.y;
-
-        if (shouldFlipBT || shouldFlipTB) {
-          finalSourceId = entityId;
-          finalTargetId = activeWire.sourceId;
-
-          const newSourceNode = graph.nodes[finalSourceId];
-          const newTargetNode = graph.nodes[finalTargetId];
-
-          finalSourcePortId =
-            newSourceNode?.ports?.find((p) => p.label.includes('out') || p.side === (direction === 'BT' ? 'top' : 'bottom'))?.id || portId;
-          finalTargetPortId =
-            newTargetNode?.ports?.find((p) => p.label.includes('in') || p.side === (direction === 'BT' ? 'bottom' : 'top'))?.id || activeWire.sourcePortId;
-        }
-      }
-
-      onChange({
-        type: 'EDGE_CREATE',
-        payload: {
-          edge: {
-            sourceId: finalSourceId,
-            sourcePortId: finalSourcePortId,
-            targetId: finalTargetId,
-            targetPortId: finalTargetPortId
-          }
-        }
-      });
-    }
-
-    setActiveWire(null);
-  };
-
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
     if (e.button === 1 || isSpacePressedRef.current) {
       startPan(e.clientX, e.clientY);
       return;
     }
 
-    // Allow clicking on container, viewport, svg layers, or the canvas itself
     const target = e.target as HTMLElement;
     const isBackgroundClick =
       target === containerRef.current ||
@@ -580,32 +821,37 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       target.tagName.toLowerCase() === 'svg';
 
     if (e.button === 0 && isBackgroundClick) {
-      // Prevent browser native drag/selection
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
       const worldPos = screenToWorld(e.clientX, e.clientY);
+      marqueeStartScreenRef.current = { x: e.clientX, y: e.clientY };
       setMarqueeBox({
         startX: worldPos.x,
         startY: worldPos.y,
         currentX: worldPos.x,
-        currentY: worldPos.y
+        currentY: worldPos.y,
       });
-      onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
+
+      if (!effectiveDrawingEdge) {
+        onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
+      }
     }
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent) => {
+    if (effectiveDrawingEdge && drawingSource) {
+      setDrawingCursorWorld(screenToWorld(e.clientX, e.clientY));
+    }
+
     if (isPanning.current) {
       updatePan(e.clientX, e.clientY);
     } else if (marqueeBox) {
       const worldPos = screenToWorld(e.clientX, e.clientY);
-      setMarqueeBox((prev) => (prev ? { ...prev, currentX: worldPos.x, currentY: worldPos.y } : null));
-    } else if (dragState) {
-      onEntityPointerMove(e);
-    } else if (activeWire) {
-      setActiveWire((prev) =>
-        prev ? { ...prev, currentWorldPos: screenToWorld(e.clientX, e.clientY) } : null
+      setMarqueeBox((prev) =>
+        prev ? { ...prev, currentX: worldPos.x, currentY: worldPos.y } : null
       );
+    } else if (!effectiveDrawingEdge && dragState) {
+      onEntityPointerMove(e);
     }
   };
 
@@ -624,7 +870,37 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       const boxRight = Math.max(marqueeBox.startX, marqueeBox.currentX);
       const boxBottom = Math.max(marqueeBox.startY, marqueeBox.currentY);
 
-      if (boxRight - boxLeft > 4 || boxBottom - boxTop > 4) {
+      const startScreen = marqueeStartScreenRef.current;
+      const screenDist = startScreen
+        ? Math.hypot(e.clientX - startScreen.x, e.clientY - startScreen.y)
+        : 0;
+      const isMarqueeDrag =
+        screenDist > 5 || boxRight - boxLeft > 4 || boxBottom - boxTop > 4;
+
+      if (effectiveDrawingEdge) {
+        if (!isMarqueeDrag) {
+          // Canvas background click: wipe node/port selection and exit drawing mode
+          resetAndExitDrawingMode();
+          onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [] } });
+        } else if (drawingSource) {
+          // Marquee selection in drawing mode: connect source node to all enclosed nodes
+          const destNodeIds: ID[] = [];
+          for (const [id, nLayout] of Object.entries(layout.nodes)) {
+            if (id === drawingSource.nodeId) continue;
+            if (
+              nLayout.x < boxRight &&
+              nLayout.x + nLayout.width > boxLeft &&
+              nLayout.y < boxBottom &&
+              nLayout.y + nLayout.height > boxTop
+            ) {
+              destNodeIds.push(id);
+            }
+          }
+          if (destNodeIds.length > 0) {
+            processDestinationQueue(drawingSource, destNodeIds);
+          }
+        }
+      } else if (isMarqueeDrag) {
         const selected: ID[] = [];
 
         for (const [id, nLayout] of Object.entries(layout.nodes)) {
@@ -653,39 +929,23 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       }
 
       setMarqueeBox(null);
+      marqueeStartScreenRef.current = null;
     }
 
-    if (dragState) {
+    if (!effectiveDrawingEdge && dragState) {
       onEntityPointerUp(e);
-    }
-    if (activeWire) {
-      setActiveWire(null);
     }
   };
 
   const shouldEnableQuickAdd =
     enableQuickAdd ?? (layoutOptions?.mode === 'flow');
-
-  // Helper to guarantee standard UUIDv4 format
-  const generateId = () => {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    // Fallback UUID RFC4122 generator if running in non-crypto environment
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  };
-
   const shouldEnableEdgeQuickAdd =
-    enableEdgeQuickAdd ?? (enableQuickAdd ?? (layoutOptions?.mode === 'flow'));
+    (enableEdgeQuickAdd ?? (enableQuickAdd ?? layoutOptions?.mode === 'flow')) &&
+    !effectiveDrawingEdge;
 
   const containersList = Object.values(graph.containers) as ContainerEntity[];
   const themeClass = theme === 'light' ? 'sysflow-theme-light' : 'sysflow-theme-dark';
 
-  // Merge themeTokens and custom styles onto root container
   const containerStyle = useMemo<React.CSSProperties>(() => {
     return {
       outline: 'none',
@@ -697,7 +957,9 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`sysflow-canvas ${themeClass} ${className}`}
+      className={`sysflow-canvas ${themeClass} ${
+        effectiveDrawingEdge ? 'sysflow-drawing-edge' : ''
+      } ${className}`}
       data-theme={theme}
       style={containerStyle}
       onWheel={onWheel}
@@ -713,15 +975,38 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
         containerTypes={containerTypes}
       />
 
+      {/* Drawing Mode Status Banner */}
+      {effectiveDrawingEdge && (
+        <div
+          className="sysflow-drawing-banner"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <span>
+            {drawingSource
+              ? `Source: "${
+                  graph.nodes[drawingSource.nodeId]?.label || drawingSource.nodeId
+                }" — Click destination node or drag marquee to connect (Esc to cancel)`
+              : 'Edge Drawing Mode — Click a source node (Esc or click background to exit)'}
+          </span>
+        </div>
+      )}
+
       {/* Floating Canvas Controls */}
-      <div className="sysflow-controls-panel">
+      <div
+        className="sysflow-controls-panel"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <button onClick={zoomIn} className="sysflow-control-btn" title="Zoom In (+)">
           +
         </button>
         <button onClick={zoomOut} className="sysflow-control-btn" title="Zoom Out (-)">
           −
         </button>
-        <button onClick={resetTransform} className="sysflow-control-btn" title="Reset Zoom (0)">
+        <button
+          onClick={resetTransform}
+          className="sysflow-control-btn"
+          title="Reset Zoom (0)"
+        >
           {Math.round(transform.zoom * 100)}%
         </button>
       </div>
@@ -729,7 +1014,7 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
       <div
         className="sysflow-viewport"
         style={{
-          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`
+          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`,
         }}
       >
         {/* Dynamic marquee selection rectangle */}
@@ -741,32 +1026,42 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
               top: `${Math.min(marqueeBox.startY, marqueeBox.currentY)}px`,
               width: `${Math.abs(marqueeBox.currentX - marqueeBox.startX)}px`,
               height: `${Math.abs(marqueeBox.currentY - marqueeBox.startY)}px`,
-              backgroundColor: 'color-mix(in srgb, var(--sysflow-node-selected, #aa9460) 15%, transparent)',
+              backgroundColor:
+                'color-mix(in srgb, var(--sysflow-node-selected, #aa9460) 15%, transparent)',
               border: '1px dashed var(--sysflow-node-selected, #aa9460)',
               borderRadius: '2px',
               pointerEvents: 'none',
-              zIndex: 90
+              zIndex: 90,
             }}
           />
         )}
 
-        {/* Dynamic live wiring preview line */}
-        {activeWire && (
-          <svg className="sysflow-edge-layer" style={{ pointerEvents: 'none' }}>
+        {/* Live edge drawing preview line from selected source port to cursor */}
+        {effectiveDrawingEdge && sourceWorldOrigin && drawingCursorWorld && (
+          <svg className="sysflow-edge-layer" style={{ pointerEvents: 'none', zIndex: 80 }}>
             <line
-              x1={activeWire.startWorldPos.x}
-              y1={activeWire.startWorldPos.y}
-              x2={activeWire.currentWorldPos.x}
-              y2={activeWire.currentWorldPos.y}
-              stroke="var(--sysflow-edge-selected, #aa9460)"
+              x1={sourceWorldOrigin.x}
+              y1={sourceWorldOrigin.y}
+              x2={drawingCursorWorld.x}
+              y2={drawingCursorWorld.y}
+              stroke="var(--sysflow-edge-selected, #38bdf8)"
               strokeWidth={2}
-              strokeDasharray="4 4"
+              strokeDasharray="6 4"
+            />
+            <circle
+              cx={sourceWorldOrigin.x}
+              cy={sourceWorldOrigin.y}
+              r={4}
+              fill="var(--sysflow-edge-selected, #38bdf8)"
             />
           </svg>
         )}
 
         {/* 1. Container Layer */}
-        <div className="sysflow-containers-layer" style={{ position: 'absolute', zIndex: 1, pointerEvents: 'none' }}>
+        <div
+          className="sysflow-containers-layer"
+          style={{ position: 'absolute', zIndex: 1, pointerEvents: 'none' }}
+        >
           {containersList.map((container: ContainerEntity) => {
             const containerLayout = layout.containers[container.id];
             if (!containerLayout) return null;
@@ -783,26 +1078,39 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 selected={selectedIds.includes(container.id)}
                 isHovered={hoveredContainerId === container.id}
                 hasChildren={hasChildren}
-                customRenderer={container.type ? containerTypes?.[container.type] : undefined}
-                onToggleCollapse={(cId, collapsed) =>
+                customRenderer={
+                  container.type ? containerTypes?.[container.type] : undefined
+                }
+                onToggleCollapse={(cId, collapsed) => {
+                  if (effectiveDrawingEdge) return;
                   onChange({
                     type: 'CONTAINER_TOGGLE_COLLAPSE',
-                    payload: { containerId: cId, collapsed }
-                  })
-                }
-                onPointerDown={onEntityPointerDown}
+                    payload: { containerId: cId, collapsed },
+                  });
+                }}
+                onPointerDown={(c, e) => {
+                  if (effectiveDrawingEdge) {
+                    e.stopPropagation();
+                    return;
+                  }
+                  onEntityPointerDown(c, e);
+                }}
                 onMouseEnter={() => {}}
                 onMouseLeave={() => {}}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [container.id] } });
+                  if (effectiveDrawingEdge) return;
+                  onChange({
+                    type: 'SELECTION_CHANGE',
+                    payload: { selectedIds: [container.id] },
+                  });
                 }}
               />
             );
           })}
         </div>
 
-        {/* 2. Edges Layer (z-index: 5) */}
+        {/* 2. Edges Layer */}
         <GraphEdgeLayer
           graph={graph}
           layout={layout}
@@ -813,13 +1121,17 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           portOptions={resolvedPortOptions}
           enableEdgeQuickAdd={shouldEnableEdgeQuickAdd}
           onInsertNodeOnEdge={handleInsertNodeOnEdge}
-          onEdgeClick={(edgeId) =>
-            onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } })
-          }
+          onEdgeClick={(edgeId) => {
+            if (effectiveDrawingEdge) return;
+            onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [edgeId] } });
+          }}
         />
 
         {/* 3. Node Layer */}
-        <div className="sysflow-nodes-layer" style={{ position: 'absolute', zIndex: 10, pointerEvents: 'none' }}>
+        <div
+          className="sysflow-nodes-layer"
+          style={{ position: 'absolute', zIndex: 10, pointerEvents: 'none' }}
+        >
           {Object.values(graph.nodes).map((node) => {
             const nodeLayout = layout.nodes[node.id];
             if (!nodeLayout) return null;
@@ -833,6 +1145,8 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 edges={graph.edges}
                 portOptions={resolvedPortOptions}
                 selected={selectedIds.includes(node.id)}
+                isDrawingEdge={effectiveDrawingEdge}
+                isDrawingSource={drawingSource?.nodeId === node.id}
                 customRenderer={node.type ? nodeTypes?.[node.type] : undefined}
                 enableQuickAdd={shouldEnableQuickAdd}
                 onAddConnectedNode={handleAddConnectedNode}
@@ -841,24 +1155,29 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
                 onMouseLeave={() => {}}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onChange({ type: 'SELECTION_CHANGE', payload: { selectedIds: [node.id] } });
+                  if (effectiveDrawingEdge) {
+                    handleDrawingNodeClick(node, e.clientX, e.clientY);
+                    return;
+                  }
+                  onChange({
+                    type: 'SELECTION_CHANGE',
+                    payload: { selectedIds: [node.id] },
+                  });
                   onNodeClick?.(node.id, node);
                 }}
-                onPortPointerDown={handlePortPointerDown}
-                onPortPointerUp={handlePortPointerUp}
               />
             );
           })}
         </div>
 
         {/* Ghost feedback during drag */}
-        {dragState && (
+        {!effectiveDrawingEdge && dragState && (
           <div
             className="sysflow-node sysflow-ghost-node"
             style={{
               transform: `translate(${dragState.ghostPosition.x}px, ${dragState.ghostPosition.y}px)`,
               width: `${measurements.get(dragState.draggedEntity.id)?.width || 200}px`,
-              height: `${measurements.get(dragState.draggedEntity.id)?.height || 64}px`
+              height: `${measurements.get(dragState.draggedEntity.id)?.height || 64}px`,
             }}
           >
             <div style={{ padding: '8px 12px', fontWeight: 600 }}>
@@ -867,17 +1186,81 @@ export const SysFlowCanvas: React.FC<SysFlowCanvasProps> = ({
           </div>
         )}
       </div>
+
+      {/* Multi-Port Selection Modal */}
+      {portPrompt && (
+        <div
+          className="sysflow-port-modal-backdrop"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setPortPrompt(null);
+          }}
+        >
+          <div
+            className="sysflow-port-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sysflow-port-modal-header">
+              <h4 style={{ margin: 0, fontSize: 15 }}>
+                {portPrompt.role === 'source'
+                  ? 'Select Source Port'
+                  : 'Select Destination Port'}
+              </h4>
+              <span style={{ fontSize: 12, color: 'var(--sysflow-node-subtext)' }}>
+                Node: <strong>{portPrompt.node.label}</strong>
+                {portPrompt.remainingDestNodeIds &&
+                  portPrompt.remainingDestNodeIds.length > 0 && (
+                    <> ({portPrompt.remainingDestNodeIds.length} more queued)</>
+                  )}
+              </span>
+            </div>
+
+            <div className="sysflow-port-modal-list">
+              {portPrompt.candidatePorts.map((port) => (
+                <button
+                  key={port.id}
+                  type="button"
+                  className="sysflow-port-modal-option"
+                  onClick={() => handleSelectPortInModal(port)}
+                >
+                  <span style={{ fontWeight: 600 }}>{port.label}</span>
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>
+                    {port.side ? `side: ${port.side}` : port.id}
+                    {port.data?.busWidth ? ` • ${String(port.data.busWidth)}` : ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="sysflow-port-modal-footer">
+              {portPrompt.role === 'destination' &&
+                portPrompt.remainingDestNodeIds &&
+                portPrompt.remainingDestNodeIds.length > 0 && (
+                  <button
+                    type="button"
+                    className="sysflow-control-btn"
+                    onClick={() => {
+                      const source = portPrompt.source!;
+                      const remaining = portPrompt.remainingDestNodeIds!;
+                      setPortPrompt(null);
+                      processDestinationQueue(source, remaining);
+                    }}
+                  >
+                    Skip Node
+                  </button>
+                )}
+              <button
+                type="button"
+                className="sysflow-control-btn"
+                onClick={() => setPortPrompt(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-const btnStyle: React.CSSProperties = {
-  background: '#1e293b',
-  border: '1px solid #334155',
-  color: '#f8fafc',
-  padding: '4px 8px',
-  borderRadius: 4,
-  cursor: 'pointer',
-  fontSize: '12px',
-  fontWeight: 600
 };

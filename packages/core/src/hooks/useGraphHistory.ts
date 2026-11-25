@@ -383,13 +383,62 @@ export function useGraphHistory(
           edges: nextEdges,
         });
       } else if (action.type === 'NODE_ADD_CONNECTED') {
-        const { sourceNode, position, direction, suggestedNewNodeId, suggestedNewEdgeId } =
-          action.payload;
+        const {
+          sourceNode,
+          position,
+          portId,
+          direction,
+          suggestedNewNodeId,
+          suggestedNewEdgeId,
+        } = action.payload;
+
         const isBT = direction === 'BT';
+        const isTB = direction === 'TB';
+        const isRL = direction === 'RL';
+
+        const inSide: 'top' | 'bottom' | 'left' | 'right' = isBT
+          ? 'bottom'
+          : isTB
+          ? 'top'
+          : isRL
+          ? 'right'
+          : 'left';
+        const outSide: 'top' | 'bottom' | 'left' | 'right' = isBT
+          ? 'top'
+          : isTB
+          ? 'bottom'
+          : isRL
+          ? 'left'
+          : 'right';
+
         const fallbackInPortId = `p_in_${Date.now()}`;
         const fallbackOutPortId = `p_out_${Date.now() + 1}`;
 
-        const isPrepending = (isBT && position === 'bottom') || (!isBT && position === 'top');
+        const clickedPort = portId
+          ? sourceNode.ports.find((p) => p.id === portId)
+          : undefined;
+        const clickedLabel = clickedPort?.label?.toLowerCase() || '';
+        const isIncomingByLabel =
+          clickedLabel === 'in' ||
+          clickedLabel.startsWith('in_') ||
+          clickedLabel.endsWith('_in');
+        const isOutgoingByLabel =
+          clickedLabel === 'out' ||
+          clickedLabel.startsWith('out_') ||
+          clickedLabel.endsWith('_out');
+
+        const isIncomingBySide =
+          (isBT && position === 'bottom') ||
+          (isTB && position === 'top') ||
+          (!isBT && !isTB && !isRL && position === 'left') ||
+          (isRL && position === 'right');
+
+        const isPrepending = isIncomingByLabel
+          ? true
+          : isOutgoingByLabel
+          ? false
+          : isIncomingBySide;
+
         const sourceId = isPrepending ? suggestedNewNodeId : sourceNode.id;
         const targetId = isPrepending ? sourceNode.id : suggestedNewNodeId;
 
@@ -409,52 +458,51 @@ export function useGraphHistory(
           label: customProps?.label || `Node ${Object.keys(prev.nodes).length + 1}`,
           type: customProps?.type || sourceNode.type,
           ports: customProps?.ports || [
-            { id: fallbackInPortId, label: 'in', side: isBT ? 'bottom' : 'top' },
-            { id: fallbackOutPortId, label: 'out', side: isBT ? 'top' : 'bottom' },
+            { id: fallbackInPortId, label: 'in', side: inSide },
+            { id: fallbackOutPortId, label: 'out', side: outSide },
           ],
           data: customProps?.data || {},
           parentId: customProps?.parentId ?? sourceNode?.parentId ?? null,
           ...customProps,
         };
 
-        // Resolve ports from the actual instantiated newNode
         const resolvedInPort =
           newNode.ports.find((p) => p.label.toLowerCase().includes('in')) ||
-          newNode.ports.find((p) => p.side === (isBT ? 'bottom' : 'top')) ||
+          newNode.ports.find((p) => p.side === inSide) ||
           newNode.ports[0];
 
         const resolvedOutPort =
           newNode.ports.find((p) => p.label.toLowerCase().includes('out')) ||
-          newNode.ports.find((p) => p.side === (isBT ? 'top' : 'bottom')) ||
+          newNode.ports.find((p) => p.side === outSide) ||
           newNode.ports[newNode.ports.length - 1];
 
         const inPortId = resolvedInPort ? resolvedInPort.id : fallbackInPortId;
         const outPortId = resolvedOutPort ? resolvedOutPort.id : fallbackOutPortId;
 
         const currentInPort =
-          sourceNode.ports.find((p) => p.label === 'in') || sourceNode.ports[0];
+          clickedPort ||
+          sourceNode.ports.find((p) => p.label.toLowerCase() === 'in') ||
+          sourceNode.ports[0];
         const currentOutPort =
-          sourceNode.ports.find((p) => p.label === 'out') ||
+          clickedPort ||
+          sourceNode.ports.find((p) => p.label.toLowerCase() === 'out') ||
           sourceNode.ports[sourceNode.ports.length - 1];
 
-        let newEdge: EdgeEntity;
-        if (isPrepending) {
-          newEdge = {
-            id: suggestedNewEdgeId,
-            sourceId: newNode.id,
-            sourcePortId: outPortId,
-            targetId: sourceNode.id,
-            targetPortId: currentInPort?.id || 'in',
-          };
-        } else {
-          newEdge = {
-            id: suggestedNewEdgeId,
-            sourceId: sourceNode.id,
-            sourcePortId: currentOutPort?.id || 'out',
-            targetId: newNode.id,
-            targetPortId: inPortId,
-          };
-        }
+        const newEdge: EdgeEntity = isPrepending
+          ? {
+              id: suggestedNewEdgeId,
+              sourceId: newNode.id,
+              sourcePortId: outPortId,
+              targetId: sourceNode.id,
+              targetPortId: currentInPort?.id || 'in',
+            }
+          : {
+              id: suggestedNewEdgeId,
+              sourceId: sourceNode.id,
+              sourcePortId: currentOutPort?.id || 'out',
+              targetId: newNode.id,
+              targetPortId: inPortId,
+            };
 
         pushState({
           ...prev,

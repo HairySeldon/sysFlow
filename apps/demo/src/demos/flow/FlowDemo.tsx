@@ -70,6 +70,7 @@ export const FlowDemo: React.FC<{ theme?: 'dark' | 'light' }> = ({ theme }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editorNodeId, setEditorNodeId] = useState<string | null>(null);
   const [direction, setDirection] = useState<LayoutDirection>('BT');
+  const [isDrawingEdge, setIsDrawingEdge] = useState(false);
 
   // Provide factory to useGraphHistory for generating connected and spliced nodes
   const history = useGraphHistory(INITIAL_PIPELINE_GRAPH, {
@@ -152,6 +153,8 @@ export const FlowDemo: React.FC<{ theme?: 'dark' | 'light' }> = ({ theme }) => {
         graph={graph}
         selectedIds={selectedIds}
         direction={direction}
+        isDrawingEdge={isDrawingEdge}
+        onToggleDrawingEdge={() => setIsDrawingEdge((prev) => !prev)}
         onToggleDirection={() => setDirection((d) => (d === 'BT' ? 'TB' : 'BT'))}
         onAddNode={handleAddToolbarNode}
         onAddContainer={(label) => {
@@ -173,6 +176,8 @@ export const FlowDemo: React.FC<{ theme?: 'dark' | 'light' }> = ({ theme }) => {
         theme={theme}
         graph={graph}
         history={history}
+        isDrawingEdge={isDrawingEdge}
+        onDrawingEdgeChange={setIsDrawingEdge}
         onChange={(action) => {
           if (action.type === 'SELECTION_CHANGE') {
             setSelectedIds(action.payload.selectedIds);
