@@ -9,6 +9,7 @@ export declare class FlowArranger implements ChildArranger {
         width: number;
         height: number;
     }): ContainerArrangement;
+    private getAvgNeighborPos;
     private resolveToDirectChild;
 }
 //# sourceMappingURL=FlowArranger.d.ts.map
